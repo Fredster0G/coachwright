@@ -5,6 +5,9 @@ import { BootScreen } from './BootScreen'
 import { trainerRepo } from '@/db/repo'
 import { seedExercisesIfEmpty } from '@/db/seed'
 import { startMembershipRefreshLoop } from '@/lib/membershipApi'
+import { getSession, onSessionChange } from '@/lib/cloud/session'
+import { installSyncHooks, linkDevice, startSyncLoop } from '@/lib/cloud/syncEngine'
+import AuthScreen from '@/features/account/AuthScreen'
 import { I18nProvider } from '@/lib/i18n'
 import { TitleBar } from './TitleBar'
 
@@ -18,13 +21,17 @@ const MIN_PROGRESS_PHASE_MS = 500
 const REVEAL_PHASE_MS = 1300
 const FADE_OUT_MS = 380
 
+// Before anything can write to IndexedDB: every local write from here on is
+// tracked for upload (lib/cloud/syncEngine.ts).
+installSyncHooks()
+
 type BootStage = 'progress' | 'reveal' | 'done'
 
 /** Which boot step was running when it failed — named so the error screen can
  *  say something more useful than "something went wrong". Step labels
  *  themselves are looked up via `t('boot.step.<step>')` in BootScreen.tsx,
  *  not hardcoded here — this type is just the shared vocabulary. */
-type BootStep = 'trainer' | 'theme' | 'storage' | 'seed'
+type BootStep = 'trainer' | 'theme' | 'storage' | 'cloud' | 'seed'
 
 /** Gates the router behind the boot sequence (theme + durable storage +
  *  exercise-library seed) so no page can query IndexedDB before it's ready —
@@ -43,6 +50,11 @@ export function AppRoot() {
   // Bumped by the error screen's Retry so the boot effect runs again without a
   // full page reload (which would lose nothing, but reads as broken).
   const [attempt, setAttempt] = useState(0)
+  const [signedIn, setSignedIn] = useState(() => !!getSession())
+
+  // A 401 anywhere (session revoked, password changed on another device)
+  // clears the session; drop back to the sign-in screen.
+  useEffect(() => onSessionChange(() => setSignedIn(!!getSession())), [])
 
   useEffect(() => {
     let cancelled = false
@@ -65,7 +77,17 @@ export function AppRoot() {
         try { await navigator.storage.persist() } catch { /* not fatal — best effort */ }
       }
       if (cancelled) return
-      setProgress(70)
+      setProgress(65)
+
+      if (!getSession()) {
+        setReady(false)
+        setStage('done')
+        return
+      }
+      step = 'cloud'
+      await linkDevice()
+      if (cancelled) return
+      setProgress(80)
 
       step = 'seed'
       await seedExercisesIfEmpty()
@@ -103,12 +125,12 @@ export function AppRoot() {
     })
 
     return () => { cancelled = true }
-  }, [attempt])
+  }, [attempt, signedIn])
 
-  // Membership refresh only after boot: it reads the trainer row, which the
-  // boot sequence is what guarantees exists. A no-op for installs that never
-  // started checkout — see startMembershipRefreshLoop().
+  // Both loops start only after boot: they read the trainer row and need a
+  // linked account, which the boot sequence is what guarantees.
   useEffect(() => (ready ? startMembershipRefreshLoop() : undefined), [ready])
+  useEffect(() => (ready ? startSyncLoop() : undefined), [ready])
 
   const retry = () => {
     setError(null)
@@ -121,7 +143,10 @@ export function AppRoot() {
       <div className="flex h-full flex-col">
         <TitleBar />
         <div className="relative min-h-0 flex-1">
-          {ready && <RouterProvider router={router} />}
+          {ready && signedIn && <RouterProvider router={router} />}
+          {!signedIn && stage === 'done' && (
+            <AuthScreen onSignedIn={() => { setStage('progress'); setProgress(0); setFadingOut(false) }} />
+          )}
           {stage !== 'done' && (
             <BootScreen
               stage={stage === 'progress' ? 'progress' : 'reveal'}

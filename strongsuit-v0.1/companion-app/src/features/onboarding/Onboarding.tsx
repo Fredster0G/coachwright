@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Users, User } from 'lucide-react'
 import { Button, Card, Input, Label } from '@/design'
 import { profileRepo } from '@/db/repo'
-import { PairingFlow } from '@/features/sync/PairingFlow'
+import { ConnectFlow } from '@/features/sync/ConnectFlow'
 import type { CompanionProfile } from '@/db/types'
 
 type Step = 'name' | 'path' | 'pair'
@@ -10,8 +10,7 @@ type Step = 'name' | 'path' | 'pair'
 /** First run: get a name, then the one decision this whole doc is built
  *  around — "I have a coach" vs "I'm training myself." Neither path
  *  requires anything more than what's already on this device; the "pair"
- *  step hands off to `PairingFlow`, the real ECDH handshake + safety-number
- *  confirmation (see docs/CLIENT_APP_STRATEGY.md §3.5) — not a stub. */
+ *  step takes the coach's connect code (`ConnectFlow`). */
 export function Onboarding({ profile, onDone }: {
   profile: CompanionProfile
   onDone: (p: CompanionProfile) => void
@@ -57,7 +56,7 @@ export function Onboarding({ profile, onDone }: {
               <Users size={20} className="shrink-0 text-verde-600" />
               <span>
                 <span className="block text-sm font-medium text-ink">Yes, I have a coach</span>
-                <span className="block text-2xs text-muted">Pair using the code they gave you</span>
+                <span className="block text-2xs text-muted">Connect using the code they gave you</span>
               </span>
             </button>
             <button
@@ -68,7 +67,7 @@ export function Onboarding({ profile, onDone }: {
               <User size={20} className="shrink-0 text-verde-600" />
               <span>
                 <span className="block text-sm font-medium text-ink">No, I'm training myself</span>
-                <span className="block text-2xs text-muted">Start a personal log — you can pair with a coach later</span>
+                <span className="block text-2xs text-muted">Start a personal log — you can connect to a coach later</span>
               </span>
             </button>
           </div>
@@ -77,9 +76,9 @@ export function Onboarding({ profile, onDone }: {
 
       {step === 'pair' && (
         <div>
-          <h1 className="mb-1 font-display text-lg font-semibold text-ink">Pair with your coach</h1>
-          <p className="mb-3 text-xs text-muted">This confirms it's really them — no server sees anything until you both verify the safety number.</p>
-          <PairingFlow onPaired={finish} onSkip={finish} />
+          <h1 className="mb-1 font-display text-lg font-semibold text-ink">Connect to your coach</h1>
+          <p className="mb-3 text-xs text-muted">Ask your coach for a connect code. Your program and messages arrive here; your workouts go back to them.</p>
+          <ConnectFlow onConnected={finish} onSkip={finish} />
         </div>
       )}
     </div>

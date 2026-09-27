@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, MessageSquare, Send, RefreshCw, Radio, CloudOff, Link2, AlarmClock, X } from 'lucide-react'
+import { Plus, MessageSquare, Send, RefreshCw, Radio, AlarmClock, X } from 'lucide-react'
 import { Button, EmptyState, Dialog, Label, Card, toast, toastError } from '@/design'
-import { messagesRepo, devicesRepo, trainerRepo } from '@/db/repo'
-import type { CoachMessage, MessageDirection, MessageChannel, Device, Trainer } from '@/db/types'
+import { messagesRepo } from '@/db/repo'
+import type { CoachMessage, MessageDirection, MessageChannel } from '@/db/types'
 import { nowIso, newId } from '@/lib/core'
-import { pushRelayMessage, pullRelayMessages } from '@/features/sync/messageRelay'
-import { scheduleReminder, listUpcomingReminders, cancelReminder, type UpcomingReminder } from '@/features/sync/reminderRelay'
-import { cloudCapabilities } from '@/lib/cloudCapability'
+import { scheduleReminder, listUpcomingReminders, cancelReminder, type UpcomingReminder } from '@/lib/cloud/reminders'
+import { syncNow } from '@/lib/cloud/syncEngine'
 
 interface MessagesTabProps {
   clientId: string
@@ -92,13 +90,6 @@ function LogMessageDialog({ clientId, open, onClose }: { clientId: string; open:
   )
 }
 
-/** Send/receive live over the sync relay — needs both a configured cloud
- *  tier (Settings → Cloud) AND this specific client paired as a device
- *  (Studio Link / WiFi Sync). Explains whichever of those two is missing
- *  instead of just silently not being there — a coach on the fully-local
- *  tier should understand *why* there's no Live panel, not wonder if
- *  something broke. Everything sent here also lands in the local log below
- *  (channel 'app'), so the two views stay one unified timeline. */
 /** Default reminder slot: tomorrow morning. A datetime-local input with no
  *  value is a fiddly thing to fill in on a laptop, and "remind them tomorrow"
  *  is overwhelmingly the common case. */
@@ -112,15 +103,11 @@ function defaultSendAt(): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-/** Schedule a reminder the relay releases to this client at a chosen time
- *  (closes debt #56 — the endpoints and Companion's polling both already
- *  existed; nothing coach-side ever scheduled anything).
- *
- *  Reminders are sealed with the same pairing key as messages, so the relay
- *  holds ciphertext on a timer. Delivery is pull-based: the client sees it the
- *  next time Companion opens after `sendAt`, not necessarily at that exact
- *  minute — the copy says so rather than implying a push notification. */
-function ReminderScheduler({ trainer, device }: { trainer: Trainer; device: Device }) {
+/** Schedule a reminder the cloud releases to this client at a chosen time.
+ *  Delivery is pull-based: the client sees it the next time Companion opens
+ *  after `sendAt` — the copy says so rather than implying a push to a locked
+ *  phone. */
+function ReminderScheduler({ clientId }: { clientId: string }) {
   const [content, setContent] = useState('')
   const [sendAt, setSendAt] = useState(defaultSendAt)
   const [upcoming, setUpcoming] = useState<UpcomingReminder[]>([])
@@ -129,14 +116,14 @@ function ReminderScheduler({ trainer, device }: { trainer: Trainer; device: Devi
 
   const refresh = useCallback(async () => {
     try {
-      setUpcoming(await listUpcomingReminders(trainer, device))
+      setUpcoming(await listUpcomingReminders(clientId))
       setLoadFailed(false)
     } catch {
-      // The relay being unreachable shouldn't blank the panel — the coach can
+      // The server being unreachable shouldn't blank the panel — the coach can
       // still write one and find out on send.
       setLoadFailed(true)
     }
-  }, [trainer, device])
+  }, [clientId])
 
   useEffect(() => { void refresh() }, [refresh])
 
@@ -147,7 +134,7 @@ function ReminderScheduler({ trainer, device }: { trainer: Trainer; device: Devi
     if (when.getTime() <= Date.now()) { toastError('Pick a time in the future.'); return }
     setBusy(true)
     try {
-      await scheduleReminder(trainer, device, content.trim(), when)
+      await scheduleReminder(clientId, content.trim(), when)
       setContent('')
       toast('Reminder scheduled.')
       await refresh()
@@ -161,7 +148,7 @@ function ReminderScheduler({ trainer, device }: { trainer: Trainer; device: Devi
   async function cancel(id: string) {
     setBusy(true)
     try {
-      await cancelReminder(trainer, id)
+      await cancelReminder(id)
       toast('Reminder cancelled.')
       await refresh()
     } catch (e) {
@@ -202,7 +189,7 @@ function ReminderScheduler({ trainer, device }: { trainer: Trainer; device: Devi
       </p>
 
       {loadFailed && (
-        <p className="mt-2 text-2xs text-ember-600">Couldn't load already-scheduled reminders from the relay.</p>
+        <p className="mt-2 text-2xs text-ember-600">Couldn't load scheduled reminders — are you online?</p>
       )}
 
       {upcoming.length > 0 && (
@@ -230,53 +217,22 @@ function ReminderScheduler({ trainer, device }: { trainer: Trainer; device: Devi
   )
 }
 
+/** Messages to the client's Companion app. A message is just a synced
+ *  `messages` row (channel 'app'): it reaches the cloud with the next sync,
+ *  Companion picks it up from there, and replies come back the same way. */
 function LiveMessagePanel({ clientId }: { clientId: string }) {
-  const trainer = useLiveQuery(() => trainerRepo.get(), [], undefined)
-  const device = useLiveQuery(() => devicesRepo.forClient(clientId), [clientId], undefined)
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
 
-  if (trainer === undefined || device === undefined) return null
-  const cap = cloudCapabilities(trainer)
-
-  if (!cap.messaging) {
-    return (
-      <Card className="mb-4 flex items-start gap-2.5 text-xs text-muted">
-        <CloudOff size={15} className="mt-0.5 shrink-0 text-faint" />
-        <div>
-          <p className="font-medium text-ink">Live messaging isn't on for this coach account.</p>
-          <p className="mt-0.5">{cap.reasonUnavailable}</p>
-          <Link to="/settings" className="mt-1 inline-block text-verde-600 hover:underline">Open Settings → Cloud</Link>
-        </div>
-      </Card>
-    )
-  }
-  if (!device) {
-    return (
-      <Card className="mb-4 flex items-start gap-2.5 text-xs text-muted">
-        <Link2 size={15} className="mt-0.5 shrink-0 text-faint" />
-        <div>
-          <p className="font-medium text-ink">This client isn't paired to a device yet.</p>
-          <p className="mt-0.5">Cloud relay is on, but live messaging needs this specific client paired first — the encryption key comes from that pairing.</p>
-          <Link to="/sync" className="mt-1 inline-block text-verde-600 hover:underline">Open Studio Link to pair</Link>
-        </div>
-      </Card>
-    )
-  }
-
   async function send() {
-    if (!draft.trim() || !trainer || !device) return
+    if (!draft.trim()) return
     setBusy(true)
     try {
-      // One id across every transport: the local row, the relay row, and the
-      // copy inside future sync packets all share it, so no path can
-      // double-deliver this message into either side's thread.
-      const msgId = newId()
-      await pushRelayMessage(trainer, device, clientId, draft.trim(), msgId)
       await messagesRepo.create({
-        id: msgId, clientId, date: nowIso(), direction: 'outbound', channel: 'app', content: draft.trim(),
+        id: newId(), clientId, date: nowIso(), direction: 'outbound', channel: 'app', content: draft.trim(),
       })
       setDraft('')
+      await syncNow()
       toast('Sent.')
     } catch (e) {
       toastError(e instanceof Error ? e.message : "Couldn't send.")
@@ -286,34 +242,16 @@ function LiveMessagePanel({ clientId }: { clientId: string }) {
   }
 
   async function checkForReplies() {
-    if (!trainer || !device) return
     setBusy(true)
-    try {
-      const existing = await messagesRepo.forClient(clientId)
-      const lastPull = existing.filter(m => m.channel === 'app').at(-1)?.date
-      const pulled = await pullRelayMessages(trainer, device, clientId, lastPull)
-      // mergeUpsert (not create) — the same message may already be here via a
-      // sync packet under the same id; put-by-id keeps the thread duplicate-free.
-      if (pulled.length) {
-        await messagesRepo.mergeUpsert(pulled.map(m => ({
-          id: m.id, clientId, date: m.createdAt, direction: 'inbound' as const, channel: 'app' as const,
-          content: m.content, createdAt: m.createdAt, updatedAt: m.createdAt,
-        })))
-      }
-      toast(pulled.length ? `${pulled.length} new message${pulled.length === 1 ? '' : 's'}.` : 'Nothing new.')
-    } catch (e) {
-      toastError(e instanceof Error ? e.message : "Couldn't check for replies.")
-    } finally {
-      setBusy(false)
-    }
+    try { await syncNow() } finally { setBusy(false) }
   }
 
   return (
     <>
-    {cap.reminders && <ReminderScheduler trainer={trainer} device={device} />}
+    <ReminderScheduler clientId={clientId} />
     <Card className="mb-4">
       <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-verde-600">
-        <Radio size={13} /> Live — over the cloud relay
+        <Radio size={13} /> Companion app
       </div>
       <div className="flex items-end gap-2">
         <textarea
@@ -331,6 +269,7 @@ function LiveMessagePanel({ clientId }: { clientId: string }) {
           <RefreshCw size={14} className={busy ? 'animate-spin' : ''} />
         </Button>
       </div>
+      <p className="mt-1.5 text-2xs text-faint">Delivered once this client connects Companion (client page → Connect Companion).</p>
     </Card>
     </>
   )

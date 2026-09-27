@@ -195,7 +195,7 @@ export default function OnboardingWizard({ trainer }: Props) {
           <div className="space-y-6">
             <div>
               <h2 className="text-2xl font-bold text-ink mb-1">Data Ownership</h2>
-              <p className="text-faint text-sm">{APP_NAME} is local-first software — you choose what "the cloud" means, if anything.</p>
+              <p className="text-faint text-sm">Your data is saved to your {APP_NAME} account and synced to every device you sign in on.</p>
             </div>
 
             <div className="bg-amber-50 dark:bg-amber-950/20 p-5 rounded-xl border border-amber-200 dark:border-amber-900/50">
@@ -204,12 +204,12 @@ export default function OnboardingWizard({ trainer }: Props) {
                   <Save size={24} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-amber-900 dark:text-amber-500 mb-1">Your data lives on your device by default</h3>
+                  <h3 className="font-semibold text-amber-900 dark:text-amber-500 mb-1">Your data lives in your account</h3>
                   <p className="text-amber-800/80 dark:text-amber-500/80 text-sm leading-relaxed mb-4">
-                    All client data, programs, and history save directly on this device. Nothing leaves it unless you turn on syncing — from Settings you can run your own free sync relay, or have us host one for $15/mo. Either way it stays end-to-end encrypted; we can't read it.
+                    Client data, programs, and history sync to your account and to every device you sign in on, including the web app. If the internet drops, changes wait on this device and upload when you're back.
                   </p>
                   <p className="text-amber-800/80 dark:text-amber-500/80 text-sm font-semibold">
-                    You're responsible for your own backups either way. We'll remind you to export a backup file every 7 days.
+                    Want your own copy too? We'll remind you to export a backup file every 7 days.
                   </p>
                 </div>
               </div>

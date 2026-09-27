@@ -24,7 +24,7 @@ function NotificationsCard({ profile, onChanged }: { profile: CompanionProfile; 
       } else if (link) {
         setStatus(await enablePush(link))
       } else {
-        setStatus('Pair with a coach first — notifications are about what they send you.')
+        setStatus('Connect to a coach first — notifications are about what they send you.')
       }
       onChanged()
     } finally {

@@ -15,7 +15,7 @@ import {
 } from '@/lib/parq'
 import { acwr, type DayLoad } from '@/lib/trainingLoad'
 import { setTonnage } from '@/lib/core'
-import { sha256Hex } from '@/lib/sync'
+import { sha256Hex } from '@/lib/hash'
 import { today } from '@/lib/core'
 import { useTranslation } from '@/lib/i18n'
 

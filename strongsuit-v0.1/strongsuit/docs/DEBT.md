@@ -2,7 +2,7 @@
 
 **Original numbering preserved** so older docs' cross-references still resolve. **Never reuse an id** —
 duplicate ids have already caused a fixed bug to be "rediscovered" and re-fixed a session later.
-Next free id: **73**.
+Next free id: **80**.
 
 Closed debts are *not* listed here. Pre-S21 closures live in the frozen `PROGRESS.md` archive; later ones
 are recorded in the closing session's file under `docs/sessions/` — grep by number.
@@ -18,6 +18,11 @@ copies disagreed about what had shipped. **Partially resolved S15** — live doc
 `strongsuit-v0.1/strongsuit/docs/`, root copies frozen as archives. *Remaining: don't recreate the
 pattern. See `AGENTS.md` §2.* **S22 found one more live instance:** `BRANDING_PLAN.md` existed at the root
 and in the app dir, already diverged (the app copy predated S11's shipped logo). App copy is now a pointer.
+
+**75 · (S23, NEW) Privacy & legal after dropping E2EE.** Coach and client data (incl. health data:
+check-ins, PAR-Q, food logs, photos) is now readable by the operator. The EULA's §3/§4 were rewritten
+to say so (`EulaScreen.tsx`); there is no privacy policy, no DPA, and nobody legal has read either.
+**Blocker before real customers.** Consider encryption at rest on the VPS disk.
 
 **17 · Android has never been compiled.** `android/` is a real generated Capacitor project, but no SDK
 has existed in any build environment. "Next step ready," not "done."
@@ -45,25 +50,11 @@ Calendar, Business/Billing tabs, and Settings. Verified fine: Dashboard, Clients
 **26 · Client portability excludes** invoices/expenses/challenges — a ported client's payment ledger
 doesn't travel. Documented scope choice, not an oversight.
 
-**68 · (S20/S21, NEW) Client portability also excludes `foodEntries` — same shape as DEBT-26, not yet
-documented as a choice.** `db/portability.ts`'s `exportClientPackage`/`rekeyClientPackage` never gained a
-food-log branch when the food feature shipped. A client's diet history doesn't travel with them to a new
-coach or a rekeyed package. Real health data, worth closing deliberately rather than leaving silent —
-note `FoodEntry.foodItemId` points at a *shared*, non-client-scoped `FoodItem` cache row (keyed by
-barcode), so a correct fix needs to decide whether to bundle the referenced `FoodItem`s into the package
-too, not just remap `FoodEntry` the way `habitEntries` remaps `habitId`.
-
 **29 · GPU→CPU delegate fallback never tested** on hardware actually lacking WebGL2. The fallback path
 is structurally sound; the GPU path is what's been verified.
 
 **48 · Dual-clip tracking's hardware cost is unmeasured.** `'both'` mode runs two concurrent MediaPipe
 instances. It's opt-in *because* of this, but never tested on hardware marginal for even one.
-
-**49 · `vite-plugin-pwa` blocked** by its Vite `^6` peer cap; both apps are on Vite 8. Manifest + service
-worker are hand-rolled instead. Revisit when the plugin supports Vite 8.
-
-**54 · Electron LAN sync loop needs one two-device pass.** Contract-verified against a stub and the IPC
-response bug is fixed, but the real GUI-hosting-a-phone-sync loop has never run.
 
 **57 · Web Push needs one real-device round trip.** Server side fully verified via curl; the
 grant→subscribe→deliver→notification path can't be exercised in a sandbox that hard-denies prompts.
@@ -74,12 +65,9 @@ minute. UI says so. Minute-accuracy needs the Capacitor wrap.
 **58 · Lighthouse and cross-browser never run.** One browser engine available, no Lighthouse CLI.
 Unmeasured, not failing.
 
-**60 · `sync.ts`, `pose.ts`, `core.ts`, `singleFlight` duplicated** across the two apps — separate npm
-projects, no shared package. Three copies was the stated trigger for extracting a workspace. We're past it.
-
-**62 · Service worker is cache-first with background revalidate**, so the first load after an update can
-serve the previous build. "Reload twice" is the honest answer. Bump `CACHE` in `public/sw.js` on
-releases where it matters.
+**60 · `pose.ts`, `core.ts`, `singleFlight` duplicated** across the two apps — separate npm projects, no
+shared package. (`sync.ts` was the fourth; S23 deleted it from both.) Also now: the synced-table list lives
+in the app (`lib/cloud/tables.ts`) and the server (`SYNC_TABLES`) and must be kept equal by hand.
 
 **64 · i18n: ~53 of 57 components still hold hardcoded English.** Layer + RTL are done and the pattern
 is proven. `es.json`/`ar.json` are **seed translations** marked in their own `_meta` — must not ship to
@@ -99,13 +87,6 @@ S15; the tiers are inert anyway, see ROADMAP §3) and `multiSeat` (fine — Stud
 a product decision: does Membership map to an AI tier? Then either delete the three dead flags or wire
 them. S22 fixed only the false *copy* (`PERSONAL.upgradeReason`, `MembershipCard`).
 
-**71 · (S22, NEW) A membership can't survive a reinstall without a backup restore.** Membership is keyed
-by the device id and authorized by `trainer.membershipSecret`; both live in the trainer row. A backup
-restore brings both back. A fresh install without one gets a new device id, and the server (correctly)
-won't hand the old membership to it. There is no self-serve re-link — today it's a support job (look the
-coach up by Stripe customer, update `memberships.coach_id`/`secret_hash` by hand). Build a re-link flow
-(e.g. Stripe portal round-trip that proves card ownership) before this matters at volume.
-
 **72 · (S22, NEW) The pitch deck still sells the old model.** `Coachwright Pitch Deck.dc.html` headlines
 "$60. Forever." / "$60 once", and root `BRANDING_PLAN.md` §1's positioning says "buy once and own
 outright". `BRANDING_PLAN.md` §5 and `STRONGSUIT_MASTER_SPEC.md` now carry a superseded banner; the deck
@@ -115,10 +96,31 @@ Membership row** ("Everything in Free, uncapped: unlimited clients, program buil
 business tools") — it reads as if Free lacks those, which the code does not do (DEBT-70). §8 is
 Caleb-only per `AGENTS.md` §7, so it was not edited.
 
-**66 · (S15, NEW) The free-tier client cap is soft.** `canAddClient()` checks the coach's own IndexedDB;
-a determined user can edit it. This was fine when licensing was cosmetic — it now guards revenue.
-Unfixable without server-authoritative accounts, which would mean a different product. Accepted, but
-name it honestly rather than assuming it's enforcement.
+**66 · (S15) The free-tier client cap is soft.** `canAddClient()` checks the coach's own IndexedDB; a
+determined user can edit it. S23 made it *fixable* (accounts are server-authoritative now) — see DEBT-74.
+
+**73 · (S23, NEW) No password reset.** A coach who forgets their password is locked out of the account
+(their devices keep working and can export). Needs an email sender (Postmark/SES, ~$0–15/mo) and a
+`/auth/reset` token flow. Until then it's a manual support job: set a new scrypt hash in `accounts`.
+
+**74 · (S23, NEW) Free-tier cap isn't enforced server-side.** The server knows membership and can count a
+coach's active `clients` records, so `/data/push` could refuse a 4th active client for a non-member. Not
+built: it needs a clear UX for "your push was refused" and care with archived/restored clients.
+
+**76 · (S23, NEW) No account or data deletion.** No `/auth/delete`; GDPR/CCPA erasure is a manual SQL job.
+Cascades are already in the schema (`ON DELETE CASCADE` from `accounts`), so the route is small.
+
+**77 · (S23, NEW) Progress photos sync as data URLs inside JSON rows.** Simple and works, but it's the
+largest storage/bandwidth cost per coach and makes every photo edit re-upload the image. Move to object
+storage (S3/R2) with signed URLs when volume justifies it.
+
+**78 · (S23, NEW) Web build: `/#/assistant` typed by hand shows the route error page** rather than
+redirecting. Every link to it is hidden on web; cosmetic.
+
+**79 · (S23, NEW) Old pricing tiers still described in strategy docs.** The $15/mo managed relay and the
+free self-hosted relay no longer exist. `SERVER_STRATEGY.md`, `CLIENT_APP_STRATEGY.md`,
+`PRODUCT_OVERVIEW.md` carry a superseded banner rather than a rewrite (§8 is Caleb-only). Also decide
+whether cloud storage for free-tier coaches needs a limit.
 
 ---
 

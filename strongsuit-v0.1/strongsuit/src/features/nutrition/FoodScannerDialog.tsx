@@ -2,10 +2,8 @@ import { useState, useEffect, useRef } from 'react'
 import { Dialog } from '@/design/overlay'
 import { Button } from '@/design/controls'
 import { Camera, Search, Loader2, AlertCircle } from 'lucide-react'
-import { useLiveQuery } from 'dexie-react-hooks'
-import { foodItemsRepo, trainerRepo } from '@/db/repo'
+import { foodItemsRepo } from '@/db/repo'
 import { lookupBarcode } from '@/lib/food'
-import { cloudCapabilities } from '@/lib/cloudCapability'
 import type { FoodItem } from '@/db/types'
 
 // Support native BarcodeDetector if available in the browser (Chrome, Android, etc)
@@ -27,8 +25,6 @@ export function FoodScannerDialog({ open, onClose, onScan }: FoodScannerDialogPr
   const [mode, setMode] = useState<'scan' | 'manual'>('scan')
   const [error, setError] = useState<string | null>(null)
   const [lookupLoading, setLookupLoading] = useState(false)
-  const trainer = useLiveQuery(() => trainerRepo.get())
-  const cloud = cloudCapabilities(trainer)
 
   // Camera stream state
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -162,14 +158,7 @@ export function FoodScannerDialog({ open, onClose, onScan }: FoodScannerDialogPr
         return
       }
 
-      // 2. Doctrine check: offline?
-      if (!cloud.barcodeLookup) {
-        setError('Barcode not found in local cache. You are in fully-local mode, so network lookups to Open Food Facts are disabled.')
-        setLookupLoading(false)
-        return
-      }
-
-      // 3. Query Open Food Facts
+      // 2. Query Open Food Facts
       const remote = await lookupBarcode(barcode)
       if ('type' in remote) {
         setError(remote.message)
@@ -245,11 +234,9 @@ export function FoodScannerDialog({ open, onClose, onScan }: FoodScannerDialogPr
                   <p>{error}</p>
                 </div>
               )}
-              {cloud.barcodeLookup && (
-                <p className="mt-4 text-xs text-faint text-center">
-                  Lookups check your local cache first. If missing, product details will be securely fetched from Open Food Facts.
-                </p>
-              )}
+              <p className="mt-4 text-xs text-faint text-center">
+                Lookups check products you've scanned before first, then Open Food Facts.
+              </p>
             </div>
           )}
         </div>

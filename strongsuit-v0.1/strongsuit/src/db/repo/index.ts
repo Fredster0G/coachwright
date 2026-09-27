@@ -2,7 +2,7 @@ import { db } from '../schema'
 import { makeRepo } from './base'
 import { newId, nowIso, singleFlight, stamp } from '@/lib/core'
 import type {
-  Trainer, Client, ClientNote, Program, SessionLog, Metric, Waiver, Device, CoachMessage,
+  Trainer, Client, ClientNote, Program, SessionLog, Metric, Waiver, CoachMessage,
   Staff, Location, Lead, ProgressPhoto, Habit, HabitEntry, Challenge, Invoice, Coupon, AutomationRule,
   ModelBlob, ExerciseEmbedding, Exercise, ExerciseOverride, FoodItem, FoodEntry,
 } from '../types'
@@ -251,17 +251,6 @@ export const waiversRepo = {
   ...makeRepo<Waiver>(db.waivers),
   async forClient(clientId: string) {
     return db.waivers.where('clientId').equals(clientId).reverse().sortBy('signedDate')
-  },
-}
-
-// ---------- paired sync devices ----------
-export const devicesRepo = {
-  ...makeRepo<Device>(db.devices),
-  async all() {
-    return db.devices.toArray()
-  },
-  async forClient(clientId: string) {
-    return db.devices.where('clientId').equals(clientId).first()
   },
 }
 

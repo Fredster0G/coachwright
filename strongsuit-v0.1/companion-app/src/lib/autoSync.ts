@@ -8,7 +8,7 @@
 // (lib/push.ts) — the OS's single shared push channel, not our polling.
 
 import { coachLinkRepo, profileRepo } from '@/db/repo'
-import { syncNow, pullReminders } from '@/features/sync/companionSyncApi'
+import { syncNow } from '@/features/sync/companionSyncApi'
 
 const THROTTLE_MS = 15 * 60 * 1000 // at most one auto-sync per 15 minutes
 let lastRun = 0
@@ -21,13 +21,12 @@ type Notify = (r: AutoSyncResult) => void
 async function runOnce(notify?: Notify) {
   if (running || Date.now() - lastRun < THROTTLE_MS) return
   const link = await coachLinkRepo.get()
-  if (!link || !link.relayUrl) return // nothing to reach without a relay — WiFi/file sync are user-initiated
+  if (!link) return
   running = true
   try {
     const r = await syncNow(link)
-    const reminders = await pullReminders(link)
     lastRun = Date.now()
-    if ((r.pulled || r.programs || reminders) && notify) notify({ ...r, reminders })
+    if ((r.pulled || r.programs || r.reminders) && notify) notify(r)
   } catch {
     // Offline or server unreachable — fine, we'll try again on the next
     // foreground/online event. Never surface an error for a background sync.

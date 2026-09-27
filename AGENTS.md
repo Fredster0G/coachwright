@@ -31,8 +31,9 @@ coachwright/                       ← repo root
     docs/STATUS.md                 ← current state (read first)
     docs/ROADMAP.md                ← what's left, prioritized, with tool routing
     docs/DEBT.md                   ← open debts only, unique ids
+    docs/CLOUD.md                  ← backend architecture, sync model, API, operator runbook
     docs/sessions/S##-slug.md      ← append-only session logs, one small file each
-  strongsuit-v0.1/sync-server/     ← the relay + Stripe billing (separate npm project, `npm test`)
+  strongsuit-v0.1/sync-server/     ← Coachwright Cloud: accounts, sync, Companion API, Stripe (`npm test`)
   strongsuit-v0.1/companion-app/   ← the client-facing PWA (separate npm project)
   client-pwa/                      ← empty stub (a bare package-lock.json) — not a project, ignore it
 ```
@@ -114,8 +115,8 @@ This codebase has a consistent, unusually high bar otherwise. Match it:
 
 | Area | Why it bites |
 |---|---|
-| `lib/licence.ts`, `lib/membership.ts`, `sync-server/membershipTokens.ts` | Token signing is **byte-exact across two independent implementations**. Change the claim order or encoding in one and every issued token silently fails to verify. There are tests, but the app-side and server-side agreement is only proven by cross-checking a real minted token. |
-| `features/sync/` + `lib/sync/` | E2EE. Keying is asymmetric and subtle (messages key by one id, reminders by another — see DEBT-56). "Harmonising" them breaks real pairings. |
+| `lib/licence.ts` | Pre-2026-08 one-time licence keys, verified offline, **never expire**. Don't change the claim shape or canonicalization — already-issued keys would stop verifying. (Membership no longer uses signed tokens since S23; it's an account lookup.) |
+| `lib/cloud/` + `sync-server/server.ts` | `SYNCED_TABLES` (app) and `SYNC_TABLES` (server) must match — a table missing on either side silently never syncs. `Table.clear()` skips the Dexie hooks, so its deletions never reach the cloud; use `toCollection().delete()`. `linkDevice()`'s rules are what stop two accounts' data mixing on one machine — read `docs/CLOUD.md` §2 before touching them. Companion's writes are forced onto its own client server-side (`/client/push`); keep it that way. |
 | `electron/` | Packaging has burned two sessions. Orphaned `node.exe` processes hold file locks and produce `EPERM` failures that look like antivirus. Always `Get-Process node,electron` before a build. |
 | Tailwind classes | **Systemic recurring bug (DEBT-20).** Undefined classes silently no-op instead of erroring. Every model writing classes from memory reintroduces them. Grep `tailwind.config.js` before using any color/shadow/animation class you did not just look up. |
 | `trainerRepo.getOrCreate()` | First-boot race, fixed twice, observed live again once. Single-flighted now. Don't "simplify" it. |
@@ -131,8 +132,9 @@ This codebase has a consistent, unusually high bar otherwise. Match it:
 
 ## 7. Do not do these without asking Caleb
 
-- Spend real money, use real Stripe keys, or deploy anything.
+- Spend real money, use real Stripe keys, or deploy anything (including Coachwright Cloud).
 - Delete data, force-push, or rewrite git history.
 - Change the pricing model, the brand promise, or anything in `PRODUCT_OVERVIEW.md` §8.
-- Add a dependency over ~10MB, or any dependency that phones home at runtime.
+- Add a dependency over ~10MB, or any **third-party** service the app calls at runtime (Coachwright Cloud
+  itself and Open Food Facts are the only ones today; Stripe is server-side).
 - Mark a roadmap item done that you could not verify.

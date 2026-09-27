@@ -16,9 +16,8 @@ export function PersonalCloudCard({ profile }: { profile: CompanionProfile }) {
         <p className="font-display text-base font-semibold text-ink">Personal Cloud</p>
       </div>
       <p className="mb-3 text-xs text-muted">
-        Everything in Companion works fully offline, forever, for free — this is only for syncing your own
-        data between your own devices without needing a coach's relay. If you have a coach and they've
-        turned on cloud sync, that's free and separate from this.
+        Logging your own training in Companion is free. This is only for syncing your own data between your
+        own devices when you train without a coach. Connecting to a coach is always free and separate from this.
       </p>
 
       <div className="rounded-ctl border border-line p-3">

@@ -1,12 +1,7 @@
 import { app, BrowserWindow, ipcMain, Menu, protocol, net, shell } from 'electron'
 import * as path from 'path'
 import * as fs from 'fs'
-import * as os from 'os'
-import { randomUUID } from 'crypto'
 import { pathToFileURL } from 'url'
-import express from 'express'
-import cors from 'cors'
-import { Server } from 'http'
 import { buildAppMenu } from './menu'
 import { loadWindowState, trackWindowState, MIN_SIZE } from './windowState'
 
@@ -32,11 +27,8 @@ protocol.registerSchemesAsPrivileged([
     scheme: APP_SCHEME,
     privileges: {
       standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true,
-      // src/main.tsx registers ./sw.js (PROD builds only) for offline PWA
-      // caching — without this flag that registration would silently fail
-      // under a custom scheme (silently, since it's wrapped in .catch(()=>{})
-      // there on purpose; still worth actually supporting rather than
-      // relying on the failure being harmless).
+      // Needed so public/sw.js (a self-removing worker since S23) can run
+      // once and unregister the old offline cache on existing installs.
       allowServiceWorkers: true,
     },
   },
@@ -44,20 +36,7 @@ protocol.registerSchemesAsPrivileged([
 
 let mainWindow: BrowserWindow | null = null
 let splashWindow: BrowserWindow | null = null
-let syncServer: Server | null = null
 
-function getLocalIpAddress(): string {
-  const interfaces = os.networkInterfaces()
-  for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name]!) {
-      // Skip internal and non-IPv4 addresses
-      if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address
-      }
-    }
-  }
-  return '127.0.0.1'
-}
 
 function createWindow() {
   // Splash shows immediately (native window boot is instant; the renderer's
@@ -227,73 +206,3 @@ ipcMain.handle('show-app-menu', () => {
   if (mainWindow) Menu.getApplicationMenu()?.popup({ window: mainWindow })
 })
 
-// --- IPC Handlers for WiFi Sync ---
-
-ipcMain.handle('get-local-ip', () => {
-  return getLocalIpAddress()
-})
-
-ipcMain.handle('start-sync-server', async (event, port = 4000) => {
-  if (syncServer) {
-    return { success: false, message: 'Server already running' }
-  }
-
-  return new Promise((resolve) => {
-    try {
-      const expressApp = express()
-      expressApp.use(cors())
-      expressApp.use(express.json({ limit: '50mb' }))
-
-      // Endpoint for a Companion client on the same WiFi to push its sealed
-      // packet. The renderer (which owns Dexie + the pairing keys) applies
-      // it and answers with the coach's return packet in `message` — so one
-      // POST is a full two-way sync. Each request gets its own syncId and
-      // listener: two clients syncing at once can't take each other's
-      // responses, and a renderer that never answers times out instead of
-      // holding the client's request open forever.
-      expressApp.post('/sync/push', (req, res) => {
-        if (!mainWindow) {
-          res.status(500).json({ success: false, message: 'Coach app not ready' })
-          return
-        }
-        const syncId = randomUUID()
-        const listener = (_evt: Electron.IpcMainEvent, response: { syncId: string; success: boolean; message?: string }) => {
-          if (response?.syncId !== syncId) return
-          ipcMain.removeListener('sync-response', listener)
-          clearTimeout(timer)
-          res.status(response.success ? 200 : 400).json(response)
-        }
-        const timer = setTimeout(() => {
-          ipcMain.removeListener('sync-response', listener)
-          res.status(504).json({ success: false, message: 'Coach app did not respond' })
-        }, 30_000)
-        ipcMain.on('sync-response', listener)
-        mainWindow.webContents.send('sync-request', { ...req.body, syncId })
-      })
-
-      // Endpoint for clients to pull their packets (Program updates)
-      // For a truly offline feel, the client can just push their payload and receive the coach's payload in the same response.
-      // But we can keep it standard.
-
-      syncServer = expressApp.listen(port, '0.0.0.0', () => {
-        resolve({ success: true, port })
-      })
-
-      syncServer.on('error', (err: any) => {
-        resolve({ success: false, message: err.message })
-      })
-
-    } catch (e: any) {
-      resolve({ success: false, message: e.message })
-    }
-  })
-})
-
-ipcMain.handle('stop-sync-server', () => {
-  if (syncServer) {
-    syncServer.close()
-    syncServer = null
-    return { success: true }
-  }
-  return { success: false, message: 'Server not running' }
-})

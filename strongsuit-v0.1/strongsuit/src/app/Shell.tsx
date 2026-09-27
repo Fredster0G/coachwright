@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   LayoutDashboard, Users, ClipboardList, Dumbbell, Clapperboard,
-  CalendarDays, Wallet, BarChart3, Settings, ShieldCheck, ShieldAlert, RadioTower,
+  CalendarDays, Wallet, BarChart3, Settings, ShieldCheck, ShieldAlert, Cloud,
   UserCog, UserPlus, Trophy, Menu, X, FlaskConical, Building2
 } from 'lucide-react'
 import { trainerRepo } from '@/db/repo'
@@ -45,7 +45,7 @@ const NAV_STUDIO: NavItem[] = [
   { to: '/team', labelKey: 'nav.team', icon: UserCog, module: 'team' as ModuleKey, requiresMultiSeat: true },
   { to: '/leads', labelKey: 'nav.leads', icon: UserPlus, module: 'leads' as ModuleKey },
   { to: '/leaderboard', labelKey: 'nav.leaderboard', icon: Trophy, module: 'leaderboard' as ModuleKey },
-  { to: '/sync', labelKey: 'nav.sync', icon: RadioTower, module: 'sync' as ModuleKey },
+  { to: '/sync', labelKey: 'nav.sync', icon: Cloud },
   { to: '/reports', labelKey: 'nav.reports', icon: BarChart3, module: 'reports' as ModuleKey },
 ]
 

@@ -19,13 +19,9 @@ export function MembershipCard() {
   const [checking, setChecking] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
 
-  // Refresh once on mount — the same call the background loop makes, so
-  // "what does this card show" reflects a just-verified token. Only for an
-  // install that has started checkout (has a secret): a free-tier coach
-  // opening Settings shouldn't send their device id anywhere. "Already a
-  // member?" below is the explicit, coach-initiated check.
+  // Refresh once on mount so the card reflects the account right now.
   useEffect(() => {
-    trainerRepo.get().then(t => (t?.membershipSecret ? refreshMembership() : null)).catch(() => {})
+    refreshMembership().catch(() => {})
   }, [])
 
   if (!trainer) return null
@@ -37,7 +33,7 @@ export function MembershipCard() {
   async function upgrade() {
     setChecking(true)
     try {
-      const url = await startMembershipCheckout(trainer!.trainerName || trainer!.businessName || 'Coachwright member')
+      const url = await startMembershipCheckout()
       window.open(url, '_blank')
       toast('Opening checkout in your browser…')
     } catch (err) {
@@ -62,7 +58,7 @@ export function MembershipCard() {
       const result = await refreshMembership()
       if (result === null) toastError('Could not reach the membership server. Try again once you’re online.')
       else if (result.active) toast('Membership verified.')
-      else toast(result.reason || 'No active membership found.')
+      else toast('No active membership on this account.')
     } finally {
       setRefreshing(false)
     }

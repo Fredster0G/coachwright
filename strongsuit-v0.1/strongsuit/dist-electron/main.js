@@ -32,18 +32,11 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const electron_1 = require("electron");
 const path = __importStar(require("path"));
 const fs = __importStar(require("fs"));
-const os = __importStar(require("os"));
-const crypto_1 = require("crypto");
 const url_1 = require("url");
-const express_1 = __importDefault(require("express"));
-const cors_1 = __importDefault(require("cors"));
 const menu_1 = require("./menu");
 const windowState_1 = require("./windowState");
 const APP_NAME = 'Coachwright';
@@ -67,30 +60,14 @@ electron_1.protocol.registerSchemesAsPrivileged([
         scheme: APP_SCHEME,
         privileges: {
             standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true,
-            // src/main.tsx registers ./sw.js (PROD builds only) for offline PWA
-            // caching — without this flag that registration would silently fail
-            // under a custom scheme (silently, since it's wrapped in .catch(()=>{})
-            // there on purpose; still worth actually supporting rather than
-            // relying on the failure being harmless).
+            // Needed so public/sw.js (a self-removing worker since S23) can run
+            // once and unregister the old offline cache on existing installs.
             allowServiceWorkers: true,
         },
     },
 ]);
 let mainWindow = null;
 let splashWindow = null;
-let syncServer = null;
-function getLocalIpAddress() {
-    const interfaces = os.networkInterfaces();
-    for (const name of Object.keys(interfaces)) {
-        for (const iface of interfaces[name]) {
-            // Skip internal and non-IPv4 addresses
-            if (iface.family === 'IPv4' && !iface.internal) {
-                return iface.address;
-            }
-        }
-    }
-    return '127.0.0.1';
-}
 function createWindow() {
     // Splash shows immediately (native window boot is instant; the renderer's
     // own BootScreen takes over once the page itself loads) — frameless, no
@@ -187,7 +164,17 @@ electron_1.app.on('web-contents-created', (event, contents) => {
             event.preventDefault();
         }
     });
+    // A `target="_blank"` link (Stripe Checkout, the billing portal, video
+    // links, print-preview "open in browser") never opens a second Electron
+    // window — 'deny' always wins here. http/https instead get handed to the
+    // OS's real default browser via shell.openExternal, which is what a link
+    // clicked inside a desktop app should do; anything else (a custom scheme,
+    // a javascript: URL) is denied outright with no fallback. Before this,
+    // every such link was a silent no-op in the packaged app.
     contents.setWindowOpenHandler(({ url }) => {
+        if (url.startsWith('https://') || url.startsWith('http://')) {
+            electron_1.shell.openExternal(url);
+        }
         return { action: 'deny' };
     });
 });
@@ -236,67 +223,4 @@ electron_1.ipcMain.handle('window-is-maximized', () => mainWindow?.isMaximized()
 electron_1.ipcMain.handle('show-app-menu', () => {
     if (mainWindow)
         electron_1.Menu.getApplicationMenu()?.popup({ window: mainWindow });
-});
-// --- IPC Handlers for WiFi Sync ---
-electron_1.ipcMain.handle('get-local-ip', () => {
-    return getLocalIpAddress();
-});
-electron_1.ipcMain.handle('start-sync-server', async (event, port = 4000) => {
-    if (syncServer) {
-        return { success: false, message: 'Server already running' };
-    }
-    return new Promise((resolve) => {
-        try {
-            const expressApp = (0, express_1.default)();
-            expressApp.use((0, cors_1.default)());
-            expressApp.use(express_1.default.json({ limit: '50mb' }));
-            // Endpoint for a Companion client on the same WiFi to push its sealed
-            // packet. The renderer (which owns Dexie + the pairing keys) applies
-            // it and answers with the coach's return packet in `message` — so one
-            // POST is a full two-way sync. Each request gets its own syncId and
-            // listener: two clients syncing at once can't take each other's
-            // responses, and a renderer that never answers times out instead of
-            // holding the client's request open forever.
-            expressApp.post('/sync/push', (req, res) => {
-                if (!mainWindow) {
-                    res.status(500).json({ success: false, message: 'Coach app not ready' });
-                    return;
-                }
-                const syncId = (0, crypto_1.randomUUID)();
-                const listener = (_evt, response) => {
-                    if (response?.syncId !== syncId)
-                        return;
-                    electron_1.ipcMain.removeListener('sync-response', listener);
-                    clearTimeout(timer);
-                    res.status(response.success ? 200 : 400).json(response);
-                };
-                const timer = setTimeout(() => {
-                    electron_1.ipcMain.removeListener('sync-response', listener);
-                    res.status(504).json({ success: false, message: 'Coach app did not respond' });
-                }, 30_000);
-                electron_1.ipcMain.on('sync-response', listener);
-                mainWindow.webContents.send('sync-request', { ...req.body, syncId });
-            });
-            // Endpoint for clients to pull their packets (Program updates)
-            // For a truly offline feel, the client can just push their payload and receive the coach's payload in the same response.
-            // But we can keep it standard.
-            syncServer = expressApp.listen(port, '0.0.0.0', () => {
-                resolve({ success: true, port });
-            });
-            syncServer.on('error', (err) => {
-                resolve({ success: false, message: err.message });
-            });
-        }
-        catch (e) {
-            resolve({ success: false, message: e.message });
-        }
-    });
-});
-electron_1.ipcMain.handle('stop-sync-server', () => {
-    if (syncServer) {
-        syncServer.close();
-        syncServer = null;
-        return { success: true };
-    }
-    return { success: false, message: 'Server not running' };
 });

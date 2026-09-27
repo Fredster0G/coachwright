@@ -11,6 +11,6 @@ createRoot(document.getElementById('root')!).render(
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => { /* offline shell is a nice-to-have, not a hard requirement */ })
+    navigator.serviceWorker.register('./sw.js').catch(() => { /* only needed for push notifications */ })
   })
 }

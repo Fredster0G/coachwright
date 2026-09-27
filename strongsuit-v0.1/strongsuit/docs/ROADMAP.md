@@ -10,43 +10,33 @@ Prioritized by *what unblocks revenue*, not by what's fun to build. Every item c
 
 ---
 
-## 0. The business-model question (decide before building much else)
+## 0. The business-model question — ✅ DECIDED (S23): cloud accounts
 
-Gemini's advice was: kill the offline/self-hosted option, go pure hosted SaaS, protect the IP, build MRR
-for a buyout. **Parts of that are right and parts rest on a false premise.** Separating the three things
-it bundles together:
+Caleb chose: **cloud account as the source of truth, local copy as a cache**, on the existing
+`sync-server/` (cheapest: one VPS + SQLite + Litestream, ~$7–8/mo), with a **desktop app and a website**
+from one codebase — the website without on-device AI. E2EE pairing, WiFi/LAN/file/P2P sync, the
+self-hosted and $15/mo managed relay tiers, the offline service worker and offline membership tokens were
+removed. Design and runbook: `docs/CLOUD.md`.
 
-| Question | Verdict |
-|---|---|
-| **One-time vs. subscription pricing?** | **Gemini is right, and it's already done (S15).** $29/mo membership + free tier ships today. The MRR argument is fully satisfied without changing anything else. |
-| **Should data live on our server instead of the coach's machine?** | **No.** This is not a config change, it's a **rewrite**: auth, multi-tenant DB, migrating every Dexie repo call, session management — months of work — and it deletes the E2EE privacy story that is currently the only thing no competitor can copy. Local-first is also *why* the app works on a gym floor with bad wifi. |
-| **Should we keep advertising the self-hosted relay?** | **Probably not — and this is the only real decision here.** Gemini's support-burden argument is genuinely correct: trainers are not DevOps. But you don't need to delete code to act on it. Demote self-hosting to a documented, unadvertised option; make managed hosting the default and only path in the UI. ~90% of the benefit, ~1% of the cost. |
-
-**The false premise:** "offering a self-hosted version leaks your IP." The self-hosted thing is
-`sync-server/` — a ~700-line Express ciphertext mailbox. That is *not* the valuable IP. The valuable IP
-is the workstation itself (Film Room pose analysis, the science engines, the library, the program
-builder), which **already ships to every user as an Electron app** — readable JS on their disk the
-moment they install it. That exposure exists today and is unrelated to the relay. Killing self-hosting
-protects almost nothing.
-
-**Also worth naming:** the $250k ISSA/NASM buyout is an *unvalidated assumption*. Building the whole
-strategy around it is a bet. MRR is good for a buyer, but it's also just good — it funds the thing
-whether or not anyone ever acquires it. Don't burn the differentiator chasing a hypothetical acquirer.
-
-> **Recommended:** keep local-first. Make managed hosting the default and stop marketing self-hosting.
-> Consider a **hosted web build** as an *additional* channel (the app is already a PWA — data still
-> local in browser IndexedDB, zero rewrite) so "just open it in a browser" becomes possible without
-> giving up anything. ⬅ *Caleb to confirm before anyone builds against it.*
+What this costs, recorded honestly so nobody re-sells the old promise: the server now holds readable
+client data (DEBT-75), "works if we disappear" no longer holds for sync or the website, and "offline
+mode" is now "keeps working through a dropped connection", not "never needs a server". The old §0
+analysis is in git history.
 
 ---
 
 ## 1. Ship-blockers — nothing else matters until these are true
 
-### 1.1 🟥 Make billing real
-**Depth: code complete, commercially non-functional.** Everything is built and cross-verified, but there
-are no live Stripe keys and the relay domain isn't deployed. **The app cannot take one dollar today.**
-Checklist is copy-pasteable in `docs/MEMBERSHIP.md` §5. Then update `MEMBERSHIP_SERVER_URL` in
-`lib/membershipApi.ts`. *Effort: an afternoon. Caleb only — real keys.*
+### 1.1 🟥 Deploy Coachwright Cloud and make billing real
+**Depth: code complete + tested, not deployed.** Without a running server nobody can even sign in now —
+this went from "needed to take money" to "needed for the app to work at all". `docs/CLOUD.md` §4 is the
+runbook (VPS, Caddy, Litestream, env), `docs/MEMBERSHIP.md` §5 the Stripe steps. Build the apps with
+`VITE_CLOUD_URL` if the API isn't at `https://api.coachwright.app`. *Effort: an afternoon. Caleb only —
+real keys, real money.*
+
+### 1.1b 🟦 Account basics before real customers
+Password reset (DEBT-73, needs an email sender), account deletion (DEBT-76), privacy policy + legal read
+of the EULA (DEBT-75, 🟥 lawyer). *Effort: a day of code + the legal part.*
 **S22:** the server side is now test-covered (`sync-server && npm test`, 16 tests incl. an automated
 app↔server token cross-check) and a billing-portal hole was closed (any paired client could cancel its
 coach's subscription). Set `TRUST_PROXY=1` behind Caddy or the whole instance shares one rate-limit bucket.
@@ -90,9 +80,9 @@ Health, Google Fit, Garmin, Whoop, or Oura. We have a readiness engine that asks
 sleep — while the phone in their client's pocket already knows.
 
 **This is a strong fit, not a compromise:** Health Connect (Android) and HealthKit (iOS) are **on-device**
-APIs. Reading them in Companion via Capacitor keeps the local-first promise completely intact — no
-third-party cloud, no OAuth to a vendor, no data leaving the phone except through the existing E2EE sync
-the client already opted into. It would make readiness dramatically better with *zero* doctrine cost.
+APIs. Reading them in Companion via Capacitor needs no third-party cloud and no OAuth to a vendor; the
+numbers would reach the coach through the same `/client/push` the client's logs already use (add
+the table to `CLIENT_WRITABLE`). It would make readiness dramatically better.
 *Blocked on: Companion being a real Capacitor build (see §1.3). Effort: medium once that exists.*
 
 ### 2.4 🟨 Branding on Membership + the tier story
@@ -166,12 +156,11 @@ Everything else competitors ship that we don't, with an honest call on each:
 | **Zapier / API / webhooks** | ✅ | ❌ | 🟡 Low priority for solo coaches. Revisit for Studio. |
 | **White-label client app** | ✅ (upsell) | Brand kit exists, partial | 🟨 Finish it — QuickCoach charges for branding; we can include it. |
 | **Exercise video recording in-app** | ✅ | Film Room does more | ✅ Already ahead. |
-| **Offline mode** | ❌ | ✅ | ✅ **We're ahead. Lead with it.** |
+| **Offline mode** | ❌ | Keeps working through a dropped connection; needs the cloud to sync | 🟡 Still ahead of web-only competitors on a bad gym connection — but don't claim "no server". |
 | **On-device movement AI** | ❌ | ✅ | ✅ **Nobody else has this.** Lead with it. |
 
-**Pattern worth noticing:** the three things we're *ahead* on (offline, on-device AI, no-per-client
-pricing) are all structural — they come from the local-first architecture. That's the case for §0's
-recommendation to keep it.
+**Pattern worth noticing:** what we're still *ahead* on — on-device movement AI and the desktop AI suite,
+flat pricing — survives the S23 move to cloud. The privacy/"we can't read it" story does not.
 
 ---
 
@@ -201,18 +190,15 @@ recommendation to keep it.
   positioning statement. 🟥
 - **[DONE S22] "3,000 exercises" claim** — the one place it was stated as fact (`06` §4.2) is annotated;
   the other hits are plans *targeting* 3,000, which is accurate.
-- **Shared workspace** — `sync.ts`, `pose.ts`, `core.ts`, `singleFlight` are all duplicated across the
-  two apps (DEBT-60). Three copies was the stated trigger. We're past it. 🟦
+- **Shared workspace** — `pose.ts`, `core.ts`, `singleFlight` duplicated across the two apps, and the
+  synced-table list is duplicated app ↔ server (DEBT-60). 🟦
 
 ---
 
 ## 5. Suggested next session
 
-**If Antigravity:** i18n conversion (§3) — guaranteed-safe, compile-checked. Or library quality: lift
-the 822 imported rows toward the hand-written bar (§1.2).
+**If Caleb has an afternoon:** §1.1 — deploy the server. Nothing else matters until someone can sign in.
 
-**If Claude Code:** DEBT-68 (food entries in client portability — needs the `FoodItem` bundling decision)
-or DEBT-70 once Caleb decides whether Membership maps to an AI tier. Both touch data/entitlement paths
-where a silent mistake is expensive.
+**If Claude Code:** §1.1b (password reset + account deletion), then DEBT-74 (server-side free-tier cap).
 
-**If Caleb has an hour:** §1.1 Stripe keys. Nothing else in this document earns a dollar until that's done.
+**If Antigravity:** i18n conversion (§3) — guaranteed-safe, compile-checked.

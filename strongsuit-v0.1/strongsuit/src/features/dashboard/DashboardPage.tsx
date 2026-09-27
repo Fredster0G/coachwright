@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { LOCAL_AI_ENABLED } from '@/lib/cloud/config'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, ClipboardList, FileDown, CheckCircle2, Circle, PenLine, ChevronRight, ChevronDown } from 'lucide-react'
@@ -98,7 +99,7 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {hasClient && <RosterSummaryCard />}
+      {hasClient && LOCAL_AI_ENABLED && <RosterSummaryCard />}
 
       <div>
         <SectionHeader title={t('dashboard.needsAttention')} action={<Link to="/settings" className="text-2xs text-faint hover:text-ink">{t('dashboard.customizeRules')}</Link>} />

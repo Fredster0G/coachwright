@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
+import { LOCAL_AI_ENABLED } from '@/lib/cloud/config'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Search, Plus, Dumbbell, Pencil, PlayCircle, Trash2, Sparkles } from 'lucide-react'
 import { exercisesRepo } from '@/db/repo'
@@ -177,7 +178,7 @@ export default function LibraryPage() {
   const searchSeq = useRef(0)
 
   useEffect(() => {
-    isEmbeddingsModelInstalled().then(setModelReady)
+    if (LOCAL_AI_ENABLED) isEmbeddingsModelInstalled().then(setModelReady)
   }, [])
 
   // Index (or refresh) the library the moment semantic mode is actually
@@ -260,12 +261,12 @@ export default function LibraryPage() {
             <Search size={14} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-faint" />
             <Input
               className="ps-9"
-              placeholder={semanticMode ? "Describe what you need (e.g. 'low-impact rear delt work')…" : "Search 350+ exercises by name or slang (e.g. 'rdl')..."}
+              placeholder={semanticMode ? "Describe what you need (e.g. 'low-impact rear delt work')…" : "Search 1,000+ exercises by name or slang (e.g. 'rdl')..."}
               value={query}
               onChange={e => setQuery(e.target.value)}
             />
           </div>
-          <button
+          {LOCAL_AI_ENABLED && <button
             type="button"
             onClick={() => modelReady && setSemanticMode(m => !m)}
             disabled={!modelReady}
@@ -278,7 +279,7 @@ export default function LibraryPage() {
           >
             <Sparkles size={13} />
             Meaning
-          </button>
+          </button>}
         </div>
         {semanticMode && indexing && (
           <p className="text-2xs text-faint">Indexing library for semantic search… {indexing.done}/{indexing.total}</p>

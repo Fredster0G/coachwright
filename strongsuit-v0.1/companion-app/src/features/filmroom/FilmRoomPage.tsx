@@ -368,7 +368,7 @@ export function FilmRoomPage() {
           <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed text-ink">{summary}</pre>
           <div className="flex gap-2">
             <Button onClick={copySummary} className="min-h-[44px] flex-1 gap-2 text-xs"><Copy size={14} /> Copy</Button>
-            {coachLink && !coachLink.pending && (
+            {coachLink && (
               <Button
                 variant="primary"
                 onClick={sendToCoach}
@@ -379,7 +379,7 @@ export function FilmRoomPage() {
               </Button>
             )}
           </div>
-          {coachLink && !coachLink.pending && (
+          {coachLink && (
             <p className="text-2xs text-faint">
               Only this text is sent. The video stays on your phone.
             </p>

@@ -24,10 +24,8 @@ export function HomePage({ profile }: { profile: CompanionProfile }) {
 
       {coachLink && (
         <Card className="flex items-center gap-2 text-xs">
-          <span className={`h-2 w-2 rounded-full ${coachLink.pending ? 'bg-ember-500' : 'bg-verde-600'}`} />
-          <span className="text-muted">
-            {coachLink.pending ? 'Connecting to your coach…' : `Paired with ${coachLink.coachName}`}
-          </span>
+          <span className="h-2 w-2 rounded-full bg-verde-600" />
+          <span className="text-muted">Connected to {coachLink.coachName}</span>
           {coachLink.lastSyncAt && (
             <span className="ml-auto text-2xs text-faint">
               synced {new Date(coachLink.lastSyncAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}

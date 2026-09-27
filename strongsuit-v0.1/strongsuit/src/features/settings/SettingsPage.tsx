@@ -10,8 +10,8 @@ import { clientsRepo } from '@/db/repo'
 import { DEFAULT_RULES, TRIGGER_LABELS } from '@/lib/automations'
 import type { AutomationTrigger, ModuleKey } from '@/db/types'
 import Guide from './Guide'
-import CloudCard from './CloudCard'
 import { LocalAiCard } from './LocalAiCard'
+import { LOCAL_AI_ENABLED } from '@/lib/cloud/config'
 import { LicenceCard } from './LicenceCard'
 import { MembershipCard } from './MembershipCard'
 import { BRAND_MARK_VARIANTS, BrandMark, type BrandMarkVariant } from '@/app/brand/Logomark'
@@ -26,7 +26,6 @@ const getModuleInfo = (t: (k: MessageKey) => string): { key: ModuleKey; label: s
   { key: 'team', label: t('settings.modules.team.label'), hint: t('settings.modules.team.hint') },
   { key: 'leads', label: t('settings.modules.leads.label'), hint: t('settings.modules.leads.hint') },
   { key: 'leaderboard', label: t('settings.modules.leaderboard.label'), hint: t('settings.modules.leaderboard.hint') },
-  { key: 'sync', label: t('settings.modules.sync.label'), hint: t('settings.modules.sync.hint') },
   { key: 'reports', label: t('settings.modules.reports.label'), hint: t('settings.modules.reports.hint') },
 ]
 
@@ -478,8 +477,7 @@ export default function SettingsPage() {
       <BrandCard />
       <BrandMarkCard />
       <ModulesCard />
-      <CloudCard />
-      <LocalAiCard />
+      {LOCAL_AI_ENABLED && <LocalAiCard />}
       <AutomationsCard />
       <Guide />
       <BackupCard />

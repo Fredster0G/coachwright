@@ -1,4 +1,10 @@
 # SERVER, PAYMENTS & MONETIZATION STRATEGY
+
+> **⚠️ SUPERSEDED IN PART (S23, 2026-09-27).** Coachwright moved to cloud accounts: coach data lives on
+> Coachwright Cloud (readable by the operator, not end-to-end encrypted), the self-hosted and $15/mo
+> managed relay tiers no longer exist, and Companion connects with a coach-issued code instead of E2EE
+> pairing / WiFi / file sync. Anything below that says otherwise is history. Current design:
+> `strongsuit-v0.1/strongsuit/docs/CLOUD.md`.
 Companion to `STRONGSUIT_MASTER_SPEC.md` §0 (zero-backend doctrine) and `BRANDING_PLAN.md`. Written 2026-07-17 (S10), updated 2026-07-17 (S11) in response to a feature list modeled on full gym-management suites (TrueCoach/Trainerize/Mindbody/PT Distinction). This document draws the line honestly: what Coachwright can do without a server, what genuinely needs one, and — for the pieces that do — the specific, minimal-liability way to add them without breaking the "you own it, zero recurring cost" promise that *is* the product.
 
 **S11 update:** §6 of the S10 version of this doc posed an open question — "should there be an optional paid cloud relay?" That question is now answered and built: **§2.5 below is official doctrine, not speculation.** `CloudCard.tsx` (Settings) ships a real three-way choice — fully local, self-hosted relay, or managed-by-us at $15/mo — and `sync-server/` now has real messaging + poll-based reminder endpoints behind per-coach API keys, not just the original device-sync prototype. If you're reading this before touching anything cloud/relay/hosting-related, read §2.5 first; it supersedes any framing elsewhere in this doc that still calls hosting "future" or "speculative."

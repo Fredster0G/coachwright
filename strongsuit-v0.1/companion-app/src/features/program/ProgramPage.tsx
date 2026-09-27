@@ -8,8 +8,7 @@ import type { AssignedProgram, Block, CoachExercise, Units, Week } from '@/db/ty
 
 /** Read-only viewer for programs the coach assigned — rendered exactly from
  *  the synced rows, no client-side editing (a client logs against a program;
- *  they don't rewrite it). Arrives via any transport: relay sync, WiFi sync,
- *  or an imported packet file. */
+ *  they don't rewrite it). Arrives with each sync from Coachwright Cloud. */
 export function ProgramPage({ units }: { units: Units }) {
   const [programs, setPrograms] = useState<AssignedProgram[] | undefined>()
   const [exercises, setExercises] = useState<Map<string, CoachExercise>>(new Map())
@@ -31,7 +30,7 @@ export function ProgramPage({ units }: { units: Units }) {
           body="When your coach assigns you a program, it shows up here after your next sync — over their server, WiFi, or a packet file they send you."
         />
         <p className="text-center text-2xs text-faint">
-          Paired already? Pull the latest from the <Link to="/coach" className="text-verde-600 hover:underline">Coach</Link> tab.
+          Connected already? Pull the latest from the <Link to="/coach" className="text-verde-600 hover:underline">Coach</Link> tab.
         </p>
       </div>
     )

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { LOCAL_AI_ENABLED } from '@/lib/cloud/config'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Check, ChevronLeft, Plus, Trash2, PlayCircle, Mic, Square, ScanLine } from 'lucide-react'
 import { Button, Card, SectionHeader, LogoSpinner } from '@/design'
@@ -52,7 +53,7 @@ export default function SessionLoggerPage() {
   const recorderRef = useRef<VoiceRecorder | null>(null)
 
   useEffect(() => {
-    isSpeechModelInstalled().then(setSpeechReady)
+    if (LOCAL_AI_ENABLED) isSpeechModelInstalled().then(setSpeechReady)
   }, [])
 
   // ---- Log-sheet scanning (opt-in, on-device — lib/ocr.ts) ----
@@ -60,7 +61,7 @@ export default function SessionLoggerPage() {
   const [scanForEntry, setScanForEntry] = useState<number | null>(null)
 
   useEffect(() => {
-    isOcrModelInstalled().then(setOcrReady)
+    if (LOCAL_AI_ENABLED) isOcrModelInstalled().then(setOcrReady)
   }, [])
 
   /** Fills the entry's sets sequentially starting from the first one —

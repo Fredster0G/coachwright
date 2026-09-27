@@ -1,73 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import {
-  generateIdentity, deriveSharedKey, safetyNumber, encodePairingCode, decodePairingCode,
-  sealSyncPacket, openSyncPacket, isSyncPacket, sha256Hex,
-} from './sync'
+import { sha256Hex } from './hash'
 import { goalPlan, ALL_GOALS } from './goals'
 import { sessionLoad, acwr, monotonyStrain, strengthStanding, type DayLoad } from './trainingLoad'
 import { screen, PARQ_QUESTIONS, assumptionOfRiskText } from './parq'
 import { expandAppointment, expandAll, describeRule } from './schedule'
 import type { Appointment } from '@/db/types'
 
-// ---------------- secure sync ----------------
-describe('secure sync (E2EE)', () => {
-  it('two devices derive the same key and safety number, and exchange a sealed packet', async () => {
-    const coach = await generateIdentity()
-    const client = await generateIdentity()
-
-    // both derive the shared key from their own private + peer public
-    const kCoach = await deriveSharedKey(coach.privateJwk, client.publicJwk)
-    const kClient = await deriveSharedKey(client.privateJwk, coach.publicJwk)
-
-    // safety numbers match on both sides (order-independent)
-    const sasA = await safetyNumber(coach.publicJwk, client.publicJwk)
-    const sasB = await safetyNumber(client.publicJwk, coach.publicJwk)
-    expect(sasA).toBe(sasB)
-    expect(sasA).toMatch(/^\d{6}$/)
-
-    // coach seals a packet; client opens it
-    const meta = { from: 'coach', to: 'client', seq: 1, createdAt: '2026-07-16T00:00:00Z' }
-    const packet = await sealSyncPacket(kCoach, meta, { logs: [{ id: 'a', reps: 5 }] })
-    expect(isSyncPacket(packet)).toBe(true)
-    const opened = await openSyncPacket<{ logs: { id: string; reps: number }[] }>(kClient, packet)
-    expect(opened.from).toBe('coach')
-    expect(opened.seq).toBe(1)
-    expect(opened.payload.logs[0].reps).toBe(5)
-  })
-
-  it('a packet cannot be opened with the wrong pairing', async () => {
-    const a = await generateIdentity()
-    const b = await generateIdentity()
-    const c = await generateIdentity()
-    const kAB = await deriveSharedKey(a.privateJwk, b.publicJwk)
-    const kAC = await deriveSharedKey(a.privateJwk, c.publicJwk)
-    const packet = await sealSyncPacket(kAB, { from: 'a', to: 'b', seq: 1, createdAt: 'x' }, { secret: 42 })
-    await expect(openSyncPacket(kAC, packet)).rejects.toThrow(/different pairing|altered/)
-  })
-
-  it('tampering with the ciphertext is detected', async () => {
-    const a = await generateIdentity(); const b = await generateIdentity()
-    const k = await deriveSharedKey(a.privateJwk, b.publicJwk)
-    const packet = await sealSyncPacket(k, { from: 'a', to: 'b', seq: 1, createdAt: 'x' }, { n: 1 })
-    const lines = packet.split('\n')
-    lines[2] = lines[2].slice(0, -2) + (lines[2].endsWith('AA') ? 'BB' : 'AA') // flip ciphertext tail
-    await expect(openSyncPacket(k, lines.join('\n'))).rejects.toThrow()
-  })
-
-  it('pairing codes round-trip and reject junk', () => {
-    const enc = encodePairingCode({ v: 1, deviceId: 'd1', name: 'Coach iPad', role: 'coach', pub: { kty: 'EC', x: 'a', y: 'b' } })
-    const dec = decodePairingCode(enc)
-    expect(dec.deviceId).toBe('d1')
-    expect(dec.role).toBe('coach')
-    expect(() => decodePairingCode('not-a-code')).toThrow()
-  })
-
-  it('sha256Hex is stable', async () => {
+describe('sha256Hex', () => {
+  it('matches the known SHA-256 of "abc"', async () => {
     expect(await sha256Hex('abc')).toBe('ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad')
   })
 })
 
-// ---------------- goal engine ----------------
 describe('goal engine', () => {
   it('every goal has coherent, cited targets', () => {
     for (const g of ALL_GOALS) {

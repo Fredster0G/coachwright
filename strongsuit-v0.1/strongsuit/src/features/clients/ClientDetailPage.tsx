@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ArrowLeft, Archive, ClipboardList, PenLine, Smartphone, Wifi, Printer, Tv, Mail, MessageCircle, Download, Bot } from 'lucide-react'
+import { ArrowLeft, Archive, ClipboardList, PenLine, Smartphone, Link2, Printer, Tv, Mail, MessageCircle, Download, Bot } from 'lucide-react'
 import { clientsRepo, logsRepo, clientNotesRepo, trainerRepo, programsRepo, exercisesRepo, staffRepo, locationsRepo, messagesRepo } from '@/db/repo'
 import type { Client } from '@/db/types'
 import { fullName, daysSince } from '@/lib/core'
@@ -22,7 +22,8 @@ import CoachingTab from './CoachingTab'
 import MessagesTab from './MessagesTab'
 import { generateCompanionFile } from '../companion/export'
 import { useTranslation } from '@/lib/i18n'
-import { WiFiSyncDialog } from '../sync/WiFiSyncDialog'
+import { ConnectCompanionDialog } from '@/features/account/ConnectCompanionDialog'
+import { LOCAL_AI_ENABLED } from '@/lib/cloud/config'
 
 function EditClientDialog({ client, open, onClose }: { client: Client; open: boolean; onClose: () => void }) {
   const staff = useLiveQuery(() => staffRepo.all(), [], [])
@@ -283,6 +284,9 @@ export default function ClientDetailPage() {
             <Button variant="ghost" size="sm" onClick={() => setShowPrint(true)}>
               <Printer size={14} className="me-1.5" /> {t('clients.detail.print')}
             </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowSync(true)}>
+              <Link2 size={14} className="me-1.5" /> {t('clients.detail.connectCompanion')}
+            </Button>
             <Button variant="primary" size="sm" onClick={() => {
               if (activeProgram && activeProgram.weeks.length > 0 && activeProgram.weeks[0].days.length > 0) {
                 // Find next day logically? For now just pick first day of active program
@@ -296,9 +300,11 @@ export default function ClientDetailPage() {
             }}>
               <PenLine size={14} className="me-1.5" /> {t('clients.detail.logSession')}
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate(`/assistant?clientId=${client.id}`)} title={t('clients.detail.askAssistantTooltip')}>
-              <Bot size={14} className="me-1.5" /> {t('clients.detail.askAssistant')}
-            </Button>
+            {LOCAL_AI_ENABLED && (
+              <Button variant="ghost" size="sm" onClick={() => navigate(`/assistant?clientId=${client.id}`)} title={t('clients.detail.askAssistantTooltip')}>
+                <Bot size={14} className="me-1.5" /> {t('clients.detail.askAssistant')}
+              </Button>
+            )}
             <Button variant="ghost" size="sm" onClick={() => setShowEdit(true)}>{t('clients.detail.edit')}</Button>
             <Button variant="ghost" size="sm" onClick={exportPortableData} title={t('clients.detail.exportDataTooltip')}>
               <Download size={14} className="me-1.5" /> {t('clients.detail.exportData')}
@@ -344,12 +350,6 @@ export default function ClientDetailPage() {
                   <p className="text-sm text-faint mt-1">{activeProgram.description || t('clients.detail.noDescription')}</p>
                 </div>
                 <div className="flex gap-2">
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => setShowSync(true)}
-                  >
-                    <Wifi size={16} className="me-2" /> {t('clients.detail.wifiSync')}
-                  </Button>
                   <Button 
                     variant="primary" 
                     onClick={async () => {
@@ -409,7 +409,9 @@ export default function ClientDetailPage() {
 
       <EditClientDialog client={client} open={showEdit} onClose={() => setShowEdit(false)} />
       <PrintOptionsDialog client={client} activeProgramId={activeProgram?.id} open={showPrint} onClose={() => setShowPrint(false)} />
-      <WiFiSyncDialog open={showSync} onClose={() => setShowSync(false)} />
+      {client && (
+        <ConnectCompanionDialog clientId={client.id} clientName={client.firstName} open={showSync} onClose={() => setShowSync(false)} />
+      )}
     </div>
   )
 }

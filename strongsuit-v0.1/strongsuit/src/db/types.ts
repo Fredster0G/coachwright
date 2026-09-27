@@ -26,19 +26,11 @@ export interface Trainer extends Base {
   density: 'compact' | 'comfortable'
   theme: 'light' | 'dark' | 'system'
   monthlyProfitTarget?: number // Profit Planner goal (Business page)
-  syncIdentity?: SyncIdentity  // this device's cryptographic identity (v1.3)
-  syncServerUrl?: string       // URL for cloud/managed sync relay
-  syncServerApiKey?: string    // API key for the cloud relay (v1.4)
   eulaAcceptedAt?: string      // ISO timestamp of when the coach accepted the EULA (v1.4)
   seedVersion?: number         // seed DB version this app has merged (v1.6)
   // module visibility (v1.6) — hide nav sections a solo/independent coach doesn't need.
   // Absent/undefined key = visible (opt-out, not opt-in, so existing installs show everything).
   hiddenModules?: ModuleKey[]
-  // hosting tier (v1.6) — see docs/SERVER_STRATEGY.md. Independent of syncServerUrl:
-  // 'local' ignores it entirely; 'self-hosted' uses syncServerUrl as-is; 'managed' points
-  // at Coachwright's hosted relay (a paid, opt-in convenience — never required).
-  cloudTier?: 'local' | 'self-hosted' | 'managed'
-  managedLicenseKey?: string   // the coach's key for the managed ($/mo) relay, if subscribed
   // which brand-mark variant (spec §7.4b) shows in the sidebar header (v1.6).
   // Absent = 'horizontal' (mark + wordmark), the default lockup. Kept as an
   // inline union (not imported from app/brand/Logomark) so the data layer
@@ -56,51 +48,23 @@ export interface Trainer extends Base {
   licenseKey?: string
   /** Studio only: seats this licence grants. */
   licensedSeats?: number
-  // ---- membership (v2, lib/membership.ts) — the $29/mo subscription,
-  // entirely separate from licenseKey above, which still means a one-time
-  // purchase and is untouched by any of this (see licence.ts's header).
-  /** The signed `CWM1.…` token from the sync server, if any. */
-  membershipToken?: string
-  /** Cached result of the last successful verify+refresh, so UI checks (like
-   *  the free-tier client cap) can be synchronous rather than re-verifying
-   *  the token on every render. Never read directly for gating — go through
-   *  `hasActiveMembership()`, which also enforces `membershipExpiresAt`.
-   *  Refreshed at boot and daily by `startMembershipRefreshLoop()`. */
+  // ---- membership — the $29/mo subscription on the coach's cloud account,
+  // separate from licenseKey above (a pre-2026-08 one-time purchase).
+  // Both fields are DEVICE-ONLY (lib/cloud/tables.ts never uploads them):
+  // each device asks the server itself.
+  /** Cached result of the last successful refresh, so UI checks (like the
+   *  free-tier client cap) stay synchronous. Never read directly for gating —
+   *  go through `hasActiveMembership()`, which also enforces the expiry. */
   membershipActive?: boolean
-  /** ISO date the current membership token expires — shown to the coach so
-   *  "why did I drop to free tier" is never a mystery. */
+  /** Access holds until this ISO time (Stripe period end + grace) even if the
+   *  server can't be reached; after it, free-tier limits apply. */
   membershipExpiresAt?: string
-  /** Random per-install secret proving to the membership server that a
-   *  /status or /portal call comes from the device that checked out — the
-   *  device id alone is known to every paired client. Generated on first
-   *  checkout/refresh by `lib/membershipApi.ts`; only its hash leaves. */
-  membershipSecret?: string
 }
 
 /** Optional nav sections a solo coach can hide (Settings → Modules). Core
  *  workflow (Today/Clients/Programs/Exercises/Logging/Settings) is never hideable. */
 export type ModuleKey =
   | 'filmRoom' | 'calendar' | 'business' | 'team' | 'leads' | 'leaderboard' | 'sync' | 'reports' | 'science'
-
-// ---- Secure sync (spec §4.23) ----
-export interface SyncIdentity {
-  deviceId: string
-  name: string
-  publicJwk: JsonWebKey
-  privateJwk: JsonWebKey    // stored locally only; never transmitted
-  createdAt: string
-}
-export type DeviceRole = 'coach' | 'client'
-export interface Device extends Base {
-  name: string
-  role: DeviceRole
-  clientId?: string         // when this paired device is a specific client
-  publicJwk: JsonWebKey
-  verified: boolean         // short-auth-string confirmed out-of-band
-  lastSyncAt?: string
-  lastSeq: number           // highest inbound packet seq applied (replay guard)
-  outSeq: number            // next outbound packet seq
-}
 
 export type ClientStatus = 'active' | 'paused' | 'archived'
 export type BillingModel = 'per-session' | 'monthly' | 'package'
@@ -613,7 +577,7 @@ export interface BackupEnvelope {
     appointments: Appointment[]
     expenses?: Expense[]  // added schema v2 envelopes; absent in v1 backups
     waivers?: Waiver[]    // added schema v3 (v1.3); absent in older backups
-    devices?: Device[]    // added schema v3 (v1.3); absent in older backups
+    devices?: unknown[]   // legacy (E2EE device pairing, removed S23) — ignored on import
     messages?: CoachMessage[] // added schema v5 (v1.4)
     // added schema v6 (v1.5); absent in older backups
     staff?: Staff[]
