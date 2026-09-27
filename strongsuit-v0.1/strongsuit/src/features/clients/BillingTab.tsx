@@ -4,9 +4,11 @@ import { Plus, CreditCard, ArrowDownLeft, ArrowUpRight, Scissors, FileText, Tras
 import { Card, Button, Input, EmptyState, Dialog, Label, Select, Field, Stat, Tag, toast, toastError } from '@/design'
 import { paymentsRepo, clientsRepo, invoicesRepo, couponsRepo, staffRepo } from '@/db/repo'
 import type { Client, Payment, PaymentType, Invoice, InvoiceLineItem, InvoiceStatus } from '@/db/types'
-import { nowIso, newId } from '@/lib/core'
+import { nowIso, newId, isoDay } from '@/lib/core'
 import { gymCutForClient, invoiceTotals, clientBalance } from '@/lib/business'
 import { getActiveStaffId } from '@/lib/activeStaff'
+import { sessionPackBalance } from '@/lib/sessionPacks'
+import { db } from '@/db/schema'
 import { format } from 'date-fns'
 import { useTranslation } from '@/lib/i18n'
 
@@ -94,7 +96,7 @@ function NewInvoiceDialog({ clientId, open, onClose }: { clientId: string; open:
     const saveTotals = invoiceTotals(clean, applied ? { id: '', createdAt: '', updatedAt: '', code: applied.code, kind: 'flat', value: applied.discountAmount, active: true } : null)
     const number = await invoicesRepo.nextNumber()
     await invoicesRepo.create({
-      clientId, number, date: new Date().toISOString().slice(0, 10),
+      clientId, number, date: isoDay(new Date()),
       dueDate: dueDate || undefined, lineItems: clean,
       couponCode: applied?.code, discountAmount: saveTotals.discountAmount,
       subtotal: saveTotals.subtotal, total: saveTotals.total, status: sendNow ? 'sent' : 'draft',
@@ -306,6 +308,8 @@ export default function BillingTab({ clientId, client }: BillingTabProps) {
     [clientId],
     []
   )
+  const logs = useLiveQuery(() => db.sessionLogs.where('clientId').equals(clientId).toArray(), [clientId], [])
+  const pack = sessionPackBalance(payments, logs)
   const { t } = useTranslation()
 
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -314,6 +318,12 @@ export default function BillingTab({ clientId, client }: BillingTabProps) {
     <div className="max-w-3xl">
       {client && <div className="mb-4"><GymCutCard client={client} payments={payments} /></div>}
       <div className="mb-4"><InvoicesCard clientId={clientId} /></div>
+      {pack && (
+        <div className="mb-4 rounded-ctl border border-line bg-surface2 px-3 py-2" title={t('clients.billing.packBalanceHint')}>
+          <p className="text-sm font-semibold text-ink">{t('clients.billing.packBalance', { remaining: pack.remaining, purchased: pack.purchased })}</p>
+          <p className="text-2xs text-faint">{t('clients.billing.packBalanceHint')}</p>
+        </div>
+      )}
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-lg">{t('clients.billing.ledgerTitle')}</h3>
         <Button variant="ghost" size="sm" onClick={() => setDialogOpen(true)}>

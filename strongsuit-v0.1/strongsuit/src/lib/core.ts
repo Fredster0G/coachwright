@@ -4,6 +4,10 @@ import { format } from 'date-fns'
 export const newId = () => ulid()
 export const nowIso = () => new Date().toISOString()
 export const today = () => format(new Date(), 'yyyy-MM-dd')
+/** A Date's LOCAL calendar day as yyyy-MM-dd. Use this, never
+ *  `toISOString().slice(0, 10)` — that's the UTC day, which is tomorrow for an
+ *  evening in the Americas and yesterday for local midnight east of UTC. */
+export const isoDay = (d: Date) => format(d, 'yyyy-MM-dd')
 
 /** Stamp create fields onto a partial entity. */
 export function stamp<T extends { id?: string }>(x: T) {

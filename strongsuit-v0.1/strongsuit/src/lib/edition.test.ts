@@ -5,51 +5,21 @@ describe('editionCapabilities', () => {
   it('falls back to the most restrictive edition when the licence is missing or unknown', () => {
     // A corrupt or absent licence must never unlock paid features. This is the
     // single most important assertion in this file.
-    //
-    // `clients` is deliberately NOT checked here since S15: the free tier
-    // does grant capped client access now (see `canAddClient` in
-    // lib/membership.ts, checked separately with actual coach data) — this
-    // flag no longer means "no clients ever", so it isn't part of the "never
-    // unlock paid features" guarantee. `business`/`multiSeat` still are.
     for (const bad of [undefined, null, '' as unknown as Edition, 'enterprise' as Edition]) {
       const cap = editionCapabilities(bad)
       expect(cap.edition).toBe('personal')
-      expect(cap.business).toBe(false)
+      expect(cap.maxAiTier).toBe('light')
       expect(cap.multiSeat).toBe(false)
     }
-  })
-
-  it('gates business/coaching-scale features behind Independent, but not basic client access', () => {
-    const personal = editionCapabilities('personal')
-    const independent = editionCapabilities('independent')
-
-    // S15: free tier includes capped client access (see lib/membership.ts's
-    // FREE_TIER_CLIENT_LIMIT) rather than none — this flag now means "can
-    // reach the feature", and the actual count cap is enforced separately by
-    // canAddClient() against real coach data, not by this pure capability
-    // table.
-    expect(personal.clients).toBe(true)
-    expect(personal.programBuilder).toBe(false)
-    expect(personal.business).toBe(false)
-    expect(personal.filmRoomPro).toBe(false)
-
-    expect(independent.clients).toBe(true)
-    expect(independent.programBuilder).toBe(true)
-    expect(independent.business).toBe(true)
-    expect(independent.filmRoomPro).toBe(true)
   })
 
   it('gates team features behind Studio', () => {
     const independent = editionCapabilities('independent')
     const studio = editionCapabilities('studio')
 
+    expect(editionCapabilities('personal').multiSeat).toBe(false)
     expect(independent.multiSeat).toBe(false)
-    expect(independent.batchAi).toBe(false)
-    expect(independent.sharedModelCache).toBe(false)
-
     expect(studio.multiSeat).toBe(true)
-    expect(studio.batchAi).toBe(true)
-    expect(studio.sharedModelCache).toBe(true)
   })
 
   it('gives every gated edition a plain-language upgrade reason', () => {
@@ -70,11 +40,9 @@ describe('editionCapabilities', () => {
     const p = editionCapabilities('personal')
     const i = editionCapabilities('independent')
     const s = editionCapabilities('studio')
-    const flags = ['clients', 'programBuilder', 'filmRoomPro', 'business', 'multiSeat', 'batchAi', 'sharedModelCache'] as const
-    for (const f of flags) {
-      expect(!p[f] || i[f]).toBe(true)   // personal ⊆ independent
-      expect(!i[f] || s[f]).toBe(true)   // independent ⊆ studio
-    }
+    expect(!p.multiSeat || i.multiSeat).toBe(true)   // personal ⊆ independent
+    expect(!i.multiSeat || s.multiSeat).toBe(true)   // independent ⊆ studio
+    expect(tierAtLeast(i.maxAiTier, p.maxAiTier) && tierAtLeast(s.maxAiTier, i.maxAiTier)).toBe(true)
   })
 })
 

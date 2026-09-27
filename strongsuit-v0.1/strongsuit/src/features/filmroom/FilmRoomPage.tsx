@@ -237,7 +237,7 @@ function useClip(
 }
 
 /** One transport row: play/pause, frame step, scrubber, time readout. */
-function TransportBar({ label, time, dur, playing, fps, onToggle, onStep, onSeek, hints, accent }: {
+function TransportBar({ label, time, dur, playing, fps, onToggle, onStep, onSeek, hints, hintMod, accent }: {
   label?: string
   time: number
   dur: number
@@ -247,6 +247,8 @@ function TransportBar({ label, time, dur, playing, fps, onToggle, onStep, onSeek
   onStep: (frames: number) => void
   onSeek: (t: number) => void
   hints?: boolean
+  /** Modifier shown before each key hint ('Alt' on the Reference bar). */
+  hintMod?: string
   accent?: 'verde' | 'slate'
 }) {
   return (
@@ -274,7 +276,7 @@ function TransportBar({ label, time, dur, playing, fps, onToggle, onStep, onSeek
       <span className="font-mono tabular-nums text-xs text-muted">{fmtTime(time)} / {fmtTime(dur)}</span>
       {hints && (
         <span className="hidden items-center gap-1 text-2xs text-faint lg:flex">
-          <Kbd>Space</Kbd><Kbd>←</Kbd><Kbd>→</Kbd>
+          {hintMod && <><Kbd>{hintMod}</Kbd>+</>}<Kbd>Space</Kbd><Kbd>←</Kbd><Kbd>→</Kbd>
         </span>
       )}
     </Card>
@@ -1130,18 +1132,25 @@ export default function FilmRoomPage() {
     setTimeout(() => win.print(), 400)
   }
 
-  // keyboard: space play/pause, arrows step 1 frame (shift = 5)
+  // keyboard: space play/pause, arrows step 1 frame (shift = 5). With Alt
+  // held, the same keys drive the Reference clip when it isn't synced to the
+  // client's (DEBT-13) — and plain keys do when it's the only clip loaded.
+  const refToggle = B.toggle, refStep = B.step
+  const refIndependent = !!clipB && (!linked || !clipA)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement
       if (t.tagName === 'INPUT' || t.tagName === 'SELECT' || t.tagName === 'TEXTAREA') return
-      if (e.key === ' ') { e.preventDefault(); masterToggle() }
-      if (e.key === 'ArrowRight') { e.preventDefault(); masterStep(e.shiftKey ? 5 : 1) }
-      if (e.key === 'ArrowLeft') { e.preventDefault(); masterStep(e.shiftKey ? -5 : -1) }
+      const toRef = refIndependent && (e.altKey || !clipA)
+      const toggle = toRef ? refToggle : masterToggle
+      const step = toRef ? refStep : masterStep
+      if (e.key === ' ') { e.preventDefault(); toggle() }
+      if (e.key === 'ArrowRight') { e.preventDefault(); step(e.shiftKey ? 5 : 1) }
+      if (e.key === 'ArrowLeft') { e.preventDefault(); step(e.shiftKey ? -5 : -1) }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [masterToggle, masterStep])
+  }, [masterToggle, masterStep, refToggle, refStep, refIndependent, clipA])
 
   const onStageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (tool === 'off') return
@@ -1397,7 +1406,7 @@ export default function FilmRoomPage() {
               )}
               {clipB && !linked && (
                 <TransportBar
-                  label={clipA ? 'Reference' : undefined} accent="slate"
+                  label={clipA ? 'Reference' : undefined} accent="slate" hints hintMod={clipA ? 'Alt' : undefined}
                   time={B.time} dur={B.dur} playing={B.playing} fps={fps}
                   onToggle={B.toggle} onStep={B.step} onSeek={B.seek}
                 />

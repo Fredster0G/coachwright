@@ -2,7 +2,7 @@
 
 Where your data lives, how to get all of it out, and what happens if you stop paying or lose your
 connection. Written for the coach, not for a developer. (Updated S23, when Coachwright moved to cloud
-accounts. Technical detail: `docs/CLOUD.md`.)
+accounts; S24 added password reset and account deletion. Technical detail: `docs/CLOUD.md`.)
 
 ---
 
@@ -68,7 +68,7 @@ Coming *in*: **Clients → Import clients** reads a CSV export from TrueCoach, T
 | **Your internet drops** | Keep working on that device. Everything uploads when you reconnect. Other devices see it after that. |
 | **You stop paying for Membership** | Nothing is deleted or locked. You drop to the free tier's 3-active-client cap (and custom branding switches off for accounts created after 15 Aug 2026). A membership keeps working for 7 days past the end of its paid period even if the app can't reach us. |
 | **You bought a one-time licence before August 2026** | It never expires. |
-| **You want to leave** | Export everything (§3). |
+| **You want to leave** | Export everything (§3), then delete your account (§6) if you want it gone from our servers. |
 | **Coachwright's servers go away** | The web app and syncing between devices stop. The desktop app keeps its working copy on your computer, so you can still open it and export everything (§3). |
 
 ---
@@ -88,6 +88,13 @@ Companion never leaves their phone.
 offline on a device you're already signed in on.
 
 **Can I use it on two computers?** Yes — sign in on both. Same account, same data.
+
+**I forgot my password.** On the sign-in screen, **Forgot password?** emails you a link (and a code to
+paste into the desktop app). It works once, for an hour, and signs out every other device.
+
+**How do I delete my account?** **Account & sync → Delete account.** It cancels any Membership, erases
+everything from our servers and from that device, and disconnects your clients' Companion apps. Download
+a backup first if you might want any of it — it can't be undone.
 
 **Is my clients' data being sold or used for training?** No.
 

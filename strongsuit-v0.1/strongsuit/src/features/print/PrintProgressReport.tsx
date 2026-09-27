@@ -4,7 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { clientsRepo, exercisesRepo, logsRepo, trainerRepo } from '@/db/repo'
 import { calculateWeeklyTonnage, detectPRs } from '@/lib/analytics'
 import { APP_NAME } from '@/lib/brand'
-import { e1rm, fullName } from '@/lib/core'
+import { e1rm, fullName, isoDay } from '@/lib/core'
 import { useTranslation } from '@/lib/i18n'
 import { canUseCustomBranding } from '@/lib/membership'
 
@@ -21,10 +21,10 @@ export default function PrintProgressReport() {
   const { t } = useTranslation()
 
   // Date range from query params, default to last 30 days
-  const rangeEnd = searchParams.get('end') || new Date().toISOString().slice(0, 10)
+  const rangeEnd = searchParams.get('end') || isoDay(new Date())
   const rangeStart = searchParams.get('start') || (() => {
     const d = new Date(); d.setDate(d.getDate() - 30)
-    return d.toISOString().slice(0, 10)
+    return isoDay(d)
   })()
 
   const logs = useMemo(() => {

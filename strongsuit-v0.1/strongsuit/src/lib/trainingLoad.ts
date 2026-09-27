@@ -35,7 +35,9 @@ export interface DayLoad { date: string; load: number } // yyyy-MM-dd, arbitrary
 /** session-RPE load (Foster): RPE (0–10) × duration in minutes. */
 export const sessionLoad = (rpe: number, minutes: number) => Math.max(0, rpe) * Math.max(0, minutes)
 
-const dayKey = (d: Date) => d.toISOString().slice(0, 10)
+/** Local calendar day — `end` below is LOCAL midnight, whose UTC date is the
+ *  previous day anywhere east of Greenwich (S24 fix). */
+const dayKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
 
 /** Descriptive, not predictive. There is deliberately no 'danger' zone —

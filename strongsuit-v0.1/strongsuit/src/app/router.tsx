@@ -1,6 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react'
 import { LOCAL_AI_ENABLED } from '@/lib/cloud/config'
-import { createHashRouter } from 'react-router-dom'
+import { createHashRouter, Navigate } from 'react-router-dom'
 import Shell from './Shell'
 import { RouteError } from './RouteError'
 import { LogoSpinner } from '@/design'
@@ -84,8 +84,14 @@ export const router = createHashRouter([
       { path: 'leads', element: load(<LeadsPage />), errorElement: <RouteError /> },
       { path: 'leaderboard', element: load(<LeaderboardPage />), errorElement: <RouteError /> },
       { path: 'settings', element: load(<SettingsPage />), errorElement: <RouteError /> },
-      // Desktop-only: the website build ships without on-device AI.
-      ...(LOCAL_AI_ENABLED ? [{ path: 'assistant', element: load(<AssistantPage />), errorElement: <RouteError /> }] : []),
+      // Desktop-only: the website build ships without on-device AI, and a
+      // hand-typed /#/assistant there goes home rather than to an error page.
+      LOCAL_AI_ENABLED
+        ? { path: 'assistant', element: load(<AssistantPage />), errorElement: <RouteError /> }
+        : { path: 'assistant', element: <Navigate to="/" replace /> },
+      // A password-reset link opened on a device that's already signed in:
+      // nothing to reset here — change the password from Account instead.
+      { path: 'reset-password', element: <Navigate to="/sync" replace /> },
       { path: 'kitchen-sink', element: load(<KitchenSink />), errorElement: <RouteError /> },
     ],
   },

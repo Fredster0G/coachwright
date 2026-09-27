@@ -13,11 +13,13 @@ type Session = typeof import('./session')
 let engine: Engine
 let session: Session
 let dbm: typeof import('@/db/schema')
+let server_: typeof import('../../../../sync-server/server')
 
 beforeAll(async () => {
   process.env.DB_PATH = ':memory:'
   process.env.AUTH_RATE_LIMIT_PER_15MIN = '1000'
-  const { app } = await import('../../../../sync-server/server')
+  server_ = await import('../../../../sync-server/server')
+  const { app } = server_
   server = app.listen(0)
   await new Promise<void>(r => server.once('listening', () => r()))
   base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
@@ -156,5 +158,74 @@ describe('account isolation on one device', () => {
     expect(await engine.linkDevice()).toBe('downloaded')
     expect(await dbm.db.clients.count()).toBe(0)
     expect((await (await otherDevice(b)).pull()).changes.length).toBe(0)
+  })
+})
+
+describe('account basics (S24)', () => {
+  it('forgot password: the emailed code resets it and signs this device in', async () => {
+    const address = email()
+    await session.signUp(address, 'password1')
+    await session.signOut()
+    const sent: string[] = []
+    const original = server_.mailer.send
+    server_.mailer.send = async (_to, _subject, text) => { sent.push(text) }
+    try {
+      await session.requestPasswordReset(address)
+      await new Promise(r => setTimeout(r, 10))
+    } finally { server_.mailer.send = original }
+    const code = /paste: ([0-9a-f]{32})/.exec(sent[0])![1]
+    await session.confirmPasswordReset(`  ${code} `, 'password2')
+    expect(session.getSession()?.email).toBe(address)
+    await session.signOut()
+    await expect(session.signIn(address, 'password1')).rejects.toThrow()
+    await session.signIn(address, 'password2')
+  })
+
+  it('deleting the account erases it on the server and on this device', async () => {
+    const address = email()
+    await session.signUp(address, 'password1')
+    await engine.linkDevice()
+    await dbm.db.clients.add(client('gone', 'Gone'))
+    await engine.syncNow()
+
+    await expect(session.deleteAccount('wrong-password')).rejects.toThrow('Password is wrong')
+    expect(session.getSession()).not.toBeNull()
+    await session.deleteAccount('password1')
+    await engine.eraseThisDevice()
+
+    expect(session.getSession()).toBeNull()
+    expect(engine.linkedAccountId()).toBeNull()
+    for (const t of dbm.db.tables) expect(await t.count()).toBe(0)
+    await expect(session.signIn(address, 'password1')).rejects.toThrow()
+  })
+
+  it('a client over the free limit stays on the device, is reported, and uploads once there is room', async () => {
+    const address = email()
+    await session.signUp(address, 'password1')
+    await engine.linkDevice()
+    await dbm.db.trainer.add({ id: 'me', createdAt: t0, updatedAt: t0 } as never)
+    await engine.syncNow()
+    for (const [id, name] of [['a', 'A'], ['b', 'B'], ['c', 'C'], ['d', 'D']]) await dbm.db.clients.add(client(id, name))
+    await engine.syncNow()
+    expect(engine.getSyncStatus()).toMatchObject({ phase: 'idle', refusedClients: 1, pending: 1 })
+
+    await dbm.db.clients.update('a', { status: 'archived', updatedAt: '2026-02-01T00:00:00.000Z' })
+    await engine.syncNow()
+    expect(engine.getSyncStatus().refusedClients).toBeUndefined()
+    expect(engine.getSyncStatus().pending).toBe(0)
+    const ids = (await (await otherDevice(address)).pull()).changes.filter(c => c.table === 'clients').map(c => c.id)
+    expect(ids.sort()).toEqual(['a', 'b', 'c', 'd'])
+  })
+})
+
+describe('app ↔ server lists that must match (DEBT-60)', () => {
+  it('synced tables', async () => {
+    const { SYNCED_TABLES } = await import('./tables')
+    expect([...server_.SYNC_TABLES].sort()).toEqual([...SYNCED_TABLES].sort())
+  })
+  it('licence verification key', async () => {
+    const { RELEASE_PUBLIC_JWK } = await import('@/lib/licence')
+    expect({ x: server_.LICENCE_PUBLIC_JWK.x, y: server_.LICENCE_PUBLIC_JWK.y, crv: server_.LICENCE_PUBLIC_JWK.crv })
+      .toEqual({ x: RELEASE_PUBLIC_JWK!.x, y: RELEASE_PUBLIC_JWK!.y, crv: RELEASE_PUBLIC_JWK!.crv })
   })
 })

@@ -63,8 +63,14 @@ of product (server-authoritative accounts), which was never on the table here.
 - **What Membership unlocks** — exactly two things: unlimited active clients (`canAddClient`) and custom
   branding for installs created after 2026-08-15 (`canUseCustomBranding`). Everything else is free on
   every tier (DEBT-70 tracks the edition flags that still describe the old split).
-- The free-tier cap is still checked on the device only (DEBT-66). The server now *could* enforce it —
-  it knows both the membership and the client count — but doesn't yet (DEBT-74).
+- **The free-tier cap is enforced by the server (S24).** `/data/push` refuses a client *becoming*
+  active (new, or restored from archive/pause) when a non-member already has 3 active ones. Edits and
+  archiving always go through, and within one push archives are applied before activations. Exempt:
+  a live membership, or a one-time `independent`/`studio` licence on the trainer row whose signature
+  the server verifies with the same public key the app embeds (an app test asserts they match). Gate
+  new, never claw back: an account whose *first* push arrives with more than 3 active clients (a
+  pre-cloud install uploading) keeps that many as its allowance. Refused clients stay on the device and
+  retry each sync; Account & sync says why. The app's own `canAddClient()` check still runs first.
 
 ## 5. Operator runbook — going live for real
 

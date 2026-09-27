@@ -2,7 +2,7 @@
 
 **Original numbering preserved** so older docs' cross-references still resolve. **Never reuse an id** —
 duplicate ids have already caused a fixed bug to be "rediscovered" and re-fixed a session later.
-Next free id: **80**.
+Next free id: **83**.
 
 Closed debts are *not* listed here. Pre-S21 closures live in the frozen `PROGRESS.md` archive; later ones
 are recorded in the closing session's file under `docs/sessions/` — grep by number.
@@ -22,7 +22,9 @@ and in the app dir, already diverged (the app copy predated S11's shipped logo).
 **75 · (S23, NEW) Privacy & legal after dropping E2EE.** Coach and client data (incl. health data:
 check-ins, PAR-Q, food logs, photos) is now readable by the operator. The EULA's §3/§4 were rewritten
 to say so (`EulaScreen.tsx`); there is no privacy policy, no DPA, and nobody legal has read either.
-**Blocker before real customers.** Consider encryption at rest on the VPS disk.
+**Blocker before real customers.** Consider encryption at rest on the VPS disk. S24 notes for the
+lawyer: account deletion now exists (`DELETE /auth/account`, `CLOUD.md` §3) but the EULA doesn't
+mention it, and deleted rows survive in Litestream backups for the bucket's retention window.
 
 **17 · Android has never been compiled.** `android/` is a real generated Capacitor project, but no SDK
 has existed in any build environment. "Next step ready," not "done."
@@ -36,13 +38,6 @@ mid-range phone.
 ---
 
 ## 🟡 Known limitation
-
-**11 · Distribution carries ~22MB of wasm + pose models** in `public/mediapipe/`. Must stay bundled
-(offline doctrine). Could prune to SIMD + nosimd only.
-
-**21 · `sessionsRemaining` is an estimate**, not a decrementing pack ledger — it's `purchased credits −
-all-time logged sessions`. Fine as a nudge; do not present it to a buyer as exact. *Now that money is
-involved, worth making real.*
 
 **24 · Responsive unverified** on Film Room's dual-video stage (will not fit 375px side-by-side),
 Calendar, Business/Billing tabs, and Settings. Verified fine: Dashboard, Clients, Programs, Builder.
@@ -65,9 +60,11 @@ minute. UI says so. Minute-accuracy needs the Capacitor wrap.
 **58 · Lighthouse and cross-browser never run.** One browser engine available, no Lighthouse CLI.
 Unmeasured, not failing.
 
-**60 · `pose.ts`, `core.ts`, `singleFlight` duplicated** across the two apps — separate npm projects, no
-shared package. (`sync.ts` was the fourth; S23 deleted it from both.) Also now: the synced-table list lives
-in the app (`lib/cloud/tables.ts`) and the server (`SYNC_TABLES`) and must be kept equal by hand.
+**60 · Code copied between the two apps and the server** — separate npm projects, no shared package.
+S24 made the copies *checked*, not shared: `pose.ts` must be byte-identical (Companion `lib/core.test.ts`),
+and the synced-table list + licence public key must match between app and server (`lib/cloud/syncEngine.test.ts`).
+`core.ts` is deliberately different per app (Companion's is a small subset) — S24 found its `today()` was
+the UTC day, fixed.
 
 **64 · i18n: ~53 of 57 components still hold hardcoded English.** Layer + RTL are done and the pattern
 is proven. `es.json`/`ar.json` are **seed translations** marked in their own `_meta` — must not ship to
@@ -78,14 +75,12 @@ cycle data is Companion, which has no readiness engine, and cycle rows are kept 
 by construction. **Do not close this by adding cycle rows to the payload** — a test forbids it. Needs a
 product decision: build readiness in Companion, or a per-field opt-in sharing only this number.
 
-**70 · (S22, NEW) Edition capability flags still describe the pre-pivot product.** `lib/edition.ts`'s
-`programBuilder`, `filmRoomPro` and `business` flags are `false` for Personal but **nothing reads them** —
-every tier gets those features, which is what S15's pricing actually promises. Two flags ARE enforced and
-are now wrong-shaped for Membership: `maxAiTier` (a $29 member is still `personal`, so the standard/pro
-assistant tiers show "Included with the Independent and Studio editions" — editions nobody can buy since
-S15; the tiers are inert anyway, see ROADMAP §3) and `multiSeat` (fine — Studio really is separate). Needs
-a product decision: does Membership map to an AI tier? Then either delete the three dead flags or wire
-them. S22 fixed only the false *copy* (`PERSONAL.upgradeReason`, `MembershipCard`).
+**70 · (S22) `maxAiTier` still keys off the pre-pivot edition.** A $29 member is still `personal`, so the
+standard/pro assistant tiers show "Included with the Independent and Studio editions" — editions nobody
+can buy since S15 (the tiers are inert anyway, see ROADMAP §3). Needs Caleb's call: does Membership
+include a larger AI tier? (Pricing/promise — `AGENTS.md` §7.) S24 deleted the six flags nothing read
+(`clients`, `programBuilder`, `filmRoomPro`, `business`, `batchAi`, `sharedModelCache`); `multiSeat` is
+real and stays.
 
 **72 · (S22, NEW) The pitch deck still sells the old model.** `Coachwright Pitch Deck.dc.html` headlines
 "$60. Forever." / "$60 once", and root `BRANDING_PLAN.md` §1's positioning says "buy once and own
@@ -96,26 +91,23 @@ Membership row** ("Everything in Free, uncapped: unlimited clients, program buil
 business tools") — it reads as if Free lacks those, which the code does not do (DEBT-70). §8 is
 Caleb-only per `AGENTS.md` §7, so it was not edited.
 
-**66 · (S15) The free-tier client cap is soft.** `canAddClient()` checks the coach's own IndexedDB; a
-determined user can edit it. S23 made it *fixable* (accounts are server-authoritative now) — see DEBT-74.
-
-**73 · (S23, NEW) No password reset.** A coach who forgets their password is locked out of the account
-(their devices keep working and can export). Needs an email sender (Postmark/SES, ~$0–15/mo) and a
-`/auth/reset` token flow. Until then it's a manual support job: set a new scrypt hash in `accounts`.
-
-**74 · (S23, NEW) Free-tier cap isn't enforced server-side.** The server knows membership and can count a
-coach's active `clients` records, so `/data/push` could refuse a 4th active client for a non-member. Not
-built: it needs a clear UX for "your push was refused" and care with archived/restored clients.
-
-**76 · (S23, NEW) No account or data deletion.** No `/auth/delete`; GDPR/CCPA erasure is a manual SQL job.
-Cascades are already in the schema (`ON DELETE CASCADE` from `accounts`), so the route is small.
-
 **77 · (S23, NEW) Progress photos sync as data URLs inside JSON rows.** Simple and works, but it's the
 largest storage/bandwidth cost per coach and makes every photo edit re-upload the image. Move to object
 storage (S3/R2) with signed URLs when volume justifies it.
 
-**78 · (S23, NEW) Web build: `/#/assistant` typed by hand shows the route error page** rather than
-redirecting. Every link to it is hidden on web; cosmetic.
+**80 · (S24, NEW) Password-reset email has never really been sent.** The flow is tested end to end with
+the mailer stubbed, and live in Chromium via the dev console "mail"; the Postmark call itself
+(`mailer.send` in `server.ts`) has never hit Postmark. Needs an account + verified sender (Caleb), then
+one real reset.
+
+**81 · (S24, NEW) The free cap's "never claw back" allowance trusts the first push.** An account's first
+`/data/push` sets its allowance to however many active clients it carries — that's how a pre-cloud
+install keeps its roster. A hand-crafted first push could claim a bigger allowance once. Accepted: the
+cap is a nudge, and the in-app check still applies.
+
+**82 · (S24, NEW) Deleting the account clears only the device it was deleted from.** Other signed-in
+devices are signed out (their session is gone) but keep their local copy until someone signs in there
+(which replaces it) or they export and wipe it. Say so if a coach asks for erasure "everywhere".
 
 **79 · (S23, NEW) Old pricing tiers still described in strategy docs.** The $15/mo managed relay and the
 free self-hosted relay no longer exist. `SERVER_STRATEGY.md`, `CLIENT_APP_STRATEGY.md`,
@@ -128,8 +120,6 @@ whether cloud storage for free-tier coaches needs a limit.
 
 **1** Dashboard attention-queue scans all logs in memory — fine at current scale.
 **2** Two `as any` casts at Dexie generic boundaries — documented, contained.
-**3** No ESLint flat-config customization yet.
-**13** Keyboard transport (Space/←/→) drives only the master video; the Reference bar is mouse-only.
 **14** Spec/doc *filenames* still say STRONGSUIT (`STRONGSUIT_MASTER_SPEC.md`). Product is Coachwright.
 
 ---

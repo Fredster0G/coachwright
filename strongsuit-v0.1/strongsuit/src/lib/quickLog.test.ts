@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { isoDay } from './core'
 import {
   parseQuickLog, resolveClient, resolveExercise, buildQuickLogPlan, describePlan,
 } from './quickLog'
@@ -72,7 +73,8 @@ describe('parseQuickLog — RPE', () => {
 
 describe('parseQuickLog — dates and notes', () => {
   it('resolves yesterday to an ISO date', () => {
-    const expected = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+    const d = new Date(); d.setDate(d.getDate() - 1)
+    const expected = isoDay(d)
     expect(parseQuickLog('sam 3x5 squat yesterday').date).toBe(expected)
   })
 

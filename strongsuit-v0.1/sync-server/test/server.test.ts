@@ -7,6 +7,7 @@ import assert from 'node:assert/strict'
 import type { AddressInfo } from 'node:net'
 import type { Server } from 'node:http'
 import Stripe from 'stripe'
+import { generateKeyPairSync, sign } from 'node:crypto'
 
 const WEBHOOK_SECRET = 'whsec_test_local'
 process.env.DB_PATH = ':memory:'
@@ -14,6 +15,15 @@ process.env.STRIPE_SECRET_KEY = 'sk_test_never_used_over_the_network'
 process.env.STRIPE_PRICE_ID = 'price_test'
 process.env.STRIPE_WEBHOOK_SECRET = WEBHOOK_SECRET
 process.env.AUTH_RATE_LIMIT_PER_15MIN = '1000'
+// A throwaway licence-signing key, so a test can mint a valid one-time licence.
+const licenceKeys = generateKeyPairSync('ec', { namedCurve: 'P-256' })
+process.env.LICENCE_PUBLIC_JWK = JSON.stringify(licenceKeys.publicKey.export({ format: 'jwk' }))
+function mintLicence(edition: string): string {
+  const c = { name: 'Old Buyer', edition, issuedAt: '2026-03-01T00:00:00.000Z', serial: 7 }
+  const canonical = JSON.stringify([c.name, c.edition, 0, c.issuedAt, c.serial, 'standard'])
+  const sig = sign('sha256', Buffer.from(canonical), { key: licenceKeys.privateKey, dsaEncoding: 'ieee-p1363' })
+  return `CW1.${Buffer.from(JSON.stringify(c)).toString('base64url')}.${sig.toString('base64url')}`
+}
 
 type Mod = typeof import('../server')
 let mod: Mod
@@ -32,6 +42,7 @@ after(() => { server?.close() })
 const json = (token?: string) => ({ 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}) })
 const post = (path: string, body: unknown, token?: string) => fetch(`${base}${path}`, { method: 'POST', headers: json(token), body: JSON.stringify(body) })
 const get = (path: string, token?: string) => fetch(`${base}${path}`, { headers: json(token) })
+const del = (path: string, body: unknown, token?: string) => fetch(`${base}${path}`, { method: 'DELETE', headers: json(token), body: JSON.stringify(body) })
 
 let n = 0
 async function signup(name = 'Coach'): Promise<string> {
@@ -78,6 +89,125 @@ test('changing password signs out other sessions but keeps this one', async () =
   assert.equal((await post('/auth/password', { currentPassword: 'firstpass1', newPassword: 'secondpass2' }, a)).status, 200)
   assert.equal((await get('/auth/me', a)).status, 200)
   assert.equal((await get('/auth/me', b)).status, 401)
+})
+
+// ---------------------------------------------------------------- password reset
+
+async function requestReset(email: string): Promise<{ to: string; text: string }[]> {
+  const sent: { to: string; text: string }[] = []
+  const original = mod.mailer.send
+  mod.mailer.send = async (to, _subject, text) => { sent.push({ to, text }) }
+  try {
+    const r = await post('/auth/reset/request', { email })
+    assert.equal(r.status, 200)
+    assert.deepEqual(await r.json(), { success: true })
+    await new Promise(r => setImmediate(r))
+  } finally { mod.mailer.send = original }
+  return sent
+}
+const tokenIn = (text: string) => /token=([0-9a-f]{32})/.exec(text)![1]
+
+test('password reset: emailed single-use token sets a new password and signs out every device', async () => {
+  await post('/auth/signup', { email: 'forgot@example.com', password: 'oldpassword' })
+  const old = ((await (await post('/auth/login', { email: 'forgot@example.com', password: 'oldpassword' })).json()) as { token: string }).token
+  const sent = await requestReset('Forgot@Example.com')
+  assert.equal(sent.length, 1)
+  assert.equal(sent[0].to, 'forgot@example.com')
+  const token = tokenIn(sent[0].text)
+  assert.ok(sent[0].text.includes(`paste: ${token}`), 'desktop users get the code to paste')
+  assert.equal(mod.db.prepare('SELECT 1 FROM password_resets WHERE token_hash = ?').get(token), undefined, 'stored hashed')
+
+  assert.equal((await post('/auth/reset/confirm', { token, newPassword: 'short' })).status, 400)
+  const ok = await post('/auth/reset/confirm', { token, newPassword: 'newpassword' })
+  assert.equal(ok.status, 200)
+  const { token: fresh, account } = await ok.json() as { token: string; account: { email: string } }
+  assert.equal(account.email, 'forgot@example.com')
+  assert.equal((await get('/auth/me', fresh)).status, 200)
+  assert.equal((await get('/auth/me', old)).status, 401)
+  assert.equal((await post('/auth/login', { email: 'forgot@example.com', password: 'oldpassword' })).status, 401)
+  assert.equal((await post('/auth/login', { email: 'forgot@example.com', password: 'newpassword' })).status, 200)
+  assert.equal((await post('/auth/reset/confirm', { token, newPassword: 'thirdpassword' })).status, 400, 'single use')
+})
+
+test('password reset: unknown emails look identical and send nothing; expired and superseded tokens fail', async () => {
+  assert.deepEqual(await requestReset('nobody-here@example.com'), [])
+  await post('/auth/signup', { email: 'twice@example.com', password: 'oldpassword' })
+  const first = tokenIn((await requestReset('twice@example.com'))[0].text)
+  const second = tokenIn((await requestReset('twice@example.com'))[0].text)
+  assert.equal((await post('/auth/reset/confirm', { token: first, newPassword: 'newpassword' })).status, 400, 'superseded')
+  mod.db.prepare('UPDATE password_resets SET expires_at = ? WHERE token_hash = ?').run('2020-01-01T00:00:00.000Z', mod.sha256Hex(second))
+  assert.equal((await post('/auth/reset/confirm', { token: second, newPassword: 'newpassword' })).status, 400, 'expired')
+  assert.equal((await post('/auth/reset/confirm', { newPassword: 'newpassword' })).status, 400)
+})
+
+// ---------------------------------------------------------------- account deletion
+
+test('deleting an account needs the password and erases everything it owns', async () => {
+  const { coach, client } = await connectedClient()
+  const me = await (await get('/auth/me', coach)).json() as { account: { id: string } }
+  const id = me.account.id
+  await post('/reminders', { clientId: 'c1', content: 'hi', sendAt: new Date().toISOString() }, coach)
+  seedMembership(coach, 'canceled', new Date(Date.now() - 86_400_000).toISOString())
+  const bystander = await signup()
+  await post('/data/push', { changes: [row('clients', 'keep', '2026-01-01T00:00:00.000Z')] }, bystander)
+
+  assert.equal((await del('/auth/account', { password: 'wrong password' }, coach)).status, 403)
+  assert.equal((await del('/auth/account', { password: 'correct horse' })).status, 401)
+  assert.equal((await del('/auth/account', { password: 'correct horse' }, coach)).status, 200)
+
+  assert.equal((await get('/auth/me', coach)).status, 401)
+  assert.equal((await get('/client/bundle', client)).status, 401)
+  for (const t of ['accounts', 'sessions', 'records', 'invites', 'client_tokens', 'reminders', 'push_subscriptions', 'memberships', 'password_resets']) {
+    const col = t === 'accounts' ? 'id' : 'account_id'
+    assert.equal((mod.db.prepare(`SELECT COUNT(*) AS n FROM ${t} WHERE ${col} = ?`).get(id) as { n: number }).n, 0, t)
+  }
+  const other = await (await get('/data/pull?since=0', bystander)).json() as { changes: unknown[] }
+  assert.equal(other.changes.length, 1, 'other accounts untouched')
+})
+
+// ---------------------------------------------------------------- free-tier cap
+
+const activeClient = (id: string, updatedAt = '2026-01-01T00:00:00.000Z') => row('clients', id, updatedAt, { status: 'active' })
+type PushResult = { applied: string[]; stale: string[]; refused: string[] }
+const push = async (t: string, changes: unknown[]) => (await (await post('/data/push', { changes }, t)).json()) as PushResult
+
+test('free cap: a 4th active client is refused; editing, archiving and swapping still work', async () => {
+  const t = await signup()
+  await push(t, [row('trainer', 'me', '2026-01-01T00:00:00.000Z')])
+  const r = await push(t, [activeClient('a'), activeClient('b'), activeClient('c'), activeClient('d')])
+  assert.deepEqual(r.applied, ['a', 'b', 'c'])
+  assert.deepEqual(r.refused, ['d'])
+  assert.deepEqual((await push(t, [activeClient('a', '2026-02-01T00:00:00.000Z')])).applied, ['a'], 'editing an active client')
+  const archived = row('clients', 'c', '2026-02-01T00:00:00.000Z', { status: 'archived' })
+  assert.deepEqual((await push(t, [activeClient('d', '2026-02-01T00:00:00.000Z'), archived])).applied, ['c', 'd'], 'order within a batch does not matter')
+  assert.deepEqual((await push(t, [row('clients', 'e', '2026-02-01T00:00:00.000Z', { status: 'paused' })])).applied, ['e'])
+  assert.deepEqual((await push(t, [activeClient('c', '2026-03-01T00:00:00.000Z')])).refused, ['c'], 'reactivating over the cap')
+})
+
+test('free cap: members and verified one-time licences are uncapped; a forged licence is not', async () => {
+  const member = await signup()
+  await push(member, [row('trainer', 'me', '2026-01-01T00:00:00.000Z')])
+  seedMembership(member, 'active', new Date(Date.now() + 86_400_000).toISOString())
+  assert.equal((await push(member, ['a', 'b', 'c', 'd', 'e'].map(id => activeClient(id)))).refused.length, 0)
+
+  const licensed = await signup()
+  await push(licensed, [row('trainer', 'me', '2026-01-01T00:00:00.000Z', { licenseKey: mintLicence('independent') })])
+  assert.equal((await push(licensed, ['a', 'b', 'c', 'd'].map(id => activeClient(id)))).refused.length, 0)
+
+  const forger = await signup()
+  const real = mintLicence('personal').split('.')
+  const claims = Buffer.from(JSON.stringify({ name: 'Old Buyer', edition: 'studio', issuedAt: '2026-03-01T00:00:00.000Z', serial: 7 })).toString('base64url')
+  await push(forger, [row('trainer', 'me', '2026-01-01T00:00:00.000Z', { licenseKey: `CW1.${claims}.${real[2]}` })])
+  assert.deepEqual((await push(forger, ['a', 'b', 'c', 'd'].map(id => activeClient(id)))).refused, ['d'])
+  assert.equal(mod.verifiedLicenceEdition(mintLicence('studio')), 'studio')
+})
+
+test('free cap: an install that arrives with more clients keeps them (never claw back) but cannot add more', async () => {
+  const t = await signup()
+  const first = await push(t, [row('trainer', 'me', '2026-01-01T00:00:00.000Z'), ...['a', 'b', 'c', 'd', 'e'].map(id => activeClient(id))])
+  assert.equal(first.refused.length, 0)
+  assert.deepEqual((await push(t, [activeClient('a', '2026-02-01T00:00:00.000Z')])).applied, ['a'])
+  assert.deepEqual((await push(t, [activeClient('f')])).refused, ['f'])
 })
 
 // ---------------------------------------------------------------- sync

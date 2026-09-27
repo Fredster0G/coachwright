@@ -35,8 +35,9 @@ runbook (VPS, Caddy, Litestream, env), `docs/MEMBERSHIP.md` §5 the Stripe steps
 real keys, real money.*
 
 ### 1.1b 🟦 Account basics before real customers
-Password reset (DEBT-73, needs an email sender), account deletion (DEBT-76), privacy policy + legal read
-of the EULA (DEBT-75, 🟥 lawyer). *Effort: a day of code + the legal part.*
+**S24: password reset and account deletion shipped** (server + app, tested, live-verified). Left: a
+Postmark account so reset emails actually send (`CLOUD.md` §4, Caleb), and the privacy policy + legal
+read of the EULA (DEBT-75, 🟥 lawyer).
 **S22:** the server side is now test-covered (`sync-server && npm test`, 16 tests incl. an automated
 app↔server token cross-check) and a billing-portal hole was closed (any paired client could cancel its
 coach's subscription). Set `TRUST_PROXY=1` behind Caddy or the whole instance shares one rate-limit bucket.
@@ -173,7 +174,7 @@ flat pricing — survives the S23 move to cloud. The privacy/"we can't read it" 
 | **Film Room on real footage** | Thresholds tuned on synthetic data only | 🟥 | Needs a real phone + a real set. Then a tuning pass. |
 | **Mobile responsive gaps** | Film Room / Calendar / Business / Settings unverified | 🟨 | Film Room's dual-video stage almost certainly needs a stacked layout under ~768px. |
 | **Assistant depth** | ✅ **Copy corrected S21** — was actively misleading in two ways, not one. `qwen3-4b`/`qwen3-8b`'s "program drafting"/"best quality" claims were unbuilt *and* the tiers are functionally inert even if downloaded (`lib/assistant.ts`'s `MODEL_REPO` is hardcoded to the 1.7B model — nothing switches on which tier is "installed"). Separately, the light tier's "turns typed notes into logged sets" claim was misattributing an already-free, zero-AI feature (`lib/quickLog.ts`, pure regex, works with no model installed) to a 1.1GB download. All three registry `purpose` strings now say what's real. | 🟦 | **Real follow-up, properly scoped now:** (1) make `qwen3-4b`/`qwen3-8b` actually loadable — `MODEL_REPO` needs to read the *installed* tier's real HF repo id, not a hardcoded constant; verify each against a real download first, same bar every other local-AI feature met. (2) Program drafting is a genuinely new feature — prompt a model for a *structured* `Program`/`Week`/`Day`/`Block` shape, parse+validate the output, and route it through a review-before-apply UI (never auto-write, matching `lib/quickLog.ts`'s own stated design rule: "it feeds this pipeline, it doesn't bypass it"). Two separable tasks — don't build both in one pass. |
-| **`sessionsRemaining`** | An estimate, not a real pack ledger (DEBT-21) | 🟨 | Now that money is involved, a real decrementing ledger is worth it. |
+| **`sessionsRemaining`** | ✅ **S24:** real ledger (`lib/sessionPacks.ts`) — counts coach-logged sessions since the first pack; shown on the client's Billing tab | 🟦 | Done. Refunds don't give sessions back (no link from a refund to a pack) — add one if coaches ask. |
 | **Lighthouse + cross-browser** | Never run (DEBT-58) | 🟥 | Needs Firefox/Safari + Lighthouse CLI. |
 | **`symptomReadinessContribution()`** | Correct, tested, **zero callers** (DEBT-65) | 🟦 | Needs a *product* decision, not wiring. Do not close it by adding cycle data to the sync payload — a test forbids it. |
 
@@ -199,6 +200,6 @@ flat pricing — survives the S23 move to cloud. The privacy/"we can't read it" 
 
 **If Caleb has an afternoon:** §1.1 — deploy the server. Nothing else matters until someone can sign in.
 
-**If Claude Code:** §1.1b (password reset + account deletion), then DEBT-74 (server-side free-tier cap).
+**If Claude Code:** DEBT-64 (i18n conversion) or DEBT-77 (photo storage design, no provider chosen yet).
 
 **If Antigravity:** i18n conversion (§3) — guaranteed-safe, compile-checked.

@@ -11,6 +11,7 @@ import { evaluateAutomations, explainRule, DEFAULT_RULES, type ClientFacts } fro
 import { today } from '@/lib/core'
 import { useTranslation } from '@/lib/i18n'
 import { RosterSummaryCard } from './RosterSummaryCard'
+import { sessionPackBalance } from '@/lib/sessionPacks'
 
 function ChecklistItem({ done, label, to }: { done: boolean; label: string; to: string }) {
   return (
@@ -48,14 +49,12 @@ export default function DashboardPage() {
     const clientLogs = logs.filter(l => l.clientId === c.id).sort((a, b) => a.date.localeCompare(b.date))
     const clientCheckIns = checkIns.filter(ci => ci.clientId === c.id).sort((a, b) => a.date.localeCompare(b.date))
     const clientPayments = payments.filter(p => p.clientId === c.id)
-    const purchasedSessions = clientPayments.filter(p => p.type === 'session-credit').reduce((a, p) => a + (p.sessions ?? 0), 0)
     const lastPayment = clientPayments.filter(p => p.type !== 'refund').sort((a, b) => a.date.localeCompare(b.date)).at(-1)
     facts.set(c.id, {
       clientId: c.id,
       lastSessionDate: clientLogs.at(-1)?.date,
       lastCheckInDate: clientCheckIns.at(-1)?.date,
-      // estimate only — there's no first-class "pack" decrement ledger yet
-      sessionsRemaining: purchasedSessions > 0 ? Math.max(0, purchasedSessions - clientLogs.length) : undefined,
+      sessionsRemaining: sessionPackBalance(clientPayments, clientLogs)?.remaining,
       lastPaymentDate: lastPayment?.date,
       hasScreening: !!c.screening,
       screeningCleared: c.screening?.cleared ?? false,

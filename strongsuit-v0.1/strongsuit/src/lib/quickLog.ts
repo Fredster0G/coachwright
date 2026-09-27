@@ -184,10 +184,13 @@ function splitNameAndExercise(words: string[]): { clientQuery?: string; exercise
   return { clientQuery: words[0], exerciseQuery: words.slice(1).join(' ') }
 }
 
+/** Local calendar day (not `toISOString()`, which is the UTC day). */
+const localDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
 function isoOffsetDays(days: number): string {
   const d = new Date()
   d.setDate(d.getDate() + days)
-  return d.toISOString().slice(0, 10)
+  return localDay(d)
 }
 
 /** The most recent occurrence of a weekday, looking backwards. */
@@ -195,7 +198,7 @@ function isoMostRecentWeekday(target: number): string {
   const d = new Date()
   const delta = (d.getDay() - target + 7) % 7
   d.setDate(d.getDate() - (delta === 0 ? 7 : delta))
-  return d.toISOString().slice(0, 10)
+  return localDay(d)
 }
 
 // -------------------------------------------------------------- resolving

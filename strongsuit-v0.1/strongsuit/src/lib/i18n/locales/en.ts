@@ -454,6 +454,8 @@ export const en = {
   'clients.billing.memoLabel': 'Memo (optional)',
   'clients.billing.saveTxBtn': 'Save Transaction',
   'clients.billing.ledgerTitle': 'Ledger',
+  'clients.billing.packBalance': '{remaining} of {purchased} prepaid sessions left',
+  'clients.billing.packBalanceHint': 'Counts sessions you logged since the first pack was bought. Workouts the client logs in Companion don’t use a session.',
   'clients.billing.recordTxBtn': 'Record Transaction',
   'clients.billing.noTxTitle': 'No transactions yet',
   'clients.billing.noTxBody': 'Record payments and session packs to keep your ledger accurate.',

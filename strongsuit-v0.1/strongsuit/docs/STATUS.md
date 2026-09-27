@@ -1,8 +1,8 @@
 # STATUS — read this first
 
-**Last updated:** 2026-09-27 (S23, Claude Code)
-**Health:** app 46 files · 655 tests · `tsc -b --force` 0 errors · lint:tailwind 0 errors · oxlint 0 · no import cycles
-· companion 6 files · 107 tests · clean · sync-server `tsc --noEmit` clean · 21 server tests
+**Last updated:** 2026-09-27 (S24, Claude Code)
+**Health:** app 48 files · 667 tests · `tsc -b --force` 0 errors · lint:tailwind 0 errors · oxlint 0 errors · no import cycles
+· companion 7 files · 109 tests · clean · sync-server `tsc --noEmit` clean · 27 server tests
 
 > ⚠️ **The `tsc` command above is not a typo — read `AGENTS.md` §4 before you trust any prior "clean
 > typecheck" claim, including ones in older session files.** The root `tsc --noEmit` invocation silently
@@ -18,11 +18,11 @@
 
 | | |
 |---|---|
-| **Last worked on** | S23: **moved to cloud accounts** (Caleb's call). Coach data lives on Coachwright Cloud (`sync-server/`), every install is a synced cache, Companion connects with a coach-issued code. Removed: E2EE pairing, WiFi/LAN/file/P2P sync, self-hosted/managed relay tiers, offline service worker, offline membership tokens. Added a `build:web` target with no on-device AI. Closed DEBT-68 (food log now travels in client packages). Design + runbook: `docs/CLOUD.md`. |
+| **Last worked on** | S24: **account basics** — password reset by emailed one-time link (Postmark, off until keys exist), account deletion (cancels Stripe, erases server + device), server-side free-tier cap. Debt sweep: local-vs-UTC date bugs in both apps, real session-pack ledger, dead edition flags removed, 11MB unused wasm dropped per app, Film Room Reference keys, web `/assistant` redirect. S23 (before): moved to cloud accounts — `docs/CLOUD.md`. |
 | **Safe to pick up** | Anything in `ROADMAP.md`. |
-| **Half-done / in flight** | Nothing mid-edit. **Not done:** password reset (needs an email sender — DEBT-73), server-side free-tier cap (DEBT-74), legal review of the rewritten EULA + a privacy policy (DEBT-75), account deletion (DEBT-76). |
+| **Half-done / in flight** | Nothing mid-edit. **Not done:** legal review of the EULA + a privacy policy (DEBT-75). Reset emails need a Postmark account + a verified sender (`CLOUD.md` §4) — until then the server logs that it couldn't send. |
 | **Don't touch without reading first** | `docs/CLOUD.md` §2 — `SYNCED_TABLES` (app) must match `SYNC_TABLES` (server); `Table.clear()` bypasses the sync hooks. |
-| **Blocked on Caleb (no AI can do these)** | Real Stripe keys · a VPS + domain for Coachwright Cloud (`CLOUD.md` §4) · lawyer read of EULA/privacy · run the Windows installer on real hardware · a Mac · real-phone Film Room footage |
+| **Blocked on Caleb (no AI can do these)** | Real Stripe keys · a Postmark account (password-reset email) · a VPS + domain for Coachwright Cloud (`CLOUD.md` §4) · lawyer read of EULA/privacy · run the Windows installer on real hardware · a Mac · real-phone Film Room footage |
 
 ---
 
@@ -100,16 +100,16 @@ connection. **Free tier: up to 3 clients. Coachwright Membership: $29/mo, unlimi
 | Thing | Reality |
 |---|---|
 | **Local AI registry** | 12 entries, **5 unwired** (`multilingual-e5-small`, `whisper-small`, `qwen3-4b`, `qwen3-8b`, `rtmpose-m`) and visibly tagged "not downloadable yet" in the UI. |
-| **Coachwright Cloud** | Code complete + tested, **not deployed** — no server, no domain, no live Stripe keys. Not load-tested. No password reset (DEBT-73), no account deletion (DEBT-76). |
+| **Coachwright Cloud** | Code complete + tested, **not deployed** — no server, no domain, no live Stripe or Postmark keys. Not load-tested. Password reset + account deletion built and verified live in Chromium (S24), but a real email has never been sent. |
 | **i18n string conversion** | Layer + RTL + (now) real type-checking all work. Conversion coverage itself unmeasured this session — recheck the "~53 of 57 components hardcoded" figure, it predates S16–S21's changes. |
-| **Edition flags vs Membership** | DEBT-70 — `programBuilder`/`filmRoomPro`/`business` flags are dead; `maxAiTier` still keys off the pre-pivot edition, so a member sees "Independent/Studio" upsell on the (inert) larger assistant tiers. |
+| **Edition flags vs Membership** | DEBT-70 — dead flags deleted S24. Still open: `maxAiTier` keys off the pre-pivot edition, so a member sees "Independent/Studio" on the (inert) larger assistant tiers. Needs Caleb's call on what Membership includes. |
 | **Film Room accuracy** | Rep-counter thresholds tuned against *synthetic* data only. Never run on real human footage or a real mid-range phone. |
 | **Mac** | Never attempted. No Mac in any build environment so far. |
 | **Android** | Real Capacitor project generated, **never compiled or run**. |
 | **Windows installer** | Builds, never run on real hardware. |
 | **Mobile responsive** | Verified: Dashboard, Clients, Programs, Builder. **Unverified:** Film Room dual-video, Calendar, Business/Billing, Settings. |
 | **Lighthouse / cross-browser** | Never run — one browser engine available, no Lighthouse CLI. |
-| **Free-tier cap** | Still checked on the device only. The server now has what it needs to enforce it but doesn't (DEBT-74). |
+| **Free-tier cap** | Enforced by the server since S24 (members and verified one-time licences exempt; an install that arrives with more keeps them). Refused clients stay on the device and show on Account & sync. |
 | **Privacy/legal** | Data is no longer E2EE. EULA storage/privacy clauses rewritten to say so; needs a lawyer and a privacy policy (DEBT-75). |
 
 ---
@@ -117,14 +117,14 @@ connection. **Free tier: up to 3 clients. Coachwright Membership: $29/mo, unlimi
 ## Commands
 
 ```bash
-npx vitest run          # 655 tests, ~15s
+npx vitest run          # 667 tests, ~15s
 npx tsc -b --force      # app typecheck — NOT `tsc --noEmit`, see banner at top of this file
 npm run dev             # vite dev server — talks to http://localhost:4000 (run the server below)
 npm run dev:web         # the website build (no on-device AI)
 npm run build:web       # → dist-web/
 npm run dev:electron    # desktop shell — ALWAYS confirm the process died after
 npm run lint:tailwind   # undefined-class check (DEBT-20 regressed once already)
-cd ../sync-server && npm test   # Coachwright Cloud, 21 tests
+cd ../sync-server && npm test   # Coachwright Cloud, 27 tests
 cd ../sync-server && npm run dev # the backend on :4000 (DB_PATH=... to choose the file)
 ```
 

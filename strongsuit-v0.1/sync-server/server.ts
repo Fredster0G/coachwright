@@ -11,7 +11,8 @@
 // everything newer than its cursor — so adding an app table never needs a
 // server change beyond the SYNC_TABLES allowlist below.
 //
-//   /auth/*        coach accounts (email + scrypt password, bearer sessions)
+//   /auth/*        coach accounts (email + scrypt password, bearer sessions),
+//                  password reset by emailed one-time link, account deletion
 //   /data/*        row sync: push (last-write-wins by updatedAt), pull (by seq)
 //   /invites       coach issues a one-time code for a client's Companion app
 //   /client/*      Companion: redeem a code, read its program/messages, send logs
@@ -23,7 +24,7 @@ import express from 'express'
 import cors from 'cors'
 import Database from 'better-sqlite3'
 import * as dotenv from 'dotenv'
-import { randomBytes, createHash, scryptSync, timingSafeEqual } from 'crypto'
+import { randomBytes, createHash, scryptSync, timingSafeEqual, createPublicKey, verify as verifySig } from 'crypto'
 import { rateLimit } from 'express-rate-limit'
 import webpush from 'web-push'
 import Stripe from 'stripe'
@@ -224,7 +225,22 @@ db.exec(`
   );
 
   CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT);
+
+  -- Emailed password-reset links. Only the sha256 is stored; single use,
+  -- one hour, and a new request replaces any older unused one.
+  CREATE TABLE IF NOT EXISTS password_resets (
+    token_hash TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+    expires_at TEXT NOT NULL
+  );
 `)
+
+// Added S24. `client_allowance`: the free-tier active-client ceiling for an
+// account that arrived with more than FREE_TIER_CLIENT_LIMIT already (a
+// pre-cloud install uploading its database) — "gate new, never claw back".
+if (!(db.prepare(`SELECT 1 FROM pragma_table_info('accounts') WHERE name = 'client_allowance'`).get())) {
+  db.exec(`ALTER TABLE accounts ADD COLUMN client_allowance INTEGER`)
+}
 
 function upsertMembership(m: {
   accountId: string; stripeCustomerId: string; stripeSubscriptionId: string
@@ -297,8 +313,31 @@ function pushToClient(accountId: string, clientId: string, payload: { title: str
   }
 }
 
+// ---- Email ----
+// One HTTP call to Postmark (no SDK, no SMTP). Unconfigured = nothing is sent:
+// outside production the message is printed to the console so a developer
+// can follow a reset link; in production only the fact is logged, never the
+// link. Replaceable in tests (`mailer.send = ...`).
+export const mailer = {
+  async send(to: string, subject: string, text: string): Promise<void> {
+    const token = process.env.POSTMARK_SERVER_TOKEN
+    if (!token || !process.env.MAIL_FROM) {
+      if (process.env.NODE_ENV === 'production') console.warn(`Mail not configured — "${subject}" to ${to} was not sent`)
+      else console.log(`\n[mail not configured — would send]\nTo: ${to}\nSubject: ${subject}\n\n${text}\n`)
+      return
+    }
+    const res = await fetch('https://api.postmarkapp.com/email', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'X-Postmark-Server-Token': token },
+      body: JSON.stringify({ From: process.env.MAIL_FROM, To: to, Subject: subject, TextBody: text, MessageStream: 'outbound' }),
+    })
+    if (!res.ok) throw new Error(`Postmark responded ${res.status}`)
+  },
+}
+
 // ---- Housekeeping ----
 function sweep() {
+  db.prepare(`DELETE FROM password_resets WHERE expires_at < ?`).run(new Date().toISOString())
   db.prepare(`DELETE FROM invites WHERE expires_at < ? OR redeemed = 1`).run(new Date().toISOString())
   db.prepare(`DELETE FROM reminders WHERE sent = 1 AND created_at < datetime('now', '-90 days')`).run()
   db.prepare(`DELETE FROM sessions WHERE last_used_at < datetime('now', '-90 days')`).run()
@@ -401,6 +440,135 @@ app.post('/auth/password', authLimiter, requireCoach, (req, res) => {
   res.json({ success: true })
 })
 
+const RESET_TTL_MS = 60 * 60 * 1000
+const APP_URL = (process.env.APP_URL || 'https://app.coachwright.app').replace(/\/$/, '')
+
+/** Always answers the same way, whether or not the email has an account, so
+ *  this can't be used to find out who's a customer. The email is sent in the
+ *  background for the same reason (timing). */
+app.post('/auth/reset/request', authLimiter, (req, res) => {
+  const { email } = req.body
+  if (typeof email !== 'string' || !EMAIL_RE.test(email.trim())) return res.status(400).json({ error: 'Enter a valid email address' })
+  const row = db.prepare('SELECT id, email FROM accounts WHERE email = ?').get(email.trim().toLowerCase()) as { id: string; email: string } | undefined
+  if (row) {
+    const token = newId()
+    db.transaction(() => {
+      db.prepare('DELETE FROM password_resets WHERE account_id = ?').run(row.id)
+      db.prepare('INSERT INTO password_resets (token_hash, account_id, expires_at) VALUES (?, ?, ?)')
+        .run(sha256Hex(token), row.id, new Date(Date.now() + RESET_TTL_MS).toISOString())
+    })()
+    const text = [
+      'Someone (hopefully you) asked to reset the password for your Coachwright account.',
+      '',
+      `Open this link within the next hour: ${APP_URL}/#/reset-password?token=${token}`,
+      '',
+      `Or, in the Coachwright desktop app, choose "Forgot password?" → "I have a reset code" and paste: ${token}`,
+      '',
+      "If you didn't ask for this, ignore this email — your password hasn't changed.",
+    ].join('\n')
+    mailer.send(row.email, 'Reset your Coachwright password', text)
+      .catch(err => console.error('Password reset email failed:', err))
+  }
+  res.json({ success: true })
+})
+
+/** Sets the new password, signs out every device, and signs this one in. */
+app.post('/auth/reset/confirm', authLimiter, (req, res) => {
+  const { token, newPassword } = req.body
+  if (typeof newPassword !== 'string' || newPassword.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' })
+  const hash = typeof token === 'string' ? sha256Hex(token.trim()) : ''
+  const row = db.prepare('SELECT account_id, expires_at FROM password_resets WHERE token_hash = ?').get(hash) as
+    { account_id: string; expires_at: string } | undefined
+  if (!row || Date.parse(row.expires_at) < Date.now()) {
+    return res.status(400).json({ error: 'That reset link has expired or was already used — request a new one' })
+  }
+  db.transaction(() => {
+    db.prepare('UPDATE accounts SET password_hash = ? WHERE id = ?').run(hashPassword(newPassword), row.account_id)
+    db.prepare('DELETE FROM password_resets WHERE account_id = ?').run(row.account_id)
+    db.prepare('DELETE FROM sessions WHERE account_id = ?').run(row.account_id)
+  })()
+  const account = db.prepare('SELECT id, email FROM accounts WHERE id = ?').get(row.account_id) as { id: string; email: string }
+  res.json({ success: true, token: startSession(account.id), account })
+})
+
+/** Erase the account and everything in it: synced rows, sessions, Companion
+ *  connections, reminders, push subscriptions, membership record (all
+ *  `ON DELETE CASCADE`). A live Stripe subscription is cancelled first; if
+ *  that fails nothing is deleted, so a coach is never billed for an account
+ *  that no longer exists. */
+app.delete('/auth/account', authLimiter, requireCoach, async (req, res) => {
+  const { password } = req.body ?? {}
+  const acct = db.prepare('SELECT password_hash FROM accounts WHERE id = ?').get(req.accountId) as { password_hash: string }
+  if (typeof password !== 'string' || !verifyPassword(password, acct.password_hash)) {
+    return res.status(403).json({ error: 'Password is wrong' })
+  }
+  const m = db.prepare('SELECT stripe_subscription_id, status FROM memberships WHERE account_id = ?').get(req.accountId) as
+    { stripe_subscription_id: string | null; status: string } | undefined
+  if (m?.stripe_subscription_id && m.status !== 'canceled' && m.status !== 'incomplete_expired') {
+    if (!stripe) return res.status(503).json({ error: 'Billing is unavailable right now, so your membership can’t be cancelled — try again later' })
+    try {
+      await stripe.subscriptions.cancel(m.stripe_subscription_id)
+    } catch (err: any) {
+      if (err?.code !== 'resource_missing') {
+        console.error('Subscription cancel on account deletion failed:', err)
+        return res.status(502).json({ error: 'Could not cancel your membership, so nothing was deleted — try again shortly' })
+      }
+    }
+  }
+  db.prepare('DELETE FROM accounts WHERE id = ?').run(req.accountId)
+  res.json({ success: true })
+})
+
+// ---- Free-tier cap (server side) ----
+// Mirrors the app's lib/membership.ts: without a live membership or a
+// one-time licence, an account may have FREE_TIER_CLIENT_LIMIT active
+// clients. Only a client BECOMING active is refused — edits to clients that
+// are already active, and archiving, always go through.
+const FREE_TIER_CLIENT_LIMIT = 3
+
+/** The app's embedded licence-verification key (lib/licence.ts
+ *  RELEASE_PUBLIC_JWK); an app test asserts the two are equal. */
+export const LICENCE_PUBLIC_JWK = {
+  kty: 'EC', crv: 'P-256',
+  x: 'f0teaQeJV8_PsV_JQvH-laSddAWT7SVi7ygbG27LOws',
+  y: 'qGF80fkhviu5SZA79vtLxaVJf2keydfFCY7WiznaarY',
+}
+const licenceKey = createPublicKey({ key: process.env.LICENCE_PUBLIC_JWK ? JSON.parse(process.env.LICENCE_PUBLIC_JWK) : LICENCE_PUBLIC_JWK, format: 'jwk' })
+
+/** Same format and signature as lib/licence.ts: `CW1.<b64url claims>.<b64url
+ *  P-256 sig over canonicalClaims>`. Returns the edition, or null. */
+export function verifiedLicenceEdition(key: unknown): string | null {
+  if (typeof key !== 'string') return null
+  const parts = key.trim().split('.')
+  if (parts.length !== 3 || parts[0] !== 'CW1') return null
+  try {
+    const c = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'))
+    if (typeof c?.name !== 'string' || typeof c.issuedAt !== 'string') return null
+    const canonical = JSON.stringify([c.name, c.edition, c.seats ?? 0, c.issuedAt, c.serial ?? 0, c.programme ?? 'standard'])
+    const ok = verifySig('sha256', Buffer.from(canonical), { key: licenceKey, dsaEncoding: 'ieee-p1363' }, Buffer.from(parts[2], 'base64url'))
+    return ok ? c.edition : null
+  } catch {
+    return null
+  }
+}
+
+function hasPaidAccess(accountId: string): boolean {
+  if (membershipStatus(accountId).active) return true
+  const rows = db.prepare(`SELECT data FROM records WHERE account_id = ? AND tbl = 'trainer' AND deleted = 0`).all(accountId) as { data: string }[]
+  return rows.some(r => {
+    const edition = verifiedLicenceEdition(JSON.parse(r.data).licenseKey)
+    return edition === 'independent' || edition === 'studio'
+  })
+}
+
+const countActiveClients = db.prepare(`
+  SELECT COUNT(*) AS n FROM records
+  WHERE account_id = ? AND tbl = 'clients' AND deleted = 0 AND json_extract(data, '$.status') = 'active'
+`)
+function activeClientCount(accountId: string): number {
+  return (countActiveClients.get(accountId) as { n: number }).n
+}
+
 // ---- /data — row sync ----
 
 /** Tables the app may sync. Anything else is refused, so a bug (or a
@@ -421,7 +589,10 @@ export interface Change {
   data?: Record<string, unknown> | null
 }
 
-const getRecord = db.prepare('SELECT updated_at, client_id FROM records WHERE account_id = ? AND tbl = ? AND id = ?')
+const getRecord = db.prepare(`
+  SELECT updated_at, client_id, deleted, json_extract(data, '$.status') AS status
+  FROM records WHERE account_id = ? AND tbl = ? AND id = ?
+`)
 const nextSeq = db.prepare('SELECT COALESCE(MAX(seq), 0) + 1 AS seq FROM records')
 const upsertRecord = db.prepare(`
   INSERT INTO records (account_id, tbl, id, client_id, data, deleted, updated_at, seq)
@@ -442,15 +613,30 @@ function validChange(c: unknown): c is Change {
 /** Last-write-wins by the row's own updatedAt. Ties go to the incoming write
  *  so a device re-pushing its own row is idempotent. `forceClientId` is the
  *  Companion path: the row is stamped with the token's client and may never
- *  overwrite a row that belongs to a different client. */
-export function applyChanges(accountId: string, changes: Change[], forceClientId?: string): { applied: string[]; stale: string[] } {
+ *  overwrite a row that belongs to a different client. `clientCap` (coach
+ *  pushes from a free account) refuses a client that would become the
+ *  cap+1'th active one. */
+export function applyChanges(
+  accountId: string, changes: Change[], forceClientId?: string, clientCap?: number,
+): { applied: string[]; stale: string[]; refused: string[] } {
   const applied: string[] = []
   const stale: string[] = []
+  const refused: string[] = []
+  // Under a cap, apply everything else before clients becoming active, so a
+  // batch that archives one client and adds another is order-independent.
+  const activates = (c: Change) => c.table === 'clients' && !c.deleted && c.data?.status === 'active'
+  const ordered = clientCap === undefined ? changes : [...changes.filter(c => !activates(c)), ...changes.filter(activates)]
   db.transaction(() => {
-    for (const c of changes) {
-      const existing = getRecord.get(accountId, c.table, c.id) as { updated_at: string; client_id: string | null } | undefined
+    for (const c of ordered) {
+      const existing = getRecord.get(accountId, c.table, c.id) as
+        { updated_at: string; client_id: string | null; deleted: number; status: string | null } | undefined
       if (forceClientId && existing && existing.client_id !== forceClientId) { stale.push(c.id); continue }
       if (existing && Date.parse(existing.updated_at) > Date.parse(c.updatedAt)) { stale.push(c.id); continue }
+      if (clientCap !== undefined && activates(c)
+        && !(existing && !existing.deleted && existing.status === 'active')
+        && activeClientCount(accountId) >= clientCap) {
+        refused.push(c.id); continue
+      }
       const data: Record<string, unknown> | null = c.deleted ? null : { ...c.data, ...(forceClientId ? { clientId: forceClientId } : {}) }
       const clientId = forceClientId ?? (typeof data?.clientId === 'string' ? data.clientId : c.table === 'clients' ? c.id : null)
       upsertRecord.run({
@@ -465,7 +651,7 @@ export function applyChanges(accountId: string, changes: Change[], forceClientId
       }
     }
   })()
-  return { applied, stale }
+  return { applied, stale, refused }
 }
 
 const MAX_CHANGES_PER_PUSH = 500
@@ -477,7 +663,21 @@ app.post('/data/push', requireCoach, (req, res) => {
   }
   const bad = changes.findIndex(c => !validChange(c))
   if (bad !== -1) return res.status(400).json({ error: `Invalid change at index ${bad}` })
-  res.json({ success: true, ...applyChanges(req.accountId!, changes) })
+  const accountId = req.accountId!
+  // An account's very first push is a device uploading what it already had;
+  // whatever it arrives with becomes its allowance (never claw back).
+  const firstPush = !db.prepare('SELECT 1 FROM records WHERE account_id = ? LIMIT 1').get(accountId)
+  let cap: number | undefined
+  if (!firstPush && !hasPaidAccess(accountId)) {
+    const { client_allowance } = db.prepare('SELECT client_allowance FROM accounts WHERE id = ?').get(accountId) as { client_allowance: number | null }
+    cap = Math.max(FREE_TIER_CLIENT_LIMIT, client_allowance ?? 0)
+  }
+  const result = applyChanges(accountId, changes, undefined, cap)
+  if (firstPush) {
+    const n = activeClientCount(accountId)
+    if (n > FREE_TIER_CLIENT_LIMIT) db.prepare('UPDATE accounts SET client_allowance = ? WHERE id = ?').run(n, accountId)
+  }
+  res.json({ success: true, ...result })
 })
 
 const PULL_PAGE = 1000

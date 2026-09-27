@@ -52,7 +52,12 @@ const keyOf = (table: string, id: string) => `${table}\u0000${id}`
 const splitKey = (k: string) => { const i = k.indexOf('\u0000'); return [k.slice(0, i), k.slice(i + 1)] as [SyncedTable, string] }
 
 export type SyncPhase = 'idle' | 'syncing' | 'offline' | 'error' | 'signed-out'
-export interface SyncStatus { phase: SyncPhase; pending: number; lastSyncAt: string | null; error?: string }
+export interface SyncStatus {
+  phase: SyncPhase; pending: number; lastSyncAt: string | null; error?: string
+  /** Clients the server refused to make active: over the free tier's limit
+   *  (server-enforced since S24). They stay on this device and retry. */
+  refusedClients?: number
+}
 
 let status: SyncStatus = { phase: getSession() ? 'idle' : 'signed-out', pending: dirty.size, lastSyncAt: load<string | null>(LAST_SYNC_KEY, null) }
 const statusListeners = new Set<() => void>()
@@ -109,35 +114,50 @@ const PUSH_BATCH = 200
  *  carries progress photos (data URLs). */
 const PUSH_BATCH_BYTES = 4_000_000
 
-async function pushDirty(): Promise<void> {
-  while (dirty.size) {
-    const keys = [...dirty].slice(0, PUSH_BATCH)
-    const batch: WireChange[] = []
-    let bytes = 0
-    const taken: string[] = []
-    for (const k of keys) {
-      const [table, id] = splitKey(k)
-      const row = await (db.table(table) as Table<Base, string>).get(id)
-      const change: WireChange = row
-        ? { table, id, updatedAt: row.updatedAt || new Date().toISOString(), data: toWire(table, row) }
-        : { table, id, updatedAt: new Date().toISOString(), deleted: true }
-      const size = row ? JSON.stringify(change.data).length : 64
-      if (taken.length && bytes + size > PUSH_BATCH_BYTES) break
-      bytes += size
-      batch.push(change)
-      taken.push(k)
-    }
-    // Clear before sending: a write that lands while the request is in flight
-    // re-marks its key and goes out in the next round.
-    for (const k of taken) dirty.delete(k)
+interface PushResponse { applied: string[]; stale: string[]; refused?: string[] }
+
+/** Returns how many rows the server refused (free-tier client cap). Those
+ *  stay dirty so they go up on their own once the coach upgrades or archives
+ *  another client. */
+async function pushDirty(): Promise<number> {
+  const held = new Set<string>()
+  try {
+    while (dirty.size) await pushBatch(held)
+  } finally {
+    for (const k of held) dirty.add(k)
     persistDirty()
-    try {
-      await api('/data/push', { method: 'POST', json: { changes: batch } })
-    } catch (err) {
-      for (const k of taken) dirty.add(k)
-      persistDirty()
-      throw err
-    }
+  }
+  return held.size
+}
+
+async function pushBatch(held: Set<string>): Promise<void> {
+  const keys = [...dirty].slice(0, PUSH_BATCH)
+  const batch: WireChange[] = []
+  let bytes = 0
+  const taken: string[] = []
+  for (const k of keys) {
+    const [table, id] = splitKey(k)
+    const row = await (db.table(table) as Table<Base, string>).get(id)
+    const change: WireChange = row
+      ? { table, id, updatedAt: row.updatedAt || new Date().toISOString(), data: toWire(table, row) }
+      : { table, id, updatedAt: new Date().toISOString(), deleted: true }
+    const size = row ? JSON.stringify(change.data).length : 64
+    if (taken.length && bytes + size > PUSH_BATCH_BYTES) break
+    bytes += size
+    batch.push(change)
+    taken.push(k)
+  }
+  // Clear before sending: a write that lands while the request is in flight
+  // re-marks its key and goes out in the next round.
+  for (const k of taken) dirty.delete(k)
+  persistDirty()
+  try {
+    const r = await api<PushResponse>('/data/push', { method: 'POST', json: { changes: batch } })
+    for (const c of batch) if (c.table === 'clients' && r.refused?.includes(c.id)) held.add(keyOf(c.table, c.id))
+  } catch (err) {
+    for (const k of taken) dirty.add(k)
+    persistDirty()
+    throw err
   }
 }
 
@@ -185,11 +205,11 @@ export function syncNow(): Promise<void> {
   running = (async () => {
     setStatus({ phase: 'syncing', error: undefined })
     try {
-      await pushDirty()
+      const refused = await pushDirty()
       await pullAll()
       const now = new Date().toISOString()
       save(LAST_SYNC_KEY, now)
-      setStatus({ phase: 'idle', lastSyncAt: now })
+      setStatus({ phase: 'idle', lastSyncAt: now, refusedClients: refused || undefined })
     } catch (err) {
       if (err instanceof CloudError && err.status === 0) setStatus({ phase: 'offline' })
       else if (err instanceof CloudError && err.status === 401) setStatus({ phase: 'signed-out' })
@@ -263,6 +283,17 @@ export async function linkDevice(): Promise<'already-linked' | 'downloaded' | 'u
   save(LINKED_KEY, session.accountId)
   setStatus({})
   return 'uploaded'
+}
+
+/** After the account is deleted: erase this device's copy too — every table,
+ *  not just the synced ones — and forget which account it belonged to. The
+ *  app returns to first-run. */
+export async function eraseThisDevice(): Promise<void> {
+  // clear() bypasses the sync hooks, which is exactly right here.
+  await db.transaction('rw', db.tables, async () => {
+    for (const t of db.tables) await t.clear()
+  })
+  resetSyncState(true)
 }
 
 /** Forget cursor + dirty state (sign-out). `forgetLink` also forgets which

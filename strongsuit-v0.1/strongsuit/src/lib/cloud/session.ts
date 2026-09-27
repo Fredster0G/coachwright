@@ -93,3 +93,25 @@ export async function signOut(): Promise<void> {
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
   await api('/auth/password', { method: 'POST', json: { currentPassword, newPassword } })
 }
+
+/** Emails a one-time reset link. Resolves the same whether or not the email
+ *  has an account — the server never says which. */
+export async function requestPasswordReset(email: string): Promise<void> {
+  await api('/auth/reset/request', { method: 'POST', json: { email } })
+}
+
+/** Redeem the emailed token: sets the new password, signs every device out,
+ *  and signs this one in. */
+export async function confirmPasswordReset(token: string, newPassword: string): Promise<CloudSession> {
+  const r = await api<AuthResponse>('/auth/reset/confirm', { method: 'POST', json: { token: token.trim(), newPassword } })
+  const s = { token: r.token, accountId: r.account.id, email: r.account.email }
+  setSession(s)
+  return s
+}
+
+/** Permanently erase the account on the server (cancels a membership first).
+ *  The caller erases this device's copy. */
+export async function deleteAccount(password: string): Promise<void> {
+  await api('/auth/account', { method: 'DELETE', json: { password } })
+  setSession(null)
+}
