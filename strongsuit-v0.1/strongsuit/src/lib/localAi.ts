@@ -51,12 +51,12 @@ export interface ModelSpec {
   purpose: string
   /**
    * Direct HTTPS download for the model file, verified reachable (S15).
-   * Deliberately absent for most of the registry — see `lib/modelFetch.ts`'s
-   * header for why: a URL here is a promise this app can actually LOAD the
-   * result once cached, and today that's only true for MediaPipe's own pose
-   * models (the runtime already ships via @mediapipe/tasks-vision) and
-   * Tesseract's trained data. The rest need an inference runtime
-   * (transformers.js / onnxruntime-web) this app doesn't depend on yet.
+   * Only MediaPipe's pose models use this (`lib/modelFetch.ts`). The
+   * transformers.js-backed entries (semantic search, voice, assistant) are
+   * fetched by that runtime from their HF repo ids in `lib/embeddings.ts`,
+   * `lib/speech.ts` and `lib/assistant.ts`; OCR ships inside the app
+   * (`public/tesseract/`). A url here is a promise this build can LOAD the
+   * bytes once cached — entries with no loader get none.
    */
   url?: string
 }
@@ -147,12 +147,13 @@ export const MODEL_REGISTRY: ModelSpec[] = [
   },
   {
     id: 'tesseract-eng', label: 'Text from images', kind: 'ocr', tier: 'standard',
-    sizeMb: 15, licence: 'Apache-2.0', minRamGb: 4,
-    purpose: 'Read a handwritten log sheet or a nutrition label into the app.',
-    // No url: the file itself is real and verifiably fetchable
-    // (tessdata.projectnaptha.com), but this app has no OCR runtime
-    // (tesseract.js isn't a dependency) — same reasoning as rtmpose-m below,
-    // caching bytes nothing can read yet isn't this feature's job.
+    sizeMb: 9, licence: 'Apache-2.0', minRamGb: 4,
+    purpose: 'Read a printed or neatly written log sheet into the app — you check the text before anything is saved.',
+    // No url: nothing to download. Worker, wasm core and English data ship
+    // inside the app (public/tesseract/, scripts/copy-ocr-assets.mjs) —
+    // ~9MB, which is the sizeMb above. "Install" only warms the engine.
+    // Purpose used to promise handwriting and nutrition labels; lib/ocr.ts's
+    // own header says cursive is weak, and no label-reading flow exists.
   },
 ]
 

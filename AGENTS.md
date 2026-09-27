@@ -22,17 +22,19 @@ Grep it when you need the story behind a specific decision; never load it wholes
 ## 2. Where things live (one canonical copy — this was violated and caused a real bug)
 
 ```
-StrongSuit/                        ← repo root
+coachwright/                       ← repo root
   AGENTS.md   CLAUDE.md            ← this protocol
   PROGRESS.md  HANDOFF_SONNET.md   ← FROZEN ARCHIVES. Do not edit. Do not append.
   PRODUCT_OVERVIEW.md              ← marketing/positioning source of truth
+  BRANDING_PLAN.md                 ← brand source of truth (the app-dir file is a pointer)
   strongsuit-v0.1/strongsuit/      ← THE APP. All code + all live docs.
     docs/STATUS.md                 ← current state (read first)
     docs/ROADMAP.md                ← what's left, prioritized, with tool routing
     docs/DEBT.md                   ← open debts only, unique ids
     docs/sessions/S##-slug.md      ← append-only session logs, one small file each
-  strongsuit-v0.1/sync-server/     ← the relay + Stripe billing (separate npm project)
-  companion-app/                   ← the client-facing PWA (separate npm project)
+  strongsuit-v0.1/sync-server/     ← the relay + Stripe billing (separate npm project, `npm test`)
+  strongsuit-v0.1/companion-app/   ← the client-facing PWA (separate npm project)
+  client-pwa/                      ← empty stub (a bare package-lock.json) — not a project, ignore it
 ```
 
 **Rule:** live docs live in `strongsuit-v0.1/strongsuit/docs/` **only**. Root-level `PROGRESS.md` and
@@ -43,6 +45,9 @@ make it a pointer, not a copy.
 ## 3. Session protocol
 
 **On start**
+0. Install: `npm ci` in each project you'll touch. (Before S22 the app's `package.json` depended directly
+   on a Windows-only rolldown binary, so `npm ci` failed on Linux/macOS; and `companion-app`'s lockfile
+   was out of sync. Both fixed — if either comes back, a platform-specific package was added by hand.)
 1. Read `docs/STATUS.md`.
 2. Check its "Baton" section — what the previous tool left half-done, and what not to touch.
 3. Confirm the tree is clean-ish: `git status`, `npx tsc -b --force`, `npx vitest run`.
@@ -51,7 +56,8 @@ make it a pointer, not a copy.
 1. Write `docs/sessions/S##-slug.md` — a **new file**, never an edit to an existing one.
 2. Update `docs/STATUS.md` in place (it is the only file that gets rewritten).
 3. Add any new debt to `docs/DEBT.md` with the next free id. **Never reuse an id.**
-4. Re-run `npx tsc -b --force` + `npx vitest run` and put the real numbers in the session file.
+4. Re-run the per-project checks in §4 for every project you touched and put the real numbers in the
+   session file.
 
 Session files are capped at **~60 lines**. If yours is longer, you are writing narrative — cut it. The
 format is in `docs/sessions/TEMPLATE.md`.
@@ -76,9 +82,19 @@ never defined. **None of this showed up in any session's reported "clean typeche
 used.** If a "clean typecheck" is ever claimed again from a bare `tsc --noEmit` at the app root, distrust
 it and re-run with `-b --force`.
 
-`sync-server/` and `companion-app/` are separate npm projects with their own plain (non-solution)
-`tsconfig.json` — `npx tsc --noEmit` from *inside* those directories is fine and always has been. This
-issue is specific to the app root's project-reference setup.
+**`companion-app/` has the exact same solution-file setup** — `npx tsc --noEmit` there also checks zero
+files (confirmed S22 with `--listFilesOnly`). Use `npx tsc -b --force` in `companion-app/` too. (Until S22
+this section said the opposite; it happened to be clean under `-b`, so nothing was hidden, but the
+instruction was wrong.) Only `sync-server/` has a plain `tsconfig.json` where `npx tsc --noEmit` is the
+right command — and it now includes `test/`.
+
+**Per-project checks, all three:**
+
+| Project | Typecheck | Tests |
+|---|---|---|
+| `strongsuit/` | `npx tsc -b --force` | `npx vitest run` (+ `npm run lint:tailwind`, `npx oxlint`) |
+| `companion-app/` | `npx tsc -b --force` | `npx vitest run` |
+| `sync-server/` | `npx tsc --noEmit` | `npm test` (needs `npm rebuild better-sqlite3` if installed with `--ignore-scripts`) |
 
 This codebase has a consistent, unusually high bar otherwise. Match it:
 

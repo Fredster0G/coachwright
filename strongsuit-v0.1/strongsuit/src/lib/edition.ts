@@ -62,9 +62,14 @@ const PERSONAL: EditionCapabilities = {
   batchAi: false,
   sharedModelCache: false,
   maxAiTier: 'light',
+  // Only ever rendered by the multiSeat-gated pages (Team, Studio hub,
+  // Location). It used to claim the program builder, Film Room and business
+  // tools were Membership-only — none of those flags is enforced anywhere
+  // (DEBT-70), every tier gets them, and a paying member landing on Team
+  // was told to buy the thing they already had.
   upgradeReason:
-    'Free Coachwright covers a small roster. Unlimited clients, the program builder, ' +
-    'full Film Room, and business tools are part of Coachwright Membership ($29/mo).',
+    'Team features — multiple trainers, shared clients, commissions — are part of the ' +
+    'Studio edition. Coachwright Membership covers one coach with unlimited clients.',
 }
 
 const INDEPENDENT: EditionCapabilities = {

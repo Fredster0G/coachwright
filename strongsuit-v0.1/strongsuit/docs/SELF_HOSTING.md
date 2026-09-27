@@ -53,6 +53,10 @@ That's the minimum. Everything else is optional:
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Auto-generated on first boot, persisted in the SQLite `kv` table | Only if you're moving the box (a fresh keypair silently invalidates every client's existing Web Push subscription — carry the old one forward instead of letting it regenerate) |
 | `RELAY_RETENTION_DAYS` | `90` | Lower it if you'd rather ciphertext get swept sooner; it's a delivery buffer, not an archive either way |
 | `RELAY_SIGNAL_TTL_MINUTES` | `5` | Rarely worth touching — this is WebRTC connection-setup data, useless within seconds |
+| `TRUST_PROXY` | unset (trust nobody) | **Set to `1` as soon as you put Caddy/nginx in front (§6).** Otherwise every request appears to come from `127.0.0.1` and the rate limiter below treats all your devices as one caller |
+| `RATE_LIMIT_PER_15MIN` | `100` | Per-IP budget for everything except signalling, `/health` and the Stripe webhook |
+| `SIGNAL_RATE_LIMIT_PER_MIN` | `400` | Per-IP budget for WebRTC signalling, which polls every 700ms during a connection attempt |
+| `DB_PATH` | `coachwright.db` in the working directory | Put the database on a mounted volume / backup path |
 
 **Do not set `ADMIN_KEY`.** That gates `/keys/register`/`/keys/revoke`, the *multi-tenant* provisioning
 routes for a shared managed instance serving many coaches under separate keys. You're the only coach on
@@ -109,6 +113,8 @@ relay.yourdomain.com {
 ```bash
 sudo caddy run
 ```
+
+Then add `TRUST_PROXY=1` to `.env` and restart the relay — see the table in §4.
 
 That's it — Caddy handles the certificate and renewal on its own.
 

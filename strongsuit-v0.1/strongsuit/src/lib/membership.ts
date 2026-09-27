@@ -119,6 +119,31 @@ export function isMembershipCurrent(claims: MembershipClaims, now = new Date()):
   return now.getTime() < expires.getTime()
 }
 
+/** Is the cached membership live RIGHT NOW? The cached `membershipActive`
+ *  flag alone is not enough: it's only rewritten by a successful refresh, so
+ *  a coach who cancels and then stays offline (or simply never reaches the
+ *  server again) would keep it `true` forever. The token's own `expiresAt`
+ *  is the promise docs/MEMBERSHIP.md §4 makes — "past expiry with no
+ *  successful refresh, the account quietly reverts to free-tier limits" —
+ *  and this is where it's actually kept. */
+export function hasActiveMembership(
+  trainer: { membershipActive?: boolean; membershipExpiresAt?: string },
+  now = new Date(),
+): boolean {
+  if (!trainer.membershipActive || !trainer.membershipExpiresAt) return false
+  const expires = new Date(trainer.membershipExpiresAt)
+  return !Number.isNaN(expires.getTime()) && now.getTime() < expires.getTime()
+}
+
+/** Unlimited clients / branding: a live membership OR a grandfathered
+ *  one-time licence edition (which never expires — licence.ts's promise). */
+export function hasPaidAccess(
+  trainer: { membershipActive?: boolean; membershipExpiresAt?: string; edition?: string },
+  now = new Date(),
+): boolean {
+  return hasActiveMembership(trainer, now) || trainer.edition === 'independent' || trainer.edition === 'studio'
+}
+
 // ------------------------------------------------------- free tier gating
 
 /** Free Coachwright's client ceiling. Chosen deliberately lower than
@@ -148,9 +173,8 @@ export function canAddClient(activeClientCount: number, hasActiveMembership: boo
   }
 }
 
-export function canUseCustomBranding(trainer: { edition?: string, membershipActive?: boolean, createdAt: string }): { allowed: boolean; reason?: string } {
-  const hasMembership = !!trainer.membershipActive || trainer.edition === 'independent' || trainer.edition === 'studio'
-  if (hasMembership) return { allowed: true }
+export function canUseCustomBranding(trainer: { edition?: string, membershipActive?: boolean, membershipExpiresAt?: string, createdAt: string }): { allowed: boolean; reason?: string } {
+  if (hasPaidAccess(trainer)) return { allowed: true }
 
   // S15 grandfathering rule: gate new, never claw back.
   // Using an explicit date cutoff instead of checking for `businessName` prevents new installs

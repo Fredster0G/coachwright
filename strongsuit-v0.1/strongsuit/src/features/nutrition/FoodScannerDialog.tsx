@@ -187,7 +187,7 @@ export function FoodScannerDialog({ open, onClose, onScan }: FoodScannerDialogPr
     <Dialog open={open} onClose={onClose} title="Log Food">
       <div className="space-y-4 pt-4">
         {/* Mode Toggle */}
-        <div className="flex rounded-md shadow-sm p-1 bg-wash border border-line mx-auto w-fit">
+        <div className="flex rounded-md shadow-sm p-1 bg-surface2 border border-line mx-auto w-fit">
           <button
             onClick={() => { setMode('scan'); setError(null) }}
             className={`flex items-center gap-2 rounded px-3 py-1.5 text-sm font-medium transition-colors ${mode === 'scan' ? 'bg-surface shadow text-ink' : 'text-faint hover:text-muted'}`}
@@ -203,7 +203,7 @@ export function FoodScannerDialog({ open, onClose, onScan }: FoodScannerDialogPr
         </div>
 
         {/* Viewport */}
-        <div className="relative overflow-hidden rounded-lg border border-line bg-wash aspect-[4/3] flex items-center justify-center">
+        <div className="relative overflow-hidden rounded-lg border border-line bg-surface2 aspect-[4/3] flex items-center justify-center">
           {mode === 'scan' ? (
             <>
               <video

@@ -128,7 +128,7 @@ export default function FoodLogTab({ client }: { client: Client }) {
       <div className="space-y-4">
         {MEALS.map(meal => (
           <Card key={meal} className="p-0 overflow-hidden">
-            <div className="bg-wash px-4 py-2 border-b border-line flex justify-between items-center">
+            <div className="bg-surface2 px-4 py-2 border-b border-line flex justify-between items-center">
               <h3 className="font-medium text-ink capitalize">{meal}</h3>
               <Button variant="ghost" className="h-7 px-2 text-xs" onClick={() => setScanMeal(meal)}>
                 <Plus size={14} className="mr-1" /> Add

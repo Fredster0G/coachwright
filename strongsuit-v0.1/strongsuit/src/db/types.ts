@@ -63,11 +63,18 @@ export interface Trainer extends Base {
   membershipToken?: string
   /** Cached result of the last successful verify+refresh, so UI checks (like
    *  the free-tier client cap) can be synchronous rather than re-verifying
-   *  the token on every render. Refreshed by `MembershipCard`. */
+   *  the token on every render. Never read directly for gating — go through
+   *  `hasActiveMembership()`, which also enforces `membershipExpiresAt`.
+   *  Refreshed at boot and daily by `startMembershipRefreshLoop()`. */
   membershipActive?: boolean
   /** ISO date the current membership token expires — shown to the coach so
    *  "why did I drop to free tier" is never a mystery. */
   membershipExpiresAt?: string
+  /** Random per-install secret proving to the membership server that a
+   *  /status or /portal call comes from the device that checked out — the
+   *  device id alone is known to every paired client. Generated on first
+   *  checkout/refresh by `lib/membershipApi.ts`; only its hash leaves. */
+  membershipSecret?: string
 }
 
 /** Optional nav sections a solo coach can hide (Settings → Modules). Core

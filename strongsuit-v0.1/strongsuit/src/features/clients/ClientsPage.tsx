@@ -9,7 +9,7 @@ import { importClientPackageText, exportClientPackage } from '@/db/portability'
 import { downloadText } from '@/db/backup'
 import { parseCsv } from '@/lib/csv'
 import { currentWeekSessionCount } from '@/lib/analytics'
-import { canAddClient } from '@/lib/membership'
+import { canAddClient, hasPaidAccess } from '@/lib/membership'
 import { useTranslation } from '@/lib/i18n'
 import ImportCsvDialog from './ImportCsvDialog'
 import {
@@ -317,7 +317,7 @@ export default function ClientsPage() {
         open={showNew}
         onClose={() => setShowNew(false)}
         activeClientCount={clients?.filter(c => c.status === 'active').length ?? 0}
-        hasActiveMembership={!!trainer?.membershipActive || trainer?.edition === 'independent' || trainer?.edition === 'studio'}
+        hasActiveMembership={!!trainer && hasPaidAccess(trainer)}
       />
       {csvImport && (
         <ImportCsvDialog
@@ -326,7 +326,7 @@ export default function ClientsPage() {
           open={!!csvImport}
           onClose={() => setCsvImport(null)}
           activeClientCount={clients?.filter(c => c.status === 'active').length ?? 0}
-          hasActiveMembership={!!trainer?.membershipActive || trainer?.edition === 'independent' || trainer?.edition === 'studio'}
+          hasActiveMembership={!!trainer && hasPaidAccess(trainer)}
         />
       )}
       <Dialog open={tagPromptOpen} onClose={() => setTagPromptOpen(false)} title={selected.size === 1 ? t('clients.tag.title', { count: selected.size }) : t('clients.tag.titlePlural', { count: selected.size })} width={360}>

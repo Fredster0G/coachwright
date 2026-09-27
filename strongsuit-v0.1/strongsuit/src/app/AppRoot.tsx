@@ -4,6 +4,7 @@ import { router } from './router'
 import { BootScreen } from './BootScreen'
 import { trainerRepo } from '@/db/repo'
 import { seedExercisesIfEmpty } from '@/db/seed'
+import { startMembershipRefreshLoop } from '@/lib/membershipApi'
 import { I18nProvider } from '@/lib/i18n'
 import { TitleBar } from './TitleBar'
 
@@ -103,6 +104,11 @@ export function AppRoot() {
 
     return () => { cancelled = true }
   }, [attempt])
+
+  // Membership refresh only after boot: it reads the trainer row, which the
+  // boot sequence is what guarantees exists. A no-op for installs that never
+  // started checkout — see startMembershipRefreshLoop().
+  useEffect(() => (ready ? startMembershipRefreshLoop() : undefined), [ready])
 
   const retry = () => {
     setError(null)

@@ -91,3 +91,29 @@ describe('refreshMembership', () => {
     expect(RELEASE_PUBLIC_JWK).not.toBeNull()
   })
 })
+
+describe('membership secret — the device id alone must never authorize billing', () => {
+  it('checkout creates a secret once and sends it; status and portal present it', async () => {
+    const { startMembershipCheckout, openMembershipBillingPortal, refreshMembership } = await import('./membershipApi')
+    const calls: { url: string; init?: RequestInit }[] = []
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      calls.push({ url, init })
+      return { ok: true, json: async () => ({ url: 'https://stripe.example/x', active: false }) }
+    }))
+    await trainerRepo.getOrCreate()
+
+    await startMembershipCheckout('Sam')
+    const secret = (await trainerRepo.get())?.membershipSecret
+    expect(secret).toMatch(/^[0-9a-f]{64}$/)
+    expect(JSON.parse(calls[0].init!.body as string).secret).toBe(secret)
+
+    await startMembershipCheckout('Sam')
+    expect((await trainerRepo.get())?.membershipSecret).toBe(secret) // stable, not regenerated
+
+    await openMembershipBillingPortal()
+    await refreshMembership()
+    for (const c of calls.slice(2)) {
+      expect((c.init!.headers as Record<string, string>)['x-membership-secret']).toBe(secret)
+    }
+  })
+})

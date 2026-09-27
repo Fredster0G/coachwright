@@ -1,7 +1,8 @@
 # STATUS — read this first
 
-**Last updated:** 2026-08-14 (S21, Claude Sonnet 5)
-**Health:** 50 test files · 735 tests green · `npx tsc -b --force` clean (0 errors) · `sync-server` typechecks clean
+**Last updated:** 2026-09-27 (S22, Claude Code)
+**Health:** app 50 files · 740 tests · `tsc -b --force` 0 errors · `lint:tailwind` 0 errors · oxlint 0 errors
+· companion 7 files · 153 tests · `tsc -b --force` clean · sync-server `tsc --noEmit` clean · **16 server tests (new)**
 
 > ⚠️ **The `tsc` command above is not a typo — read `AGENTS.md` §4 before you trust any prior "clean
 > typecheck" claim, including ones in older session files.** The root `tsc --noEmit` invocation silently
@@ -17,10 +18,10 @@
 
 | | |
 |---|---|
-| **Last worked on** | S21: found and fixed the `tsc --noEmit` false-negative (see banner above) and everything it had been hiding. Also live-verified S16–S20's real work (exercise library import, seed versioning, food logging, roster summary, branding gate) in-browser — it's all genuinely working now. |
-| **Safe to pick up** | Anything in `ROADMAP.md`. Tree is clean, tests green, typecheck **actually** clean this time. |
+| **Last worked on** | S22: backend audit + doc-vs-code audit. Fixed 9 real server/app bugs (see `sessions/S22-backend-truth-audit.md`), gave `sync-server` its first test suite, moved OCR off the jsdelivr CDN, and corrected every doc claim found false. |
+| **Safe to pick up** | Anything in `ROADMAP.md`. All three projects install with `npm ci` on Linux now (they didn't). |
 | **Half-done / in flight** | Nothing mid-edit. |
-| **Don't touch without reading first** | `AGENTS.md` §4's `tsc -b` note — this changes the session-start/session-end commands for every tool, permanently. Also see DEBT-68/69 below, both small and freshly found, not yet acted on. |
+| **Don't touch without reading first** | The membership secret (`MEMBERSHIP.md` §4) — `/membership/status` and `/portal` now 403 without it. DEBT-70 (edition flags vs Membership) needs a product call before anyone "wires" those flags. |
 | **Blocked on Caleb (no AI can do these)** | Real Stripe keys · deploy the relay domain · run the Windows installer on real hardware · a Mac to build on · real-phone Film Room footage |
 
 ---
@@ -30,7 +31,8 @@
 A local-first coaching workstation for personal trainers. Every client, program, and session lives in
 IndexedDB on the coach's own machine — no account required, works fully offline. **Free tier: up to 3
 clients. Coachwright Membership: $29/mo, unlimited.** Optional E2EE sync relay (self-hosted free, or
-managed $15/mo) is the only thing that ever touches a network, and it only ever sees ciphertext.
+managed $15/mo) only ever sees ciphertext. Every network call is opt-in and named in `HOW-TO-OWN-IT.md` §4
+(relay, membership refresh after checkout, Open Food Facts in cloud tiers, one-time AI model downloads).
 Companion is a separate free client-facing PWA. See `PRODUCT_OVERVIEW.md` for positioning.
 
 ---
@@ -82,10 +84,25 @@ Companion is a separate free client-facing PWA. See `PRODUCT_OVERVIEW.md` for po
   banner above — is now flattened to match the rest of the file).
 - **Local AI, 4 kinds wired** — semantic exercise search, voice set logging (Whisper), the grounded
   assistant (Qwen3 + Film Room context), OCR log-sheet scanning (Tesseract). Each proven against a real
-  model before app code was written.
+  model before app code was written. **S22:** OCR was loading its worker *script* and wasm core from
+  cdn.jsdelivr.net at runtime (tesseract.js defaults) — remote executable code, against the "no CDN
+  scripts" precedent, and broken offline. Now served from `public/tesseract/`; live-verified in Chromium:
+  correct text, zero off-origin requests (negative control reproduced the jsdelivr load).
 - **Membership billing** — Stripe Checkout + webhook + billing portal + offline-verified signed tokens.
-  Cross-checked end-to-end (server-minted token verified by the app's own verifier).
-- **Companion PWA** — standalone logging, assigned programs, messaging, Film Room self-review, 146 tests.
+  **S22:** the app↔server token agreement is now an automated test (`sync-server/test`), not a manual
+  check. Also fixed: the billing portal and status routes were authorized by the coach's device id alone,
+  which every paired client knows — any client could cancel its coach's subscription. Now gated on a
+  per-install secret. And the token's expiry was never enforced: a lapsed coach who stayed offline (or just
+  never opened Settings, the only place refresh ran) kept Membership forever. Now `hasActiveMembership()`
+  checks expiry everywhere, and refresh runs at launch + daily. Membership unlocks exactly two things —
+  unlimited clients and custom branding; the in-app copy claimed builder/Film Room/business too (false).
+- **Relay (sync-server) — S22 fixes, all test-covered:** messages sent on the same UTC day as the
+  reader's last sync were silently never returned (ISO vs SQLite string compare); `/sync/pull/clients`
+  was unreachable (route shadowed); per-coach keys could read and burn other coaches' reminders and delete
+  their push subscriptions; the rate limiter would lump every coach into one bucket behind Caddy and
+  kill P2P handshakes (700ms signal polling) in ~35s; a non-JSON body was a 500 with a stack trace (and
+  `MANAGED_HOSTING.md`'s own provisioning curl triggered it).
+- **Companion PWA** — standalone logging, assigned programs, messaging, Film Room self-review, 153 tests.
 - **Desktop** — Electron shell, native menu, window-state persistence, splash. One real GUI launch done.
 
 ## What is thin, stubbed, or unverified — the honest list
@@ -96,7 +113,8 @@ Companion is a separate free client-facing PWA. See `PRODUCT_OVERVIEW.md` for po
 | **Membership billing** | Code complete + verified, but **cannot take a single real dollar today** — no live Stripe keys, and `MEMBERSHIP_SERVER_URL` points at an undeployed placeholder domain. |
 | **i18n string conversion** | Layer + RTL + (now) real type-checking all work. Conversion coverage itself unmeasured this session — recheck the "~53 of 57 components hardcoded" figure, it predates S16–S21's changes. |
 | **Client portability** | Excludes `foodEntries` (DEBT-68, same shape as the already-documented DEBT-26 for invoices/expenses). |
-| **CommandPalette** | No "Ask the Assistant" quick-search entry (DEBT-69) — the route and page are fine, still reachable from a client's detail page, just not from ⌘K. |
+| **Edition flags vs Membership** | DEBT-70 — `programBuilder`/`filmRoomPro`/`business` flags are dead; `maxAiTier` still keys off the pre-pivot edition, so a member sees "Independent/Studio" upsell on the (inert) larger assistant tiers. |
+| **Membership recovery** | DEBT-71 — reinstall without a backup restore can't re-link a membership; support job for now. |
 | **Film Room accuracy** | Rep-counter thresholds tuned against *synthetic* data only. Never run on real human footage or a real mid-range phone. |
 | **Mac** | Never attempted. No Mac in any build environment so far. |
 | **Android** | Real Capacitor project generated, **never compiled or run**. |
@@ -110,10 +128,12 @@ Companion is a separate free client-facing PWA. See `PRODUCT_OVERVIEW.md` for po
 ## Commands
 
 ```bash
-npx vitest run          # 735 tests, ~3-4min
+npx vitest run          # 740 tests, ~15s on the S22 container
 npx tsc -b --force      # app typecheck — NOT `tsc --noEmit`, see banner at top of this file
 npm run dev             # vite dev server (port 5173/5174)
 npm run dev:electron    # desktop shell — ALWAYS confirm the process died after
+npm run lint:tailwind   # undefined-class check (DEBT-20 regressed once already)
+cd ../sync-server && npm test   # relay + membership, 16 tests
 ```
 
 Before any Electron build: `Get-Process node,electron -ErrorAction SilentlyContinue` — orphaned

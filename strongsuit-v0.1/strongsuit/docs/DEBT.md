@@ -2,9 +2,10 @@
 
 **Original numbering preserved** so older docs' cross-references still resolve. **Never reuse an id** —
 duplicate ids have already caused a fixed bug to be "rediscovered" and re-fixed a session later.
-Next free id: **70**.
+Next free id: **73**.
 
-Closed debts are *not* listed here. They live in the frozen `PROGRESS.md` archive; grep it by number.
+Closed debts are *not* listed here. Pre-S21 closures live in the frozen `PROGRESS.md` archive; later ones
+are recorded in the closing session's file under `docs/sessions/` — grep by number.
 
 **Status key:** 🔴 active risk · 🟡 known limitation, accepted for now · ⚪ cosmetic / cleanup · ✅ deliberate won't-do
 
@@ -15,7 +16,8 @@ Closed debts are *not* listed here. They live in the frozen `PROGRESS.md` archiv
 **9 · Docs were duplicated at repo root and in the app dir, and diverged.** By S15 the two `PROGRESS.md`
 copies disagreed about what had shipped. **Partially resolved S15** — live docs now exist only in
 `strongsuit-v0.1/strongsuit/docs/`, root copies frozen as archives. *Remaining: don't recreate the
-pattern. See `AGENTS.md` §2.*
+pattern. See `AGENTS.md` §2.* **S22 found one more live instance:** `BRANDING_PLAN.md` existed at the root
+and in the app dir, already diverged (the app copy predated S11's shipped logo). App copy is now a pointer.
 
 **17 · Android has never been compiled.** `android/` is a real generated Capacitor project, but no SDK
 has existed in any build environment. "Next step ready," not "done."
@@ -88,13 +90,30 @@ cycle data is Companion, which has no readiness engine, and cycle rows are kept 
 by construction. **Do not close this by adding cycle rows to the payload** — a test forbids it. Needs a
 product decision: build readiness in Companion, or a per-field opt-in sharing only this number.
 
-**69 · (S21, NEW) `CommandPalette.tsx` no longer has an "Ask the Assistant" entry.** The `/assistant`
-route and `AssistantPage.tsx` are still fully wired in `router.tsx` and reachable by URL, but the
-palette's `Bot` icon import was unused (removed as part of this session's compile-error cleanup) and no
-`t('...')`/assistant search result exists anywhere in the file. Either this was intentionally dropped at
-some point and the dead import is the only leftover, or it's a real, if minor, discoverability
-regression. Wasn't rebuilt blind without knowing which — worth 10 minutes to decide and, if it should
-come back, re-add one entry matching the palette's existing pattern.
+**70 · (S22, NEW) Edition capability flags still describe the pre-pivot product.** `lib/edition.ts`'s
+`programBuilder`, `filmRoomPro` and `business` flags are `false` for Personal but **nothing reads them** —
+every tier gets those features, which is what S15's pricing actually promises. Two flags ARE enforced and
+are now wrong-shaped for Membership: `maxAiTier` (a $29 member is still `personal`, so the standard/pro
+assistant tiers show "Included with the Independent and Studio editions" — editions nobody can buy since
+S15; the tiers are inert anyway, see ROADMAP §3) and `multiSeat` (fine — Studio really is separate). Needs
+a product decision: does Membership map to an AI tier? Then either delete the three dead flags or wire
+them. S22 fixed only the false *copy* (`PERSONAL.upgradeReason`, `MembershipCard`).
+
+**71 · (S22, NEW) A membership can't survive a reinstall without a backup restore.** Membership is keyed
+by the device id and authorized by `trainer.membershipSecret`; both live in the trainer row. A backup
+restore brings both back. A fresh install without one gets a new device id, and the server (correctly)
+won't hand the old membership to it. There is no self-serve re-link — today it's a support job (look the
+coach up by Stripe customer, update `memberships.coach_id`/`secret_hash` by hand). Build a re-link flow
+(e.g. Stripe portal round-trip that proves card ownership) before this matters at volume.
+
+**72 · (S22, NEW) The pitch deck still sells the old model.** `Coachwright Pitch Deck.dc.html` headlines
+"$60. Forever." / "$60 once", and root `BRANDING_PLAN.md` §1's positioning says "buy once and own
+outright". `BRANDING_PLAN.md` §5 and `STRONGSUIT_MASTER_SPEC.md` now carry a superseded banner; the deck
+and the positioning statement were left alone because rewriting a pitch is a brand decision, not a doc
+sweep (`AGENTS.md` §7). Caleb to rewrite or retire the deck. **Same for `PRODUCT_OVERVIEW.md` §8's
+Membership row** ("Everything in Free, uncapped: unlimited clients, program builder, full Film Room,
+business tools") — it reads as if Free lacks those, which the code does not do (DEBT-70). §8 is
+Caleb-only per `AGENTS.md` §7, so it was not edited.
 
 **66 · (S15, NEW) The free-tier client cap is soft.** `canAddClient()` checks the coach's own IndexedDB;
 a determined user can edit it. This was fine when licensing was cosmetic — it now guards revenue.
@@ -108,7 +127,6 @@ name it honestly rather than assuming it's enforcement.
 **1** Dashboard attention-queue scans all logs in memory — fine at current scale.
 **2** Two `as any` casts at Dexie generic boundaries — documented, contained.
 **3** No ESLint flat-config customization yet.
-**5** `CalendarPage` placeholder export still in `placeholders.tsx` — dead, unimported.
 **13** Keyboard transport (Space/←/→) drives only the master video; the Reference bar is mouse-only.
 **14** Spec/doc *filenames* still say STRONGSUIT (`STRONGSUIT_MASTER_SPEC.md`). Product is Coachwright.
 

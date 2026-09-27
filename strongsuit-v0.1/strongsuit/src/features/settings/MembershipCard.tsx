@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Sparkles, Check, RefreshCw } from 'lucide-react'
 import { Button, Card, Tag, Progress, toast, toastError } from '@/design'
 import { trainerRepo, clientsRepo } from '@/db/repo'
-import { FREE_TIER_CLIENT_LIMIT } from '@/lib/membership'
+import { FREE_TIER_CLIENT_LIMIT, hasActiveMembership, hasPaidAccess } from '@/lib/membership'
 import { refreshMembership, startMembershipCheckout, openMembershipBillingPortal } from '@/lib/membershipApi'
 
 /**
@@ -19,17 +19,19 @@ export function MembershipCard() {
   const [checking, setChecking] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
 
-  // Refresh once on mount — the same call a background/periodic check would
-  // make, so "what does this card show" always reflects a just-verified
-  // token rather than whatever was last cached, without the coach having to
-  // think about it.
+  // Refresh once on mount — the same call the background loop makes, so
+  // "what does this card show" reflects a just-verified token. Only for an
+  // install that has started checkout (has a secret): a free-tier coach
+  // opening Settings shouldn't send their device id anywhere. "Already a
+  // member?" below is the explicit, coach-initiated check.
   useEffect(() => {
-    refreshMembership().catch(() => {})
+    trainerRepo.get().then(t => (t?.membershipSecret ? refreshMembership() : null)).catch(() => {})
   }, [])
 
   if (!trainer) return null
 
-  const hasUnlimitedClients = !!trainer.membershipActive || trainer.edition === 'independent' || trainer.edition === 'studio'
+  const hasUnlimitedClients = hasPaidAccess(trainer)
+  const membershipLive = hasActiveMembership(trainer)
   const clientCount = activeClients.length
 
   async function upgrade() {
@@ -73,10 +75,10 @@ export function MembershipCard() {
         <p className="font-display text-base font-semibold text-ink">Membership</p>
       </div>
 
-      {trainer.membershipActive ? (
+      {membershipLive ? (
         <>
           <p className="mb-3 text-xs text-muted">
-            Unlimited clients, the program builder, full Film Room, and business tools — all unlocked.
+            Unlimited clients and custom branding on printouts and client exports — unlocked.
           </p>
           <div className="mb-3 rounded-ctl border border-line bg-surface2 px-3 py-2.5">
             <div className="flex flex-wrap items-center gap-1.5">
@@ -100,8 +102,8 @@ export function MembershipCard() {
       ) : (
         <>
           <p className="mb-3 text-xs text-muted">
-            Free Coachwright covers up to {FREE_TIER_CLIENT_LIMIT} clients. Coachwright Membership ($29/mo) removes the
-            cap and unlocks the program builder, full Film Room, and business tools.
+            Free Coachwright covers up to {FREE_TIER_CLIENT_LIMIT} clients with every feature included. Coachwright
+            Membership ($29/mo) removes the client cap and adds custom branding.
           </p>
           {!hasUnlimitedClients && (
             <div className="mb-3">

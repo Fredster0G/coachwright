@@ -4,7 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import {
   Search, User, Settings, Plus, LayoutDashboard, Users, ClipboardList, Dumbbell,
   Clapperboard, CalendarDays, Wallet, BarChart3, UserCog, UserPlus, Trophy, RadioTower, Download, Zap,
-  Calculator, MessageCircleQuestion, Building2,
+  Calculator, MessageCircleQuestion, Building2, Bot,
 } from 'lucide-react'
 import { Dialog, toast } from '@/design'
 import { QuickLogDialog } from '@/features/logging/QuickLogDialog'
@@ -32,6 +32,7 @@ const NAV_ACTIONS: { to: string; labelKey: MessageKey; icon: React.ReactNode; mo
   { to: '/leaderboard', labelKey: 'nav.leaderboard', icon: <Trophy size={18} className="text-muted" />, module: 'leaderboard' },
   { to: '/sync', labelKey: 'nav.sync', icon: <RadioTower size={18} className="text-muted" />, module: 'sync' },
   { to: '/reports', labelKey: 'nav.reports', icon: <BarChart3 size={18} className="text-muted" />, module: 'reports' },
+  { to: '/assistant', labelKey: 'nav.assistant', icon: <Bot size={18} className="text-muted" /> },
 ]
 
 interface Action {

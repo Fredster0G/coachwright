@@ -81,16 +81,27 @@ This is the part that matters, so it is spelled out plainly.
 
 | If this happens | What still works |
 |---|---|
-| The company shuts down | **Everything.** The app is on your machine and never phones home for permission to run. |
-| The website goes offline | Everything. No license check, no activation server. |
-| You stop paying | There is nothing to stop paying. The app is a one-time purchase. |
-| Your internet is out | Everything except the optional cloud sync (§5). Movement tracking, logging, programs, reports and printing are all fully offline. |
+| The company shuts down | **Everything except Membership renewals.** The app is on your machine and never phones home for permission to *run*. A Membership token keeps working until its own expiry date (about 35 days from the last refresh); after that the app drops to the free tier's 3-client cap — every client, program and log stays exactly where it is. A one-time licence bought before August 2026 never expires. |
+| The website goes offline | Same as above. Verifying your licence or Membership token never touches the network; only *renewing* a Membership does. |
+| You stop paying | You keep the app and all your data. Membership lapses to the free tier (up to 3 active clients, and custom branding switches off for installs created after 15 Aug 2026). Nothing is deleted or locked. |
+| Your internet is out | Everything except the optional cloud sync (§5), barcode food lookups, and first-time AI model downloads. Movement tracking, logging, programs, reports and printing are all fully offline. |
 | You want to leave | Export everything (§3) and delete the app. |
 
-There is no kill switch in this software. There is no telemetry. The app makes
-**zero network requests** in normal use — you can verify that yourself in any
-browser's developer tools, and the AI movement analysis in Film Room runs on a
-model bundled inside the app rather than a cloud API.
+There is no kill switch in this software. There is no telemetry. In normal use
+the app makes **no network requests** unless you turn on something that needs
+one, and each of these is opt-in and named:
+
+- **Membership** — once you've started checkout, the app checks your
+  subscription at launch and about daily. A free-tier install that never
+  started checkout makes no membership calls at all.
+- **Cloud sync** — only when you configure a relay (§5).
+- **Barcode food lookup** — asks Open Food Facts about a barcode, and only in a
+  cloud tier; fully-local mode refuses before any request is made.
+- **Local AI models** — downloaded once, when you press Install in Settings;
+  after that they run on your machine.
+
+You can verify all of this in any browser's developer tools. The movement
+analysis in Film Room runs on a model bundled inside the app, not a cloud API.
 
 ---
 

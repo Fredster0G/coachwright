@@ -11,3 +11,6 @@ dist-electron/
 *.db
 *.db-shm
 *.db-wal
+
+# Copied from node_modules by scripts/copy-ocr-assets.mjs on dev/build.
+strongsuit-v0.1/strongsuit/public/tesseract/*.js

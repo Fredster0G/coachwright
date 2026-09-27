@@ -2,7 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import Database from 'better-sqlite3'
 import * as dotenv from 'dotenv'
-import { randomBytes } from 'crypto'
+import { randomBytes, createHash, timingSafeEqual } from 'crypto'
 import { rateLimit } from 'express-rate-limit'
 import webpush from 'web-push'
 import Stripe from 'stripe'
@@ -10,13 +10,36 @@ import { loadSigningKey, signMembershipToken, type MembershipClaims } from './me
 
 dotenv.config()
 
-const app = express()
+export const app = express()
 const port = process.env.PORT || 4000
 
-// Rate limit: 100 requests per 15 minutes per IP
+// Behind a reverse proxy (the documented Caddy deployment), every request
+// arrives from 127.0.0.1 — without this, the rate limiter below buckets the
+// ENTIRE instance's traffic under one IP and 100 requests from all coaches
+// combined locks everyone out. Set TRUST_PROXY to the hop count ("1") or an
+// express trust-proxy value ("loopback") when a proxy is in front.
+if (process.env.TRUST_PROXY) {
+  const v = process.env.TRUST_PROXY
+  app.set('trust proxy', /^\d+$/.test(v) ? Number(v) : v === 'true' ? true : v)
+}
+
+// Rate limit: 100 requests per 15 minutes per IP, for everything except the
+// routes below that have their own budget. WebRTC signalling polls every
+// 700ms during a handshake (lib/sync/p2pSession.ts's POLL_INTERVAL_MS) — two
+// devices on one NAT would exhaust the general budget in ~35s and the
+// handshake would die with a 429 — and /health is the operator's monitor.
+// The Stripe webhook is exempt because a 429 there only delays a paying
+// coach's access until Stripe's retry.
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  limit: 100,
+  limit: Number(process.env.RATE_LIMIT_PER_15MIN || 100),
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skip: (req) => req.path.startsWith('/signal/') || req.path === '/health' || req.path === '/membership/webhook',
+})
+const signalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: Number(process.env.SIGNAL_RATE_LIMIT_PER_MIN || 400),
   standardHeaders: 'draft-7',
   legacyHeaders: false,
 })
@@ -71,6 +94,21 @@ app.post('/membership/webhook', express.raw({ type: 'application/json' }), async
         const session = event.data.object as Stripe.Checkout.Session
         const coachId = session.client_reference_id
         if (!coachId || !session.subscription || !session.customer) break
+        const secretHash = session.metadata?.secretHash
+        if (!secretHash) break // not created by /membership/checkout — nothing to bind it to
+        const existing = db.prepare('SELECT status, secret_hash, stripe_subscription_id FROM memberships WHERE coach_id = ?').get(coachId) as
+          | { status: string; secret_hash: string | null; stripe_subscription_id: string }
+          | undefined
+        // /checkout already refuses a second checkout for an active member,
+        // but a session opened before the first one completed can still land
+        // here. Never let it rebind an active membership to a different
+        // device secret — that would lock the real coach out of their own
+        // (still-billing) subscription.
+        if (existing && isActiveSubscriptionStatus(existing.status) && existing.secret_hash !== secretHash
+          && existing.stripe_subscription_id !== session.subscription) {
+          console.error(`Refusing to rebind active membership for ${coachId} to a different checkout secret`)
+          break
+        }
         const subscription = await stripe.subscriptions.retrieve(session.subscription as string)
         upsertMembership({
           coachId,
@@ -79,13 +117,14 @@ app.post('/membership/webhook', express.raw({ type: 'application/json' }), async
           status: subscription.status,
           currentPeriodEnd: subscription.items.data[0]?.current_period_end,
           name: session.customer_details?.name || 'Coachwright member',
+          secretHash,
         })
         break
       }
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
         const subscription = event.data.object as Stripe.Subscription
-        const row = db.prepare('SELECT coach_id, name FROM memberships WHERE stripe_subscription_id = ?').get(subscription.id) as { coach_id: string; name: string } | undefined
+        const row = db.prepare('SELECT coach_id, name, secret_hash FROM memberships WHERE stripe_subscription_id = ?').get(subscription.id) as { coach_id: string; name: string; secret_hash: string | null } | undefined
         if (!row) break
         upsertMembership({
           coachId: row.coach_id,
@@ -94,6 +133,7 @@ app.post('/membership/webhook', express.raw({ type: 'application/json' }), async
           status: event.type === 'customer.subscription.deleted' ? 'canceled' : subscription.status,
           currentPeriodEnd: subscription.items.data[0]?.current_period_end,
           name: row.name,
+          secretHash: row.secret_hash,
         })
         break
       }
@@ -106,11 +146,18 @@ app.post('/membership/webhook', express.raw({ type: 'application/json' }), async
 })
 
 app.use(express.json({ limit: '5mb' })) // Reduced from 50mb to prevent memory exhaustion
+// Express 5 leaves req.body undefined when no parser matched (e.g. a curl
+// with -d but no JSON content-type, which is exactly what MANAGED_HOSTING.md
+// §3's provisioning command used to be). Every handler destructures it, so
+// that was a 500 with a stack trace instead of a clean 400.
+app.use((req, _res, next) => { if (req.body === undefined) req.body = {}; next() })
 
 // Initialize SQLite database
 // This stores encrypted JSON blobs for each "Coach" and their "Clients" —
 // the server never sees plaintext; everything is E2EE by the client apps.
-const db = new Database('coachwright.db')
+// DB_PATH lets the test suite run against ':memory:' and lets an operator
+// put the database on a mounted volume without changing the working dir.
+const db = new Database(process.env.DB_PATH || 'coachwright.db')
 
 db.exec(`
   -- Keyed by (id, type), not id alone: a client device pushes its packet
@@ -219,30 +266,59 @@ db.exec(`
     status TEXT,
     current_period_end DATETIME,
     name TEXT,
+    secret_hash TEXT,           -- sha256 of the coach device's membership secret (see membershipSecretMatches)
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `)
 
+// Migration: memberships predates secret_hash on any instance that ran S15's
+// schema. Old rows keep a NULL hash and are refused by /status and /portal
+// until the coach checks out again — no live keys ever shipped with S15's
+// schema, so no real member can be stranded by this.
+if (!(db.prepare(`PRAGMA table_info(memberships)`).all() as { name: string }[]).some(c => c.name === 'secret_hash')) {
+  db.exec(`ALTER TABLE memberships ADD COLUMN secret_hash TEXT`)
+}
+
 // ---- Membership persistence ----
 function upsertMembership(m: {
   coachId: string; stripeCustomerId: string; stripeSubscriptionId: string
-  status: string; currentPeriodEnd: number | undefined; name: string
+  status: string; currentPeriodEnd: number | undefined; name: string; secretHash: string | null
 }) {
   db.prepare(`
-    INSERT INTO memberships (coach_id, stripe_customer_id, stripe_subscription_id, status, current_period_end, name, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    INSERT INTO memberships (coach_id, stripe_customer_id, stripe_subscription_id, status, current_period_end, name, secret_hash, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(coach_id) DO UPDATE SET
       stripe_customer_id = excluded.stripe_customer_id,
       stripe_subscription_id = excluded.stripe_subscription_id,
       status = excluded.status,
       current_period_end = excluded.current_period_end,
       name = excluded.name,
+      secret_hash = excluded.secret_hash,
       updated_at = CURRENT_TIMESTAMP
   `).run(
     m.coachId, m.stripeCustomerId, m.stripeSubscriptionId, m.status,
     m.currentPeriodEnd ? new Date(m.currentPeriodEnd * 1000).toISOString() : null,
-    m.name,
+    m.name, m.secretHash,
   )
+}
+
+export function sha256Hex(s: string): string {
+  return createHash('sha256').update(s).digest('hex')
+}
+
+/** A coach's device id is NOT a secret — every paired client device holds it
+ *  (it's the coachId on every relay call Companion makes). So "knows the
+ *  coachId" can't be the gate for anything billing-related: before this,
+ *  any paired client could open the coach's Stripe billing portal (cancel
+ *  their subscription, see their billing email) with one unauthenticated
+ *  POST. The app generates a random secret once, sends it at checkout (only
+ *  its hash is stored — in Stripe metadata and here), and presents it on
+ *  every later /status and /portal call. */
+function membershipSecretMatches(row: { secret_hash: string | null }, presented: unknown): boolean {
+  if (!row.secret_hash || typeof presented !== 'string' || !presented) return false
+  const a = Buffer.from(sha256Hex(presented), 'hex')
+  const b = Buffer.from(row.secret_hash, 'hex')
+  return a.length === b.length && timingSafeEqual(a, b)
 }
 
 // ---- Web Push (VAPID) setup ----
@@ -296,9 +372,9 @@ function signalSweep() {
   db.prepare(`DELETE FROM signals WHERE created_at < datetime('now', ?)`).run(`-${SIGNAL_TTL_MINUTES} minutes`)
 }
 signalSweep()
-setInterval(signalSweep, 60 * 1000)
+setInterval(signalSweep, 60 * 1000).unref()
 retentionSweep()
-setInterval(retentionSweep, 24 * 60 * 60 * 1000)
+setInterval(retentionSweep, 24 * 60 * 60 * 1000).unref()
 
 // Migration: rebuild sync_payloads if it predates the composite (id, type)
 // primary key — an old single-column-PK table would silently let a coach's
@@ -415,6 +491,24 @@ syncRouter.post('/push', (req, res) => {
   }
 })
 
+// Coach pulls all their clients' payloads. Registered BEFORE /pull/:type/:id:
+// Express matches in order, and that route would otherwise swallow this path
+// as type='clients' and answer an empty payload — which it did until S22.
+syncRouter.get('/pull/clients/:coachId', (req, res) => {
+  const { coachId } = req.params
+  if (!assertOwnsCoach(req, coachId)) return res.status(403).json({ error: 'Forbidden' })
+
+  const stmt = db.prepare(`SELECT id, encrypted_payload FROM sync_payloads WHERE coach_id = ? AND type = 'client'`)
+  const rows = stmt.all(coachId) as any[]
+
+  const payloads: Record<string, string> = {}
+  for (const row of rows) {
+    payloads[row.id] = row.encrypted_payload
+  }
+
+  res.json({ success: true, payloads })
+})
+
 // Pull an encrypted payload from the server
 // Type: 'coach' (clients pull this) or 'client' (coach pulls this)
 // For 'client', id = clientId. For 'coach', id = coachId.
@@ -431,22 +525,6 @@ syncRouter.get('/pull/:type/:id', (req, res) => {
     // Return empty state if no payload found
     res.json({ success: true, encryptedPayload: null })
   }
-})
-
-// Coach pulls all their clients' payloads
-syncRouter.get('/pull/clients/:coachId', (req, res) => {
-  const { coachId } = req.params
-  if (!assertOwnsCoach(req, coachId)) return res.status(403).json({ error: 'Forbidden' })
-
-  const stmt = db.prepare(`SELECT id, encrypted_payload FROM sync_payloads WHERE coach_id = ? AND type = 'client'`)
-  const rows = stmt.all(coachId) as any[]
-
-  const payloads: Record<string, string> = {}
-  for (const row of rows) {
-    payloads[row.id] = row.encrypted_payload
-  }
-
-  res.json({ success: true, payloads })
 })
 
 app.use('/sync', syncRouter)
@@ -484,6 +562,17 @@ messagesRouter.post('/push', (req, res) => {
   }
 })
 
+// `created_at` is SQLite's 'YYYY-MM-DD HH:MM:SS' (UTC, no zone); both apps
+// send `since` as a JS ISO string ('YYYY-MM-DDTHH:MM:SS.sssZ'). Compared as
+// raw strings, ' ' sorts before 'T', so every message from the same UTC day
+// as `since` was silently never returned — a coach who'd sent anything today
+// could not see any of today's replies. `datetime(?)` normalizes the input;
+// `>=` (second resolution, the column has no millis) can re-return a message
+// from the boundary second, which both callers already dedupe by id.
+function sqliteToIso(s: string): string {
+  return new Date(s.replace(' ', 'T') + 'Z').toISOString()
+}
+
 // for=coach → messages the coach still needs (ones the client sent).
 // for=client → messages the client still needs (ones the coach sent).
 messagesRouter.get('/pull', (req, res) => {
@@ -494,13 +583,13 @@ messagesRouter.get('/pull', (req, res) => {
   const wantDirection = forWhom === 'coach' ? 'client' : 'coach'
   const rows = db.prepare(`
     SELECT id, direction, encrypted_payload, created_at FROM message_relay
-    WHERE coach_id = ? AND client_id = ? AND direction = ? AND created_at > COALESCE(?, '1970-01-01')
+    WHERE coach_id = ? AND client_id = ? AND direction = ? AND created_at >= COALESCE(datetime(?), '1970-01-01')
     ORDER BY created_at ASC
   `).all(coachId, clientId, wantDirection, since || null) as any[]
 
   res.json({
     success: true,
-    messages: rows.map(r => ({ id: r.id, direction: r.direction, encryptedPayload: r.encrypted_payload, createdAt: r.created_at })),
+    messages: rows.map(r => ({ id: r.id, direction: r.direction, encryptedPayload: r.encrypted_payload, createdAt: sqliteToIso(r.created_at) })),
   })
 })
 
@@ -580,7 +669,7 @@ signalRouter.get('/poll', (req, res) => {
       payload: r.payload,
       ...(r.sdp_mid !== null ? { sdpMid: r.sdp_mid } : {}),
       ...(r.sdp_mline_index !== null ? { sdpMLineIndex: r.sdp_mline_index } : {}),
-      createdAt: new Date(r.created_at + 'Z').toISOString(),
+      createdAt: sqliteToIso(r.created_at),
     })),
   })
 })
@@ -603,7 +692,7 @@ signalRouter.get('/peek', (req, res) => {
   res.json({ success: true, session: row?.session ?? null })
 })
 
-app.use('/signal', signalRouter)
+app.use('/signal', signalLimiter, signalRouter)
 
 // ---- Reminders (poll-based — see table comment above) ----
 const remindersRouter = express.Router()
@@ -634,11 +723,14 @@ remindersRouter.get('/due', (req, res) => {
   const { clientId, before } = req.query as Record<string, string>
   if (!clientId) return res.status(400).json({ error: 'Missing clientId' })
 
+  // Scoped to the caller's coach when a per-coach key is in play: without
+  // this, coach A's key could read — and, worse, mark as sent, so they were
+  // never delivered — coach B's reminders for any client id it learned.
   const cutoff = before || new Date().toISOString()
   const rows = db.prepare(`
     SELECT id, encrypted_payload, send_at FROM reminders
-    WHERE client_id = ? AND sent = 0 AND send_at <= ?
-  `).all(clientId, cutoff) as any[]
+    WHERE client_id = ? AND sent = 0 AND send_at <= ? AND (? IS NULL OR coach_id = ?)
+  `).all(clientId, cutoff, req.coachId ?? null, req.coachId ?? null) as any[]
 
   if (rows.length) {
     const markSent = db.prepare('UPDATE reminders SET sent = 1 WHERE id = ?')
@@ -704,35 +796,44 @@ pushRouter.post('/subscribe', (req, res) => {
   db.prepare(`
     INSERT INTO push_subscriptions (endpoint, client_id, coach_id, subscription)
     VALUES (?, ?, ?, ?)
-    ON CONFLICT(endpoint) DO UPDATE SET client_id = excluded.client_id, subscription = excluded.subscription
-  `).run(subscription.endpoint, clientId, coachId ?? null, JSON.stringify(subscription))
+    ON CONFLICT(endpoint) DO UPDATE SET client_id = excluded.client_id, coach_id = excluded.coach_id, subscription = excluded.subscription
+    WHERE ? IS NULL OR push_subscriptions.coach_id IS NULL OR push_subscriptions.coach_id = ?
+  `).run(subscription.endpoint, clientId, coachId ?? null, JSON.stringify(subscription), req.coachId ?? null, req.coachId ?? null)
   res.json({ success: true })
 })
 
 pushRouter.post('/unsubscribe', (req, res) => {
   const { endpoint } = req.body
   if (!endpoint) return res.status(400).json({ error: 'Missing endpoint' })
-  db.prepare(`DELETE FROM push_subscriptions WHERE endpoint = ?`).run(endpoint)
+  db.prepare(`DELETE FROM push_subscriptions WHERE endpoint = ? AND (? IS NULL OR coach_id = ?)`)
+    .run(endpoint, req.coachId ?? null, req.coachId ?? null)
   res.json({ success: true })
 })
 
 app.use('/push', pushRouter)
 
 // ---- Membership billing (S15) — self-serve, unlike the manual $15/mo relay
-// provisioning above. No admin key: any coach can start checkout for their
-// own device id, same trust model as everything else in this file (a coach
-// can only ever act on their own coachId, enforced by assertOwnsCoach where
-// a per-coach key is in play; checkout/status here aren't behind a key at
-// all since there's nothing sensitive to protect before a subscription
-// exists — Stripe's own session owns the payment step). ----
+// provisioning above. No API key: these routes run against the official
+// server regardless of which relay (if any) a coach uses. Authorization is
+// the per-device membership secret instead (see membershipSecretMatches) —
+// checkout binds it, /status and /portal require it. ----
 const membershipRouter = express.Router()
 
 membershipRouter.post('/checkout', async (req, res) => {
   if (!stripe || !process.env.STRIPE_PRICE_ID) {
     return res.status(503).json({ error: 'Membership billing is not configured on this instance' })
   }
-  const { coachId, name, email } = req.body
+  const { coachId, name, email, secret } = req.body
   if (!coachId) return res.status(400).json({ error: 'Missing coachId' })
+  if (typeof secret !== 'string' || secret.length < 32) {
+    return res.status(400).json({ error: 'Missing or too-short membership secret' })
+  }
+  const existing = db.prepare('SELECT status FROM memberships WHERE coach_id = ?').get(coachId) as { status: string } | undefined
+  if (existing && isActiveSubscriptionStatus(existing.status)) {
+    // A second checkout would start a second $29/mo subscription for the
+    // same coach — refuse rather than double-bill.
+    return res.status(409).json({ error: 'This device already has an active membership — use Manage billing instead.' })
+  }
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -744,7 +845,9 @@ membershipRouter.post('/checkout', async (req, res) => {
       cancel_url: process.env.STRIPE_CANCEL_URL || 'https://coachwright.app/membership/cancelled',
       // Carried through to the customer record so a support lookup by name
       // is possible without ever storing it separately ourselves.
-      metadata: { coachId, name: typeof name === 'string' ? name : '' },
+      // secretHash rides the session so the webhook can bind it; the raw
+      // secret never leaves the coach's device and this request.
+      metadata: { coachId, name: typeof name === 'string' ? name : '', secretHash: sha256Hex(secret) },
     })
     res.json({ success: true, url: session.url })
   } catch (err: any) {
@@ -763,9 +866,12 @@ membershipRouter.get('/status', async (req, res) => {
   if (!coachId) return res.status(400).json({ error: 'Missing coachId' })
 
   const row = db.prepare('SELECT * FROM memberships WHERE coach_id = ?').get(coachId) as
-    | { coach_id: string; status: string; name: string; stripe_subscription_id: string }
+    | { coach_id: string; status: string; name: string; stripe_subscription_id: string; secret_hash: string | null }
     | undefined
 
+  if (row && !membershipSecretMatches(row, req.headers['x-membership-secret'])) {
+    return res.status(403).json({ error: 'Membership secret does not match this coach' })
+  }
   if (!row || !isActiveSubscriptionStatus(row.status)) {
     return res.json({ success: true, active: false, reason: row ? `Subscription is ${row.status}` : 'No membership on file' })
   }
@@ -799,8 +905,11 @@ membershipRouter.post('/portal', async (req, res) => {
   const { coachId } = req.body
   if (!coachId) return res.status(400).json({ error: 'Missing coachId' })
 
-  const row = db.prepare('SELECT stripe_customer_id FROM memberships WHERE coach_id = ?').get(coachId) as { stripe_customer_id: string } | undefined
+  const row = db.prepare('SELECT stripe_customer_id, secret_hash FROM memberships WHERE coach_id = ?').get(coachId) as { stripe_customer_id: string; secret_hash: string | null } | undefined
   if (!row) return res.status(404).json({ error: 'No membership on file for this coach' })
+  if (!membershipSecretMatches(row, req.headers['x-membership-secret'])) {
+    return res.status(403).json({ error: 'Membership secret does not match this coach' })
+  }
 
   try {
     const portalSession = await stripe.billingPortal.sessions.create({
@@ -822,6 +931,22 @@ app.get('/health', (_req, res) => {
   res.json({ ok: true, uptime: Math.round(process.uptime()) })
 })
 
-app.listen(port, () => {
-  console.log(`Coachwright Cloud Sync Server running on port ${port}`)
+// Last-resort handler: a JSON 500 without the stack. Express's default
+// handler renders the full trace (file paths included) in the response body
+// whenever NODE_ENV isn't 'production', and nothing sets NODE_ENV here.
+app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error(err)
+  const status = (err as { status?: number })?.status
+  res.status(typeof status === 'number' && status >= 400 && status < 600 ? status : 500)
+    .json({ error: status && status < 500 ? (err as Error).message : 'Internal server error' })
 })
+
+// Only listen when run as the entry point — the test suite imports `app`
+// and binds its own ephemeral port.
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Coachwright Cloud Sync Server running on port ${port}`)
+  })
+}
+
+export { db }

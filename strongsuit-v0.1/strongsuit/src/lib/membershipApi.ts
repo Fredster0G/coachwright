@@ -21,6 +21,29 @@ import { verifyMembershipToken, isMembershipCurrent } from './membership'
 
 export const MEMBERSHIP_SERVER_URL = 'https://relay.coachwright.app'
 
+/** How often a running app re-checks. Tokens live 35 days server-side, so
+ *  daily is far inside the window. */
+const REFRESH_INTERVAL_MS = 24 * 60 * 60 * 1000
+
+/** The per-install secret the server binds at checkout (it stores only a
+ *  hash). Required because the device id is NOT secret — every paired
+ *  Companion knows it — so without this any client could open its coach's
+ *  Stripe billing portal. Created lazily, only when a coach actually starts
+ *  checkout, so a free-tier coach's install never has one. */
+async function getOrCreateMembershipSecret(): Promise<string> {
+  const trainer = await trainerRepo.getOrCreate()
+  if (trainer.membershipSecret) return trainer.membershipSecret
+  const bytes = crypto.getRandomValues(new Uint8Array(32))
+  const secret = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('')
+  await trainerRepo.patch({ membershipSecret: secret })
+  return secret
+}
+
+async function secretHeader(): Promise<Record<string, string>> {
+  const trainer = await trainerRepo.getOrCreate()
+  return trainer.membershipSecret ? { 'x-membership-secret': trainer.membershipSecret } : {}
+}
+
 export interface MembershipRefreshResult {
   active: boolean
   reason?: string
@@ -39,7 +62,7 @@ export async function refreshMembership(): Promise<MembershipRefreshResult | nul
     const timer = setTimeout(() => controller.abort(), 6000)
     const res = await fetch(
       `${MEMBERSHIP_SERVER_URL}/membership/status?coachId=${encodeURIComponent(identity.deviceId)}`,
-      { signal: controller.signal },
+      { signal: controller.signal, headers: await secretHeader() },
     )
     clearTimeout(timer)
     if (!res.ok) return null
@@ -71,14 +94,36 @@ export async function refreshMembership(): Promise<MembershipRefreshResult | nul
   }
 }
 
+/** Refresh now, then daily while the app stays open — the "on launch and
+ *  roughly daily" cadence docs/MEMBERSHIP.md §4 describes. Before S22 the
+ *  only caller was MembershipCard's mount effect, i.e. only when the coach
+ *  happened to open Settings. Skipped entirely for an install that has
+ *  never started checkout (no secret): a free-tier coach's app makes no
+ *  membership network calls at all. Returns a stop function. */
+export function startMembershipRefreshLoop(): () => void {
+  let stopped = false
+  const tick = async () => {
+    if (stopped) return
+    const trainer = await trainerRepo.get()
+    if (!trainer?.membershipSecret) return
+    await refreshMembership()
+  }
+  void tick().catch(() => {})
+  const timer = setInterval(() => { void tick().catch(() => {}) }, REFRESH_INTERVAL_MS)
+  const onOnline = () => { void tick().catch(() => {}) }
+  window.addEventListener('online', onOnline)
+  return () => { stopped = true; clearInterval(timer); window.removeEventListener('online', onOnline) }
+}
+
 /** Opens a Stripe Checkout session and returns the URL to send the coach
  *  to — the app never collects card details itself. */
 export async function startMembershipCheckout(name: string, email?: string): Promise<string> {
   const identity = await getIdentity()
+  const secret = await getOrCreateMembershipSecret()
   const res = await fetch(`${MEMBERSHIP_SERVER_URL}/membership/checkout`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ coachId: identity.deviceId, name, email }),
+    body: JSON.stringify({ coachId: identity.deviceId, name, email, secret }),
   })
   if (!res.ok) {
     const body = await res.json().catch(() => ({}) as { error?: string })
@@ -95,7 +140,7 @@ export async function openMembershipBillingPortal(): Promise<string> {
   const identity = await getIdentity()
   const res = await fetch(`${MEMBERSHIP_SERVER_URL}/membership/portal`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(await secretHeader()) },
     body: JSON.stringify({ coachId: identity.deviceId }),
   })
   if (!res.ok) {

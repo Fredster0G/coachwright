@@ -50,17 +50,36 @@ of product (server-authoritative accounts), which was never on the table here.
 
 ## 4. How a membership token actually works
 
-- Coach checks out via Stripe Checkout (hosted by Stripe — the app never sees a card number).
-- The sync server's webhook records the subscription in a `memberships` table (`sync-server/server.ts`).
-- The app polls `GET /membership/status?coachId=<device id>` — on launch, and roughly daily. If the
-  subscription is active (or `past_due`, a grace period — see below), the server mints a freshly signed
-  `CWM1.…` token good for `MEMBERSHIP_TOKEN_LIFETIME_DAYS` (default 35) and hands it back.
+- Coach checks out via Stripe Checkout (hosted by Stripe — the app never sees a card number). The app
+  first generates a random **membership secret** (`trainer.membershipSecret`) and sends it with the
+  checkout request; only its SHA-256 travels on, in the Checkout session's metadata.
+- The sync server's webhook records the subscription in a `memberships` table (`sync-server/server.ts`),
+  bound to that secret hash. A later checkout for the same device can't rebind an active membership to a
+  different secret, and `/membership/checkout` refuses (409) while one is active, so nobody is double-billed.
+- The app polls `GET /membership/status?coachId=<device id>` with the secret in `x-membership-secret` —
+  at launch, daily while open, and when the network comes back (`startMembershipRefreshLoop()`, wired in
+  `AppRoot.tsx`). An install that has never started checkout has no secret and makes **no** membership
+  calls. If the subscription is active (or `past_due`, a grace period — see below), the server mints a
+  freshly signed `CWM1.…` token good for `MEMBERSHIP_TOKEN_LIFETIME_DAYS` (default 35) and hands it back.
+- **Why the secret exists (S22):** the device id is not private — every paired Companion sends it as
+  `coachId` on every relay call. Before S22 `/membership/status` and `/membership/portal` were gated on
+  the device id alone, so any paired client could open its coach's Stripe billing portal and cancel the
+  subscription. Both routes now return 403 without the matching secret. Rows written before the secret
+  column existed are refused too (never trusted-on-first-use); no live keys shipped before S22, so no
+  real member is affected.
 - The app verifies that token **entirely offline**, exactly like a one-time licence key, against the same
   embedded public key (`RELEASE_PUBLIC_JWK` in `lib/licence.ts`, reused by `lib/membership.ts`).
 - A coach without internet for a stretch keeps full access until the token's own `expiresAt` — real
   headroom past the 30-day billing cycle, never an instant cutoff on a missed check. Past expiry with no
   successful refresh, the account quietly reverts to free-tier limits. Never a hard lockout, never data
-  loss — every client, program, and log stays exactly where it was.
+  loss — every client, program, and log stays exactly where it was. *(Enforced by `hasActiveMembership()`
+  in `lib/membership.ts` since S22. Before that, every gate read the cached `membershipActive` flag
+  directly, which only a successful refresh ever cleared — an offline or unreachable coach kept
+  membership forever, and refresh only ran when Settings was opened.)*
+- **What Membership actually unlocks** — exactly two things: unlimited active clients (`canAddClient`)
+  and custom branding for installs created after 2026-08-15 (`canUseCustomBranding`). The program
+  builder, Film Room and business tools are free on every tier. (The in-app copy said otherwise until
+  S22; see DEBT-70 for the edition flags that still describe the pre-pivot split.)
 - `past_due` (a failed card charge Stripe is still retrying) counts as active. Cutting access on the first
   failed charge is the kind of coercive billing experience this product is explicitly trying not to be.
 
@@ -102,6 +121,7 @@ Nothing below is optional if you want real coaches to actually be able to pay. I
    STRIPE_CANCEL_URL=https://coachwright.app/membership/cancelled
    LICENCE_SIGNING_PRIVATE_JWK={"kty":"EC","crv":"P-256","d":"...","x":"...","y":"..."}
    MEMBERSHIP_TOKEN_LIFETIME_DAYS=35
+   TRUST_PROXY=1   # Caddy is in front — see MANAGED_HOSTING.md §2
    ```
 5. **Register the webhook** in the Stripe Dashboard pointing at
    `https://<your-relay-domain>/membership/webhook`, subscribed to `checkout.session.completed`,
@@ -112,7 +132,10 @@ Nothing below is optional if you want real coaches to actually be able to pay. I
    reads `https://relay.coachwright.app` — update it once the domain is live, and confirm
    `MANAGED_HOSTING.md`'s existing reference deployment (Caddy + Let's Encrypt in front of the same
    `sync-server/` process) is what's actually running there.
-7. **Test in Stripe test mode first.** Use a `sk_test_...` key and Stripe's documented test card
+7. **Run the server's own test suite:** `cd sync-server && npm test` — covers the secret gate, the
+   webhook signature check, the no-rebind rule, and a real cross-check that the app's verifier accepts a
+   server-minted token (the byte-exact landmine in `AGENTS.md` §5).
+8. **Test in Stripe test mode first.** Use a `sk_test_...` key and Stripe's documented test card
    (`4242 4242 4242 4242`, any future expiry, any CVC) to run one real checkout → webhook → `/membership/status`
    → verified-token loop before switching to live keys. Nothing above requires a live key to test.
 

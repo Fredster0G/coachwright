@@ -47,11 +47,15 @@ whether or not anyone ever acquires it. Don't burn the differentiator chasing a 
 are no live Stripe keys and the relay domain isn't deployed. **The app cannot take one dollar today.**
 Checklist is copy-pasteable in `docs/MEMBERSHIP.md` §5. Then update `MEMBERSHIP_SERVER_URL` in
 `lib/membershipApi.ts`. *Effort: an afternoon. Caleb only — real keys.*
+**S22:** the server side is now test-covered (`sync-server && npm test`, 16 tests incl. an automated
+app↔server token cross-check) and a billing-portal hole was closed (any paired client could cancel its
+coach's subscription). Set `TRUST_PROXY=1` behind Caddy or the whole instance shares one rate-limit bucket.
 
-### 1.2 🟨 Exercise library: 277 → ~1,000+
-**Depth: THIN, and it's a truth problem, not just a gap.** `06-EDITIONS-PRICING.md` §4.2 justifies the
-price partly on "a 3,000-exercise curated library." There are **277**. Either build toward the number or
-stop printing it — right now the marketing is wrong.
+### 1.2 🟨 Exercise library: ~1,100 → ~3,000
+**Depth: 1,099 entries (counted S22 via `buildSeedExercises()`), up from 277 via S16's public-domain
+import.** The ~1,000 milestone is met. `06-EDITIONS-PRICING.md` §4.2 still says 3,000 — now annotated as
+a target, not a fact. Keep it out of copy until true. Remaining work is quality (the 822 imported rows
+are thinner than the 277 hand-written ones — see `LIBRARY_GROWTH.md`) and the path to 3,000.
 Brief already written: `docs/plans/05a-LIBRARY-AUTHORING-BRIEF.md` (voice, quality bar, target
 composition). **This is the single best Antigravity task in the whole project** — bulk structured content
 generation against an existing quality exemplar, verifiable by schema + tests, zero architectural risk.
@@ -188,10 +192,15 @@ recommendation to keep it.
 
 ## 4. Hygiene
 
-- **[DONE in S17] Tailwind undefined-class sweep** (DEBT-20) — added `eslint-plugin-tailwindcss` and cleaned up invalid classes.
-- **Sweep remaining `$60`/one-time copy** — `BRANDING_PLAN.md`, `STRONGSUIT_MASTER_SPEC.md`,
-  `HOW-TO-OWN-IT.md`, the pitch deck still say the old model. 🟨
-- **Fix the "3,000 exercises" claim** everywhere until 1.2 makes it true. 🟨
+- **[DONE in S17, regressed S18, re-fixed S22] Tailwind undefined-class sweep** (DEBT-20) — S18's food
+  logging reintroduced `bg-wash` (3 uses) after the sweep was marked done. `npm run lint:tailwind` is at 0
+  errors again. **Run it before claiming any UI work done** — the lint exists; it just wasn't being run.
+- **Sweep remaining `$60`/one-time copy** — *mostly done S22:* `HOW-TO-OWN-IT.md` §4 rewritten (it also
+  claimed "zero network requests", untrue since S15/S18); `STRONGSUIT_MASTER_SPEC.md` and
+  `BRANDING_PLAN.md` §5 carry superseded banners. **Left for Caleb (DEBT-72):** the pitch deck and the
+  positioning statement. 🟥
+- **[DONE S22] "3,000 exercises" claim** — the one place it was stated as fact (`06` §4.2) is annotated;
+  the other hits are plans *targeting* 3,000, which is accurate.
 - **Shared workspace** — `sync.ts`, `pose.ts`, `core.ts`, `singleFlight` are all duplicated across the
   two apps (DEBT-60). Three copies was the stated trigger. We're past it. 🟦
 
@@ -199,10 +208,11 @@ recommendation to keep it.
 
 ## 5. Suggested next session
 
-**If Antigravity:** exercise library batch 1 (§1.2) — biggest gap, best fit, zero risk to anything.
-Or the i18n conversion (§3) if you want a guaranteed-safe warm-up.
+**If Antigravity:** i18n conversion (§3) — guaranteed-safe, compile-checked. Or library quality: lift
+the 822 imported rows toward the hand-written bar (§1.2).
 
-**If Claude Code:** food logging data model + barcode capability gating (§2.1) — the part where getting
-the offline/privacy architecture right matters most; hand the bulk UI to Antigravity after.
+**If Claude Code:** DEBT-68 (food entries in client portability — needs the `FoodItem` bundling decision)
+or DEBT-70 once Caleb decides whether Membership maps to an AI tier. Both touch data/entitlement paths
+where a silent mistake is expensive.
 
 **If Caleb has an hour:** §1.1 Stripe keys. Nothing else in this document earns a dollar until that's done.

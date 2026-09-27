@@ -30,6 +30,10 @@ coach's and client's own devices. Size and operate it like a message queue, not 
   | `API_KEY` | legacy single-tenant shared key — do NOT set on the managed instance; per-coach keys only |
   | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` | Web Push identity. If unset the server generates and persists a pair in the `kv` table — fine, but back it up: rotating VAPID keys silently kills every existing push subscription |
   | `RELAY_RETENTION_DAYS` | ciphertext retention (default 90) — see §6 |
+  | `TRUST_PROXY` | **set to `1`** — Caddy is in front. Unset, every coach's traffic arrives as `127.0.0.1` and shares ONE rate-limit bucket: 100 requests per 15 minutes for the entire instance |
+  | `RATE_LIMIT_PER_15MIN` / `SIGNAL_RATE_LIMIT_PER_MIN` | per-IP budgets (defaults 100 / 400); signalling has its own because P2P setup polls every 700ms |
+  | `DB_PATH` | SQLite location (default `./coachwright.db`) — point it at the Litestream-replicated path |
+  | Stripe / `LICENCE_SIGNING_PRIVATE_JWK` / `MEMBERSHIP_TOKEN_LIFETIME_DAYS` | the $29/mo membership tier — see `MEMBERSHIP.md` §5 |
 - **Monitoring:** `GET /health` (unauthenticated, returns `{ok, uptime}` and nothing else) wired to any
   uptime pinger (UptimeRobot free tier is enough). That plus disk-space alerting is the entire pager story.
 
@@ -38,7 +42,9 @@ coach's and client's own devices. Size and operate it like a message queue, not 
 1. Coach pays through a **Stripe Payment Link** (subscription, $15/mo) — no payment code in any app,
    per `SERVER_STRATEGY.md` §3's bring-your-own-account doctrine.
 2. Stripe emails the operator (or you check the dashboard). Run:
-   `curl -X POST https://relay.coachwright.app/keys/register -H "x-admin-key: $ADMIN_KEY" -d '{"coachId":"<their device id>"}'`
+   `curl -X POST https://relay.coachwright.app/keys/register -H "x-admin-key: $ADMIN_KEY" -H "Content-Type: application/json" -d '{"coachId":"<their device id>"}'`
+   (The `Content-Type` header is required — without it the body isn't parsed. Before S22 this command
+   was printed without it and the server answered 500.)
    (their device id is shown on their Studio Link page; the key comes back in the response).
 3. Send the coach their API key. They paste it once into Studio Link → Cloud Sync Server — and from S13
    onward their pairing QR carries it to clients automatically.
