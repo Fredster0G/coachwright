@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { LOCAL_AI_ENABLED } from '@/lib/cloud/config'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -7,11 +7,11 @@ import { clientsRepo, trainerRepo, programsRepo, logsRepo, checkInsRepo, payment
 import { fullName } from '@/lib/core'
 import { APP_NAME } from '@/lib/brand'
 import { Card, SectionHeader, Button, EmptyState, Tag } from '@/design'
-import { evaluateAutomations, explainRule, DEFAULT_RULES, type ClientFacts } from '@/lib/automations'
+import { evaluateAutomations, explainRule, DEFAULT_RULES } from '@/lib/automations'
 import { today } from '@/lib/core'
 import { useTranslation } from '@/lib/i18n'
 import { RosterSummaryCard } from './RosterSummaryCard'
-import { sessionPackBalance } from '@/lib/sessionPacks'
+import { buildClientFacts } from '@/lib/clientFacts'
 
 function ChecklistItem({ done, label, to }: { done: boolean; label: string; to: string }) {
   return (
@@ -42,31 +42,9 @@ export default function DashboardPage() {
   const hasProgram = programs.length > 0
   const setupDone = hasBrand && hasClient && hasProgram
 
-  // Build per-client facts once, then let the automation engine (custom
-  // rules + always-on defaults) decide what needs attention — spec §4.29.
-  const facts = new Map<string, ClientFacts>()
-  for (const c of clients) {
-    const clientLogs = logs.filter(l => l.clientId === c.id).sort((a, b) => a.date.localeCompare(b.date))
-    const clientCheckIns = checkIns.filter(ci => ci.clientId === c.id).sort((a, b) => a.date.localeCompare(b.date))
-    const clientPayments = payments.filter(p => p.clientId === c.id)
-    const lastPayment = clientPayments.filter(p => p.type !== 'refund').sort((a, b) => a.date.localeCompare(b.date)).at(-1)
-    facts.set(c.id, {
-      clientId: c.id,
-      lastSessionDate: clientLogs.at(-1)?.date,
-      lastCheckInDate: clientCheckIns.at(-1)?.date,
-      sessionsRemaining: sessionPackBalance(clientPayments, clientLogs)?.remaining,
-      lastPaymentDate: lastPayment?.date,
-      hasScreening: !!c.screening,
-      screeningCleared: c.screening?.cleared ?? false,
-      checkInDates: clientCheckIns.map(ci => ci.date),
-      sessionCompletionRates: clientLogs
-        .map(l => {
-          const allSets = l.entries.flatMap(e => e.sets)
-          return allSets.length > 0 ? allSets.filter(s => s.done).length / allSets.length : null
-        })
-        .filter((r): r is number => r !== null),
-    })
-  }
+  // Per-client facts, then the automation engine (custom rules + always-on
+  // defaults) decides what needs attention — spec §4.29.
+  const facts = useMemo(() => buildClientFacts(clients, logs, checkIns, payments), [clients, logs, checkIns, payments])
   const rules = [...DEFAULT_RULES, ...customRules]
   const attention = evaluateAutomations({ clients, facts, rules, today: today() })
   const clientMap = new Map(clients.map(c => [c.id, c]))

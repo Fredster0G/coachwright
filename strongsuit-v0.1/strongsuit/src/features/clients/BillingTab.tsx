@@ -44,7 +44,7 @@ function GymCutCard({ client, payments }: { client: Client; payments: Payment[] 
           </span>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <Field label={t('clients.billing.gymCutLabel')}>
           <Select value={kind} onChange={e => save(e.target.value, value || (e.target.value === 'percent' ? 20 : 0))}>
             <option value="none">{t('clients.billing.gymCutNone')}</option>
@@ -209,7 +209,7 @@ function InvoicesCard({ clientId }: { clientId: string }) {
 function RecordPaymentDialog({ clientId, open, onClose }: { clientId: string; open: boolean; onClose: () => void }) {
   const staff = useLiveQuery(() => staffRepo.all(), [], [])
   const [form, setForm] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: isoDay(new Date()),
     amount: '',
     type: 'payment' as PaymentType,
     method: 'transfer',

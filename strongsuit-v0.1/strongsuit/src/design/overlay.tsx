@@ -70,16 +70,24 @@ export function Toaster() {
 }
 
 // ============ Tabs ============
+/** Scrolls sideways when the tabs don't fit (a client page has 11 — on a
+ *  phone the last ones used to be clipped and unreachable), and keeps the
+ *  active tab in view. */
 export function Tabs({ tabs, active, onChange }: { tabs: { id: string; label: string }[]; active: string; onChange: (id: string) => void }) {
+  const listRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = listRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')
+    el?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+  }, [active])
   return (
-    <div role="tablist" className="flex gap-1 border-b border-line">
+    <div ref={listRef} role="tablist" className="flex gap-1 overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_var(--line)] [scrollbar-width:none]">
       {tabs.map(t => (
         <button
           key={t.id}
           role="tab"
           aria-selected={active === t.id}
           onClick={() => onChange(t.id)}
-          className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+          className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
             active === t.id ? 'border-verde-600 text-ink' : 'border-transparent text-muted hover:text-ink'
           }`}
         >

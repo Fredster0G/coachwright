@@ -45,7 +45,7 @@ device must receive the first device's ids or its programs would point at nothin
 |---|---|---|
 | `POST /auth/signup`, `/auth/login` | — (20 req/15min/IP) | returns a bearer token; passwords are scrypt, tokens stored as sha256 |
 | `POST /auth/logout`, `GET /auth/me`, `POST /auth/password` | coach | password change signs out other devices |
-| `POST /auth/reset/request`, `/auth/reset/confirm` | — (auth-rate-limited) | emails a one-time link (sha256-stored, 1 hour, newest only); same answer for unknown emails; confirming signs out every device and signs this one in |
+| `POST /auth/reset/request`, `/auth/reset/confirm` | — (auth-rate-limited) | emails a one-time link (sha256-stored, 1 hour, newest only, at most one email a minute per account); same answer for unknown emails; confirming signs out every device and signs this one in |
 | `DELETE /auth/account` | coach + password | cancels a live Stripe subscription (nothing is deleted if that fails), then erases the account — every table cascades from `accounts`. The app then clears the device |
 | `POST /data/push`, `GET /data/pull?since=N` | coach | ≤500 changes per push; pull pages 1,000 at a time. Push also returns `refused` — clients over the free cap (`MEMBERSHIP.md` §4) |
 | `POST /invites`, `DELETE /invites/:clientId` | coach | connect code (8 chars, single use, 7 days) / disconnect every Companion for a client |
@@ -54,7 +54,7 @@ device must receive the first device's ids or its programs would point at nothin
 | `POST/GET/DELETE /reminders` | coach | released to Companion on its next check-in after `sendAt` |
 | `/membership/checkout`, `/status`, `/portal` | coach | Stripe, keyed by account — see `MEMBERSHIP.md` |
 | `POST /membership/webhook` | Stripe signature | |
-| `GET /health` | — | `{ok, uptime}` only |
+| `GET /health` | — | `{ok, uptime}` only; touches the database, so it returns 503 on a broken/full disk |
 
 Tests: `cd sync-server && npm test` (27 HTTP tests). The app's sync engine and Companion's sync code each
 have integration tests that start this real server in-process (`lib/cloud/syncEngine.test.ts`,
@@ -92,7 +92,8 @@ One small VPS is the whole deployment. Nothing below needs a real key to try in 
 4. **Backups:** Litestream streaming the SQLite file to any S3-compatible bucket (~$1/mo). Restore =
    `litestream restore`. **This is now the only copy of every coach's data that isn't on their own
    devices — do not skip it.**
-5. **Process:** systemd unit running `npx tsx server.ts` (or `tsc` + `node`), `Restart=always`.
+5. **Process:** systemd unit running `npx tsx server.ts` (or `tsc` + `node`), `Restart=always`. SIGTERM
+   finishes in-flight requests and closes the database cleanly (10s limit).
 6. **Point the apps at it:** build with `VITE_CLOUD_URL=https://api.coachwright.app` (that URL is also the
    production default in `lib/cloud/config.ts` and `companion-app/src/lib/cloud.ts`).
 7. **Monitoring:** uptime check on `/health`, disk-space alert.

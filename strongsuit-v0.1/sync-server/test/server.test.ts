@@ -129,10 +129,13 @@ test('password reset: emailed single-use token sets a new password and signs out
   assert.equal((await post('/auth/reset/confirm', { token, newPassword: 'thirdpassword' })).status, 400, 'single use')
 })
 
-test('password reset: unknown emails look identical and send nothing; expired and superseded tokens fail', async () => {
+test('password reset: unknown emails look identical and send nothing; throttled; expired and superseded tokens fail', async () => {
   assert.deepEqual(await requestReset('nobody-here@example.com'), [])
   await post('/auth/signup', { email: 'twice@example.com', password: 'oldpassword' })
   const first = tokenIn((await requestReset('twice@example.com'))[0].text)
+  assert.deepEqual(await requestReset('twice@example.com'), [], 'a second request within a minute sends nothing')
+  mod.db.prepare('UPDATE password_resets SET expires_at = ? WHERE token_hash = ?')
+    .run(new Date(Date.now() + 30 * 60_000).toISOString(), mod.sha256Hex(first))   // as if requested 30 min ago
   const second = tokenIn((await requestReset('twice@example.com'))[0].text)
   assert.equal((await post('/auth/reset/confirm', { token: first, newPassword: 'newpassword' })).status, 400, 'superseded')
   mod.db.prepare('UPDATE password_resets SET expires_at = ? WHERE token_hash = ?').run('2020-01-01T00:00:00.000Z', mod.sha256Hex(second))

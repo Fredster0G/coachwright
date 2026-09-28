@@ -127,7 +127,7 @@ interface CheckInsTabProps {
 
 function LogCheckInDialog({ clientId, open, onClose }: { clientId: string; open: boolean; onClose: () => void }) {
   const [form, setForm] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: todayStr(),
     sleepHours: '',
     bodyweight: '',
     mood: '',

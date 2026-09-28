@@ -1,7 +1,7 @@
 # STATUS — read this first
 
-**Last updated:** 2026-09-27 (S24, Claude Code)
-**Health:** app 48 files · 667 tests · `tsc -b --force` 0 errors · lint:tailwind 0 errors · oxlint 0 errors · no import cycles
+**Last updated:** 2026-09-28 (S25, Claude Code)
+**Health:** app 50 files · 671 tests · `tsc -b --force` 0 errors · lint:tailwind 0 errors · oxlint 0 errors · no import cycles
 · companion 7 files · 109 tests · clean · sync-server `tsc --noEmit` clean · 27 server tests
 
 > ⚠️ **The `tsc` command above is not a typo — read `AGENTS.md` §4 before you trust any prior "clean
@@ -18,7 +18,7 @@
 
 | | |
 |---|---|
-| **Last worked on** | S24: **account basics** — password reset by emailed one-time link (Postmark, off until keys exist), account deletion (cancels Stripe, erases server + device), server-side free-tier cap. Debt sweep: local-vs-UTC date bugs in both apps, real session-pack ledger, dead edition flags removed, 11MB unused wasm dropped per app, Film Room Reference keys, web `/assistant` redirect. S23 (before): moved to cloud accounts — `docs/CLOUD.md`. |
+| **Last worked on** | S25: CI workflow added; desktop startup bundle 979KB → 461KB (AI runtime lazy); client page fixed on phones (unreachable tabs, off-screen actions); Dashboard facts one-pass; last UTC-date sites; server health/shutdown/reset-throttle. S24: **account basics** — password reset by emailed one-time link (Postmark, off until keys exist), account deletion (cancels Stripe, erases server + device), server-side free-tier cap. Debt sweep: local-vs-UTC date bugs in both apps, real session-pack ledger, dead edition flags removed, 11MB unused wasm dropped per app, Film Room Reference keys, web `/assistant` redirect. S23 (before): moved to cloud accounts — `docs/CLOUD.md`. |
 | **Safe to pick up** | Anything in `ROADMAP.md`. |
 | **Half-done / in flight** | Nothing mid-edit. **Not done:** legal review of the EULA + a privacy policy (DEBT-75). Reset emails need a Postmark account + a verified sender (`CLOUD.md` §4) — until then the server logs that it couldn't send. |
 | **Don't touch without reading first** | `docs/CLOUD.md` §2 — `SYNCED_TABLES` (app) must match `SYNC_TABLES` (server); `Table.clear()` bypasses the sync hooks. |
@@ -107,7 +107,7 @@ connection. **Free tier: up to 3 clients. Coachwright Membership: $29/mo, unlimi
 | **Mac** | Never attempted. No Mac in any build environment so far. |
 | **Android** | Real Capacitor project generated, **never compiled or run**. |
 | **Windows installer** | Builds, never run on real hardware. |
-| **Mobile responsive** | Verified: Dashboard, Clients, Programs, Builder. **Unverified:** Film Room dual-video, Calendar, Business/Billing, Settings. |
+| **Mobile responsive** | S25: every main page measured at 375px in Chromium — no horizontal overflow. Fixed the client page (header actions ran off-screen; last tabs were unreachable — `Tabs` now scrolls). Film Room checked with one clip loaded (stage stacks below `lg`), not with two long real videos. |
 | **Lighthouse / cross-browser** | Never run — one browser engine available, no Lighthouse CLI. |
 | **Free-tier cap** | Enforced by the server since S24 (members and verified one-time licences exempt; an install that arrives with more keeps them). Refused clients stay on the device and show on Account & sync. |
 | **Privacy/legal** | Data is no longer E2EE. EULA storage/privacy clauses rewritten to say so; needs a lawyer and a privacy policy (DEBT-75). |
@@ -117,7 +117,7 @@ connection. **Free tier: up to 3 clients. Coachwright Membership: $29/mo, unlimi
 ## Commands
 
 ```bash
-npx vitest run          # 667 tests, ~15s
+npx vitest run          # 671 tests, ~15s
 npx tsc -b --force      # app typecheck — NOT `tsc --noEmit`, see banner at top of this file
 npm run dev             # vite dev server — talks to http://localhost:4000 (run the server below)
 npm run dev:web         # the website build (no on-device AI)

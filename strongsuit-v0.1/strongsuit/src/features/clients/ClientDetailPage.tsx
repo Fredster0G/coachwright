@@ -243,12 +243,14 @@ export default function ClientDetailPage() {
         <ArrowLeft size={13} /> {t('clients.title')}
       </Link>
 
-      <div className="mb-4 flex items-start justify-between">
-        <div className="flex items-center gap-3">
+      {/* Wraps: the action row drops below the name on narrow screens instead
+          of running off the edge (DEBT-24, S24). */}
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <Avatar person={client} src={client.photoDataUrl} size={44} />
-          <div>
+          <div className="min-w-0">
             <h1 className="font-display text-2xl font-bold tracking-tight">{fullName(client)}</h1>
-            <div className="mt-0.5 flex items-center gap-2">
+            <div className="mt-0.5 flex flex-wrap items-center gap-2">
               <Tag tone={client.status === 'active' ? 'verde' : 'neutral'}>{client.status}</Tag>
               <span className="font-mono tabular-nums text-2xs text-faint">{t('clients.detail.since', { date: client.startDate })}</span>
               {client.email && (
@@ -275,7 +277,7 @@ export default function ClientDetailPage() {
           )}
         </div>
         {client.status !== 'archived' && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {activeProgram && (
               <Button variant="ghost" size="sm" onClick={() => window.open(`#/tv/${client.id}`, '_blank')} title={t('clients.detail.tvModeTooltip')}>
                 <Tv size={14} className="me-1.5" /> {t('clients.detail.tvMode')}

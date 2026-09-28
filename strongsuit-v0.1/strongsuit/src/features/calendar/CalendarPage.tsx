@@ -7,7 +7,7 @@ import {
 import { Card, Button, Input, Select, EmptyState, Dialog, Label, Tag, Field, toast } from '@/design'
 import { appointmentsRepo, clientsRepo, staffRepo, locationsRepo } from '@/db/repo'
 import type { Appointment, RecurrenceFreq, Client, Staff, Location } from '@/db/types'
-import { nowIso, newId, fullName } from '@/lib/core'
+import { nowIso, newId, fullName, today } from '@/lib/core'
 import { expandAll, describeRule, type Occurrence } from '@/lib/schedule'
 import {
   format, parseISO, addDays, addMonths, startOfMonth, endOfMonth,
@@ -19,7 +19,7 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 function NewAppointmentDialog({ open, onClose, staff, locations }: { open: boolean; onClose: () => void; staff: Staff[]; locations: Location[] }) {
   const clients = useLiveQuery(() => clientsRepo.active(), [], [])
   const [form, setForm] = useState({
-    title: '', clientId: '', date: new Date().toISOString().split('T')[0],
+    title: '', clientId: '', date: today(),
     time: '09:00', durationMinutes: '60', location: '', locationId: '', staffId: '', notes: '',
     repeat: 'none' as 'none' | RecurrenceFreq,
     ends: 'never' as 'never' | 'on' | 'after',

@@ -6,6 +6,7 @@ import { profileRepo, coachLinkRepo } from '@/db/repo'
 import { exportBackup, downloadText, importBackup } from '@/db/backup'
 import { enablePush, disablePush, pushSupported } from '@/lib/push'
 import type { CompanionProfile, Units, Theme } from '@/db/types'
+import { today } from '@/lib/core'
 import { PersonalCloudCard } from './PersonalCloudCard'
 import { CoachCard } from './CoachCard'
 
@@ -88,7 +89,7 @@ export function SettingsPage({ profile, onProfileChange }: {
 
   async function backupNow() {
     const backup = await exportBackup()
-    downloadText(`companion-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(backup, null, 2))
+    downloadText(`companion-backup-${today()}.json`, JSON.stringify(backup, null, 2))
   }
 
   async function onImport(file: File) {

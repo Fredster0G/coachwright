@@ -65,6 +65,9 @@ format is in `docs/sessions/TEMPLATE.md`.
 
 ## 4. Verification bar (this project's actual standard — do not lower it)
 
+**CI (S25):** `.github/workflows/ci.yml` runs the per-project checks below on every push/PR. It is a floor,
+not a substitute — live browser verification is still on you.
+
 ### ⚠️ `npx tsc --noEmit` at the repo root checks ZERO files. Use `npx tsc -b --force`.
 
 Discovered S15, the hard way: the app's root `tsconfig.json` is a **solution file** — `"files": []` with

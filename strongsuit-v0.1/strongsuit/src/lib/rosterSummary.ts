@@ -1,6 +1,6 @@
 import { clientsRepo, checkInsRepo } from '@/db/repo'
 import { readinessFromCheckIn } from './readiness'
-import { fullName, today } from './core'
+import { fullName, isoDay } from './core'
 
 /**
  * Fetches and formats all check-ins over the past 7 days across the active roster.
@@ -9,10 +9,9 @@ export async function buildRosterCheckInContext(): Promise<string> {
   const activeClients = await clientsRepo.active()
   if (activeClients.length === 0) return 'No active clients.'
 
-  // Compute date 7 days ago manually without pulling in date-fns if possible, but let's just use string parsing
-  const d = new Date(today())
+  const d = new Date()
   d.setDate(d.getDate() - 7)
-  const aWeekAgo = d.toISOString().split('T')[0]
+  const aWeekAgo = isoDay(d)
   
   // Fetch check-ins for the last week
   const allCheckIns = await checkInsRepo.table

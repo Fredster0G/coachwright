@@ -23,7 +23,7 @@ import { buildFilmRoomSummary, buildFilmRoomStatsHtml, type FilmNote } from '@/l
 import type { PoseTracker } from './tracker'
 import { downloadSnapshot } from './snapshot'
 import { clientsRepo, messagesRepo } from '@/db/repo'
-import { newId, nowIso, fullName } from '@/lib/core'
+import { newId, nowIso, fullName, isoDay } from '@/lib/core'
 import { downloadText } from '@/db/backup'
 
 // ===== Film Room — local biomechanical video analysis =====
@@ -1091,7 +1091,7 @@ export default function FilmRoomPage() {
     }
   }
   function downloadSummary() {
-    downloadText(`film-room-notes-${new Date().toISOString().slice(0, 10)}.txt`, summaryText)
+    downloadText(`film-room-notes-${isoDay(new Date())}.txt`, summaryText)
   }
   async function sendSummaryToClient() {
     if (!selectedClient) return
@@ -1108,7 +1108,7 @@ export default function FilmRoomPage() {
     const video = (useReference ? videoB : videoA).current
     const track = useReference ? trackB : trackA
     if (!video) { toastError('Load a clip first.'); return }
-    const stamp = new Date().toISOString().slice(0, 10)
+    const stamp = isoDay(new Date())
     const at = `${Math.floor(video.currentTime / 60)}:${String(Math.floor(video.currentTime % 60)).padStart(2, '0')}`
     const ok = await downloadSnapshot(video, `film-room-${stamp}-${at.replace(':', 'm')}s.png`, {
       landmarks: tracking === 'on' ? track.pose : null,

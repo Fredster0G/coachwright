@@ -450,7 +450,11 @@ app.post('/auth/reset/request', authLimiter, (req, res) => {
   const { email } = req.body
   if (typeof email !== 'string' || !EMAIL_RE.test(email.trim())) return res.status(400).json({ error: 'Enter a valid email address' })
   const row = db.prepare('SELECT id, email FROM accounts WHERE email = ?').get(email.trim().toLowerCase()) as { id: string; email: string } | undefined
-  if (row) {
+  // At most one email a minute per account, so the endpoint can't be used to
+  // flood someone's inbox. The answer is the same either way.
+  const recent = row && db.prepare('SELECT 1 FROM password_resets WHERE account_id = ? AND expires_at > ?')
+    .get(row.id, new Date(Date.now() + RESET_TTL_MS - 60_000).toISOString())
+  if (row && !recent) {
     const token = newId()
     db.transaction(() => {
       db.prepare('DELETE FROM password_resets WHERE account_id = ?').run(row.id)
@@ -917,9 +921,16 @@ app.post('/membership/portal', requireCoach, async (req, res) => {
   }
 })
 
-// Unauthenticated liveness probe — returns nothing beyond "up".
+// Unauthenticated probe — returns nothing beyond "up". It touches the
+// database, so an uptime monitor also catches a full disk or a broken file.
 app.get('/health', (_req, res) => {
-  res.json({ ok: true, uptime: Math.round(process.uptime()) })
+  try {
+    db.prepare('SELECT 1').get()
+    res.json({ ok: true, uptime: Math.round(process.uptime()) })
+  } catch (err) {
+    console.error('Health check: database unavailable:', err)
+    res.status(503).json({ ok: false, uptime: Math.round(process.uptime()) })
+  }
 })
 
 // JSON errors without stack traces (Express's default handler renders the
@@ -932,9 +943,18 @@ app.use((err: unknown, _req: express.Request, res: express.Response, _next: expr
 })
 
 if (require.main === module) {
-  app.listen(port, () => {
+  const server = app.listen(port, () => {
     console.log(`Coachwright Cloud running on port ${port}`)
   })
+  // systemd stops with SIGTERM: finish in-flight requests, then close the
+  // database cleanly (checkpoints the WAL for Litestream) before exiting.
+  const shutdown = (signal: string) => {
+    console.log(`${signal} — shutting down`)
+    server.close(() => { db.close(); process.exit(0) })
+    setTimeout(() => process.exit(1), 10_000).unref()
+  }
+  process.on('SIGTERM', () => shutdown('SIGTERM'))
+  process.on('SIGINT', () => shutdown('SIGINT'))
 }
 
 export { db }
