@@ -65,8 +65,13 @@ export default function ExerciseSearch({ open, onClose, onSelect }: ExerciseSear
           value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
+          role="combobox"
+          aria-expanded={results.length > 0}
+          aria-controls="exercise-search-results"
+          aria-activedescendant={results[selectedIndex] ? `exercise-option-${results[selectedIndex].id}` : undefined}
+          aria-label="Search exercises"
           className="w-full bg-transparent py-3 ps-9 pe-3 text-sm text-ink outline-none placeholder:text-muted"
-          placeholder="Search 350+ exercises (e.g. 'rdl')..."
+          placeholder="Search exercises (e.g. 'rdl')..."
         />
       </div>
 
@@ -76,10 +81,13 @@ export default function ExerciseSearch({ open, onClose, onSelect }: ExerciseSear
             No exercises found.
           </div>
         ) : (
-          <div className="px-1">
+          <div className="px-1" role="listbox" id="exercise-search-results" aria-label="Exercises">
             {results.map((ex, idx) => (
               <div
                 key={ex.id}
+                id={`exercise-option-${ex.id}`}
+                role="option"
+                aria-selected={idx === selectedIndex}
                 onClick={() => onSelect(ex)}
                 onMouseEnter={() => setSelectedIndex(idx)}
                 className={`flex items-center justify-between px-3 py-2 rounded-md cursor-pointer transition-colors ${

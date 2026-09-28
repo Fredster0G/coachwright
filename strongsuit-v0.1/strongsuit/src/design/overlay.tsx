@@ -76,11 +76,18 @@ export function Toaster() {
 export function Tabs({ tabs, active, onChange }: { tabs: { id: string; label: string }[]; active: string; onChange: (id: string) => void }) {
   const listRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    const el = listRef.current?.querySelector<HTMLElement>('[aria-selected="true"]')
-    el?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
+    // Scroll the strip only — scrollIntoView would also scroll the page
+    // vertically when the tabs start below the fold.
+    const list = listRef.current
+    const el = list?.querySelector<HTMLElement>('[aria-selected="true"]')
+    if (!list || !el) return
+    if (el.offsetLeft < list.scrollLeft) list.scrollLeft = el.offsetLeft
+    else if (el.offsetLeft + el.offsetWidth > list.scrollLeft + list.clientWidth) {
+      list.scrollLeft = el.offsetLeft + el.offsetWidth - list.clientWidth
+    }
   }, [active])
   return (
-    <div ref={listRef} role="tablist" className="flex gap-1 overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_var(--line)] [scrollbar-width:none]">
+    <div ref={listRef} role="tablist" className="relative flex gap-1 overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_var(--line)] [scrollbar-width:none]">
       {tabs.map(t => (
         <button
           key={t.id}
