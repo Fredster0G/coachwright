@@ -17,6 +17,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   /** Native menu → router. The main process never touches the renderer's
    *  history directly; it just names a route and the app navigates itself.
    *  Returns an unsubscribe so a remount doesn't stack duplicate listeners. */
+  /** Real totals the browser can't see (navigator.deviceMemory is capped
+   *  and coarse): used by Settings → Local AI to decide which models this
+   *  machine can run. See src/features/settings/hardwareProbe.ts. */
+  systemInfo: () => ipcRenderer.invoke('system-info'),
   onMenuNavigate: (callback: (path: string) => void) => {
     const handler = (_event: unknown, path: string) => callback(path)
     ipcRenderer.on('menu-navigate', handler)

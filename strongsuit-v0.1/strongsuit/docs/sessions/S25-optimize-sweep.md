@@ -44,8 +44,16 @@
   Electron under Xvfb (old code: no window; new: window opens, traversal 404). Untracked stale
   `dist-electron/*.js` that `.gitignore` already excluded.
 
+- **Desktop, third pass** — the desktop app never reported RAM: `hardwareProbe.ts` called a
+  `systemInfo()` bridge that main/preload never implemented, so every model needing RAM (OCR, voice,
+  assistant, bigger pose models) showed "can't tell how much memory" on desktop. Added the `system-info`
+  IPC (os.totalmem, cores, statfs free disk). Then verified in packaged-mode Electron under Xvfb:
+  Film Room tracking loads its wasm/model over app:// and **falls back GPU→CPU** when WebGL2 is missing
+  (closes DEBT-29); OCR installs and reads a generated sheet ("225 ×5 / 225 ×5 / 235× 3" → 3 sets).
+  Dialogs now named by their title (`aria-labelledby`); exercise search is a proper combobox/listbox.
+
 ## Closed debt
-1, 24.
+1, 24, 29.
 
 ## Didn't do / couldn't
 - No real phone; Film Room checked with one generated clip, not two real videos.

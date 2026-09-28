@@ -42,9 +42,6 @@ mid-range phone.
 **26 · Client portability excludes** invoices/expenses/challenges — a ported client's payment ledger
 doesn't travel. Documented scope choice, not an oversight.
 
-**29 · GPU→CPU delegate fallback never tested** on hardware actually lacking WebGL2. The fallback path
-is structurally sound; the GPU path is what's been verified.
-
 **48 · Dual-clip tracking's hardware cost is unmeasured.** `'both'` mode runs two concurrent MediaPipe
 instances. It's opt-in *because* of this, but never tested on hardware marginal for even one.
 
@@ -77,7 +74,10 @@ standard/pro assistant tiers show "Included with the Independent and Studio edit
 can buy since S15 (the tiers are inert anyway, see ROADMAP §3). Needs Caleb's call: does Membership
 include a larger AI tier? (Pricing/promise — `AGENTS.md` §7.) S24 deleted the six flags nothing read
 (`clients`, `programBuilder`, `filmRoomPro`, `business`, `batchAi`, `sharedModelCache`); `multiSeat` is
-real and stays.
+real and stays. **S25: this bites more than the (inert) assistant tiers.** Everything tagged `standard`
+or above is blocked for anyone without an old licence — including **Text from images (OCR)**, voice
+logging and the larger pose models, which do work (OCR verified in the packaged desktop app S25). So a
+paying member can't use OCR today. Simplest honest fix if Caleb agrees: `hasPaidAccess` → `maxAiTier: 'pro'`.
 
 **72 · (S22, NEW) The pitch deck still sells the old model.** `Coachwright Pitch Deck.dc.html` headlines
 "$60. Forever." / "$60 once", and root `BRANDING_PLAN.md` §1's positioning says "buy once and own

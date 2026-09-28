@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, Menu, protocol, net, shell } from 'electron'
 import * as path from 'path'
 import * as fs from 'fs'
+import * as os from 'os'
 import { pathToFileURL } from 'url'
 import { buildAppMenu } from './menu'
 import { loadWindowState, trackWindowState, MIN_SIZE } from './windowState'
@@ -217,6 +218,19 @@ ipcMain.handle('window-maximize-toggle', () => {
 })
 ipcMain.handle('window-close', () => { mainWindow?.close() })
 ipcMain.handle('window-is-maximized', () => mainWindow?.isMaximized() ?? false)
+// Local-AI sizing (hardwareProbe.ts). The renderer asked for this since the
+// Local AI card was built, but no handler existed — so the desktop app always
+// reported "can't tell how much memory", and OCR, voice, the assistant and
+// the larger pose models were never offered on desktop (found S25).
+ipcMain.handle('system-info', async () => {
+  let freeDiskGb: number | undefined
+  try {
+    const st = await fs.promises.statfs(app.getPath('userData'))
+    freeDiskGb = Math.round((st.bavail * st.bsize) / 1024 ** 3)
+  } catch { /* unknown */ }
+  return { totalMemGb: os.totalmem() / 1024 ** 3, cores: os.cpus().length, freeDiskGb }
+})
+
 ipcMain.handle('show-app-menu', () => {
   if (mainWindow) Menu.getApplicationMenu()?.popup({ window: mainWindow })
 })

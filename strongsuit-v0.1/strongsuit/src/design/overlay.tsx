@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { create } from 'zustand'
 import { X } from 'lucide-react'
 import { IconButton } from './controls'
@@ -8,6 +8,7 @@ export function Dialog({ open, onClose, title, children, width = 440 }: {
   open: boolean; onClose: () => void; title: string; children: ReactNode; width?: number
 }) {
   const ref = useRef<HTMLDialogElement>(null)
+  const titleId = useId()
   useEffect(() => {
     const d = ref.current
     if (!d) return
@@ -17,13 +18,14 @@ export function Dialog({ open, onClose, title, children, width = 440 }: {
   return (
     <dialog
       ref={ref}
+      aria-labelledby={titleId}
       onClose={onClose}
       onCancel={onClose}
       style={{ width, maxWidth: 'calc(100vw - 32px)' }}
       className="rounded-card border border-line bg-surface p-0 text-ink shadow-modal backdrop:bg-iron-950/40"
     >
       <div className="flex items-center justify-between border-b border-line px-4 py-3">
-        <h2 className="font-display text-base font-semibold">{title}</h2>
+        <h2 id={titleId} className="font-display text-base font-semibold">{title}</h2>
         <IconButton label="Close" onClick={onClose}><X size={16} /></IconButton>
       </div>
       <div className="p-4">{children}</div>
