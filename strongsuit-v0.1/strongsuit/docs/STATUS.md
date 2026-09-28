@@ -1,7 +1,7 @@
 # STATUS — read this first
 
 **Last updated:** 2026-09-28 (S25, Claude Code)
-**Health:** app 50 files · 671 tests · `tsc -b --force` 0 errors · lint:tailwind 0 errors · oxlint 0 errors · no import cycles
+**Health:** app 50 files · 672 tests · `tsc -b --force` 0 errors · lint:tailwind 0 errors · oxlint 0 errors · no import cycles
 · companion 7 files · 109 tests · clean · sync-server `tsc --noEmit` clean · 27 server tests
 
 > ⚠️ **The `tsc` command above is not a typo — read `AGENTS.md` §4 before you trust any prior "clean
@@ -117,7 +117,7 @@ connection. **Free tier: up to 3 clients. Coachwright Membership: $29/mo, unlimi
 ## Commands
 
 ```bash
-npx vitest run          # 671 tests, ~15s
+npx vitest run          # 672 tests, ~15s
 npx tsc -b --force      # app typecheck — NOT `tsc --noEmit`, see banner at top of this file
 npm run dev             # vite dev server — talks to http://localhost:4000 (run the server below)
 npm run dev:web         # the website build (no on-device AI)

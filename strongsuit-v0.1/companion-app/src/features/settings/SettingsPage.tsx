@@ -7,7 +7,6 @@ import { exportBackup, downloadText, importBackup } from '@/db/backup'
 import { enablePush, disablePush, pushSupported } from '@/lib/push'
 import type { CompanionProfile, Units, Theme } from '@/db/types'
 import { today } from '@/lib/core'
-import { PersonalCloudCard } from './PersonalCloudCard'
 import { CoachCard } from './CoachCard'
 
 function NotificationsCard({ profile, onChanged }: { profile: CompanionProfile; onChanged: () => void }) {
@@ -133,7 +132,6 @@ export function SettingsPage({ profile, onProfileChange }: {
         if (updated) onProfileChange(updated)
       }} />
 
-      <PersonalCloudCard profile={profile} />
 
       <CycleCard enabled={!!profile.cycleTrackingEnabled} />
 

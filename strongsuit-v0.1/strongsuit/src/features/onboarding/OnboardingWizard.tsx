@@ -221,9 +221,8 @@ export default function OnboardingWizard({ trainer }: Props) {
               </p>
             )}
 
-            {/* Storage-persistence check — the single guarantee that actually
-                matters for local-first data: will the browser keep it under
-                storage pressure. Informational only, never a gate — a "not
+            {/* Storage-persistence check — will the browser keep this device's
+                cache (and any not-yet-uploaded changes) under storage pressure. Informational only, never a gate — a "not
                 granted" browser still works, per Chromium/Firefox's own
                 (heuristic, no-permission-prompt) persistence model. */}
             <div className="flex items-center gap-2 text-xs text-muted">
@@ -232,7 +231,7 @@ export default function OnboardingWizard({ trainer }: Props) {
               ) : storagePersisted ? (
                 <><ShieldCheck size={14} className="text-verde-600" /> Persistent storage granted — your data won't be cleared under storage pressure.</>
               ) : (
-                <><ShieldAlert size={14} className="text-ember-600" /> Persistent storage not granted by this browser. Your data still works fully offline — regular backups matter a bit more here.</>
+                <><ShieldAlert size={14} className="text-ember-600" /> Persistent storage not granted by this browser. Your account still has everything — only changes made while offline could be lost if the browser clears its storage.</>
               )}
             </div>
 

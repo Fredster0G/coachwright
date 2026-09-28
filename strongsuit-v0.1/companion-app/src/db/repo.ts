@@ -29,7 +29,6 @@ export const profileRepo = {
       units: 'lb',
       theme: 'system',
       onboarded: false,
-      personalCloudTier: 'free',
       createdAt: nowIso(),
       updatedAt: nowIso(),
     }

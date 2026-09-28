@@ -109,8 +109,7 @@ devices are signed out (their session is gone) but keep their local copy until s
 **79 · (S23, NEW) Old pricing tiers still described in strategy docs.** The $15/mo managed relay and the
 free self-hosted relay no longer exist. `SERVER_STRATEGY.md`, `CLIENT_APP_STRATEGY.md`,
 `PRODUCT_OVERVIEW.md` carry a superseded banner rather than a rewrite (§8 is Caleb-only). Also decide
-whether cloud storage for free-tier coaches needs a limit. Companion's Settings still shows a "Personal
-Cloud" pricing card (`PersonalCloudCard.tsx`) from the superseded client-app strategy — keep, rewrite or delete.
+whether cloud storage for free-tier coaches needs a limit.
 
 ---
 

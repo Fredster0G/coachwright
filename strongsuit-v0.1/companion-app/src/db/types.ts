@@ -16,7 +16,6 @@ export interface CompanionProfile {
    *  the first-run flow, separate from whether a CoachLink exists (a client
    *  could finish onboarding solo and pair with a coach later). */
   onboarded: boolean
-  personalCloudTier: 'free' | 'personal'
   /** Opt-in system notifications for background-arrived coach items
    *  (messages/programs/reminders). Unindexed — no schema bump needed. */
   notifyEnabled?: boolean

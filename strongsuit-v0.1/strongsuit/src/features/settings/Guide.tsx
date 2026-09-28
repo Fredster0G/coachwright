@@ -151,7 +151,7 @@ export default function Guide() {
 
         <Section icon={<Smartphone size={16} />} title="Companion files (send programs to clients)">
           <p>
-            From a client with an active program, <B>Export Companion</B> builds a single HTML file — your brand, their workout — that they open in any browser with no app and no account. They tick off sets and answer check-ins; a <B>Send to coach</B> button hands back a small data file you import from Settings. It merges in as logged sessions and check-ins, de-duplicated automatically.
+            From a client with an active program, <B>Export Companion</B> builds a single HTML file — your brand, their workout — that they open in any browser with no app and no account. They tick off sets and answer check-ins; a <B>Send my work to my coach</B> button hands back a small data file you import from the client’s <B>Logs</B> tab. It merges in as logged sessions and check-ins, de-duplicated automatically.
           </p>
         </Section>
 

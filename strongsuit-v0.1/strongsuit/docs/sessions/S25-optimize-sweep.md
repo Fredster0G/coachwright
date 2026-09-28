@@ -1,7 +1,7 @@
 # S25 — CI, mobile layouts, bundle size, date + server hardening
 
 **Tool:** Claude Code · **Date:** 2026-09-28
-**Tests:** app 671/671 (50 files) · companion 109/109 (7) · sync-server 27/27 · **Typecheck:** all clean (`tsc -b --force` app + companion, electron, server `tsc --noEmit`) · lint:tailwind 0 errors · oxlint 0 errors · no import cycles
+**Tests:** app 672/672 (50 files) · companion 109/109 (7) · sync-server 27/27 · **Typecheck:** all clean (`tsc -b --force` app + companion, electron, server `tsc --noEmit`) · lint:tailwind 0 errors · oxlint 0 errors · no import cycles
 
 ## Asked
 "Just continue to work, add on and optimize and etc." — open-ended; picked verifiable wins inside
@@ -27,12 +27,20 @@
 - **Server** — `/health` checks the database (503 when it can't); graceful SIGTERM shutdown closes the
   DB cleanly (verified); reset emails throttled to one a minute per account (tested).
 
+- **Second pass (Caleb: "keep going, delete the personal cloud card")** — Companion's Personal Cloud
+  pricing card and its `personalCloudTier` field deleted. Sidebar gained an always-visible **sync
+  indicator** (Synced / Syncing / Offline · N waiting / Sync problem / Over free client limit) — verified
+  live through an offline → online cycle. Backup indicator no longer alarms new accounts (neutral until
+  a backup is 30 days old). Dashboard bug: a never-logged client read "No session logged in ever days"
+  (fixed + test). Copy still describing the pre-cloud app corrected: "No account needed — there isn't
+  one" (Dashboard), photos "stay on this device", backups "everything lives on this device", restore
+  warnings (replace now wipes every signed-in device), Companion's "WiFi or packet file", Guide's
+  import location, onboarding storage note.
+
 ## Closed debt
 1, 24.
 
 ## Didn't do / couldn't
-- Companion still shows a "Personal Cloud" pricing card from the superseded strategy — pricing is
-  Caleb's (noted on DEBT-79).
 - No real phone; Film Room checked with one generated clip, not two real videos.
 
 ## For the next session

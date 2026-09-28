@@ -1,13 +1,14 @@
-import { useState, useEffect, type ComponentType } from 'react'
+import { useState, useEffect, useSyncExternalStore, type ComponentType } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   LayoutDashboard, Users, ClipboardList, Dumbbell, Clapperboard,
-  CalendarDays, Wallet, BarChart3, Settings, ShieldCheck, ShieldAlert, Cloud,
+  CalendarDays, Wallet, BarChart3, Settings, ShieldCheck, ShieldAlert, Cloud, CloudOff,
   UserCog, UserPlus, Trophy, Menu, X, FlaskConical, Building2
 } from 'lucide-react'
 import { trainerRepo } from '@/db/repo'
 import { daysSince } from '@/lib/core'
+import { getSyncStatus, onSyncStatus } from '@/lib/cloud/syncEngine'
 import { BrandMark } from './brand/Logomark'
 import { useMenuNavigation } from './useMenuNavigation'
 import { Toaster, LogoSpinner } from '@/design'
@@ -49,11 +50,40 @@ const NAV_STUDIO: NavItem[] = [
   { to: '/reports', labelKey: 'nav.reports', icon: BarChart3, module: 'reports' as ModuleKey },
 ]
 
+/** Always-visible sync state: the account is where the data lives now, so
+ *  "is it up there?" matters more day to day than the backup age below. */
+function SyncHealth() {
+  const s = useSyncExternalStore(onSyncStatus, getSyncStatus)
+  const { t } = useTranslation()
+  const problem = s.phase === 'error' || s.phase === 'signed-out' || !!s.refusedClients
+  const waiting = s.phase === 'offline' || (s.pending > 0 && s.phase !== 'syncing')
+  const label = s.refusedClients ? t('sync.health.refused')
+    : s.phase === 'error' ? t('sync.health.error')
+    : s.phase === 'signed-out' ? t('sync.health.signedOut')
+    : s.phase === 'syncing' ? t('sync.health.syncing')
+    : s.phase === 'offline' ? (s.pending ? `${t('sync.health.offline')} · ${t('sync.health.pending', { count: s.pending })}` : t('sync.health.offline'))
+    : s.pending ? t('sync.health.pending', { count: s.pending })
+    : t('sync.health.synced')
+  const Icon = problem || s.phase === 'offline' ? CloudOff : Cloud
+  return (
+    <NavLink
+      to="/sync"
+      className="flex items-center gap-2 rounded-ctl px-3 py-2 text-xs text-muted hover:bg-surface"
+      title={s.error ? `${t('sync.health.tooltip')} — ${s.error}` : t('sync.health.tooltip')}
+    >
+      <Icon size={15} className={problem ? 'text-signal-600' : waiting ? 'text-ember-600' : 'text-verde-600'} />
+      <span className="font-mono tabular-nums">{label}</span>
+    </NavLink>
+  )
+}
+
 function BackupHealth() {
   const trainer = useLiveQuery(() => trainerRepo.get())
   const { t } = useTranslation()
   const days = daysSince(trainer?.lastBackupAt)
-  const stale = days === null || days >= 7
+  // The account is the primary copy since S23; a backup is an extra one, so
+  // this nudges after a month rather than alarming every new coach.
+  const stale = days !== null && days >= 30
   // Pluralised through the catalogue rather than a hardcoded "d ago": Polish
   // needs four forms here and Arabic six, which no template literal can express.
   const label = days === null ? t('backup.none')
@@ -68,7 +98,7 @@ function BackupHealth() {
     >
       {stale
         ? <ShieldAlert size={15} className="text-ember-600" />
-        : <ShieldCheck size={15} className="text-verde-600" />}
+        : <ShieldCheck size={15} className={days === null ? 'text-faint' : 'text-verde-600'} />}
       <span className="font-mono tabular-nums">{label}</span>
     </NavLink>
   )
@@ -165,6 +195,7 @@ export default function Shell() {
           ))}
         </nav>
         <div className="border-t border-line p-2">
+          <SyncHealth />
           <BackupHealth />
           <NavLink
             to="/settings"

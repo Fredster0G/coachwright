@@ -27,7 +27,7 @@ export function ProgramPage({ units }: { units: Units }) {
         <EmptyState
           icon={<ClipboardList size={28} strokeWidth={1.5} />}
           title="No program yet"
-          body="When your coach assigns you a program, it shows up here after your next sync — over their server, WiFi, or a packet file they send you."
+          body="When your coach assigns you a program, it shows up here the next time Companion syncs — open the app while online, or tap Sync now on the Coach tab."
         />
         <p className="text-center text-2xs text-faint">
           Connected already? Pull the latest from the <Link to="/coach" className="text-verde-600 hover:underline">Coach</Link> tab.
