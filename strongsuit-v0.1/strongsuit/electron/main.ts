@@ -4,9 +4,12 @@ import * as fs from 'fs'
 import { pathToFileURL } from 'url'
 import { buildAppMenu } from './menu'
 import { loadWindowState, trackWindowState, MIN_SIZE } from './windowState'
+import { resolveAppAsset, windowOpenAction } from './policy'
 
 const APP_NAME = 'Coachwright'
 const APP_SCHEME = 'app'
+const DEV_ORIGIN = 'http://localhost:5173'
+const APP_ORIGINS = [`${APP_SCHEME}://coachwright`, DEV_ORIGIN]
 
 // Registered before `app.ready` (required — Electron docs) so the scheme
 // behaves like http/https for relative-URL resolution (`standard: true`,
@@ -114,9 +117,12 @@ function createWindow() {
   // Packaged loads over the app:// protocol registered in app.whenReady()
   // below — see the scheme-registration comment up top for why this can't
   // just be loadFile() over file://.
-  const isDev = !app.isPackaged
+  // CW_SERVE_DIST=1 runs an unpackaged build exactly like the packaged one
+  // (built dist/ over app://) — for checking the real renderer path without
+  // making an installer.
+  const isDev = !app.isPackaged && !process.env.CW_SERVE_DIST
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173')
+    mainWindow.loadURL(DEV_ORIGIN)
   } else {
     mainWindow.loadURL(`${APP_SCHEME}://coachwright/index.html`)
   }
@@ -135,7 +141,7 @@ app.on('web-contents-created', (event, contents) => {
     const parsedUrl = new URL(navigationUrl)
     // Dev server, the packaged app's own app:// origin, or (legacy) file://
     // — anything else gets blocked.
-    const allowed = parsedUrl.origin === 'http://localhost:5173'
+    const allowed = parsedUrl.origin === DEV_ORIGIN
       || navigationUrl.startsWith(`${APP_SCHEME}://`)
       || navigationUrl.startsWith('file://')
     if (!allowed) {
@@ -143,17 +149,24 @@ app.on('web-contents-created', (event, contents) => {
     }
   })
   
-  // A `target="_blank"` link (Stripe Checkout, the billing portal, video
-  // links, print-preview "open in browser") never opens a second Electron
-  // window — 'deny' always wins here. http/https instead get handed to the
-  // OS's real default browser via shell.openExternal, which is what a link
-  // clicked inside a desktop app should do; anything else (a custom scheme,
-  // a javascript: URL) is denied outright with no fallback. Before this,
-  // every such link was a silent no-op in the packaged app.
+  // `window.open` / `target="_blank"`: the app's own pages (print sheets,
+  // TV mode — `#/print/...`, `#/tv/...`) open as another app window with the
+  // same locked-down preferences; web links (Stripe Checkout, the billing
+  // portal, video links) go to the OS's default browser; anything else (a
+  // custom scheme, javascript:) is refused. S25: before, app:// pages were
+  // refused too, so Print and TV mode silently did nothing in the packaged app.
   contents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('https://') || url.startsWith('http://')) {
-      shell.openExternal(url)
+    const action = windowOpenAction(url, APP_ORIGINS)
+    if (action === 'app-window') {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          width: 1100, height: 850, autoHideMenuBar: true,
+          webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+        },
+      }
     }
+    if (action === 'external') shell.openExternal(url)
     return { action: 'deny' }
   })
 })
@@ -165,10 +178,12 @@ app.whenReady().then(() => {
   // it references with a relative path (`./assets/x.js`) arrives here as
   // `app://coachwright/assets/x.js`, since `standard: true` above makes this
   // scheme resolve relative URLs the same way http/https do.
+  const distRoot = path.join(__dirname, '../dist')
   protocol.handle(APP_SCHEME, request => {
-    const { pathname } = new URL(request.url)
-    const relative = decodeURIComponent(pathname === '/' ? '/index.html' : pathname)
-    const filePath = path.join(__dirname, '../dist', relative)
+    // resolveAppAsset refuses paths that decode to outside dist/ (an encoded
+    // `..%2F` survives URL parsing) — S25.
+    const filePath = resolveAppAsset(distRoot, new URL(request.url).pathname)
+    if (!filePath) return new Response('Not found', { status: 404 })
     return net.fetch(pathToFileURL(filePath).toString())
   })
 

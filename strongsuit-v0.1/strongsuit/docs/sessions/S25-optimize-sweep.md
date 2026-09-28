@@ -1,7 +1,7 @@
 # S25 — CI, mobile layouts, bundle size, date + server hardening
 
 **Tool:** Claude Code · **Date:** 2026-09-28
-**Tests:** app 672/672 (50 files) · companion 109/109 (7) · sync-server 27/27 · **Typecheck:** all clean (`tsc -b --force` app + companion, electron, server `tsc --noEmit`) · lint:tailwind 0 errors · oxlint 0 errors · no import cycles
+**Tests:** app 676/676 (51 files) · companion 109/109 (7) · sync-server 27/27 · **Typecheck:** all clean (`tsc -b --force` app + companion, electron, server `tsc --noEmit`) · lint:tailwind 0 errors · oxlint 0 errors · no import cycles
 
 ## Asked
 "Just continue to work, add on and optimize and etc." — open-ended; picked verifiable wins inside
@@ -36,6 +36,13 @@
   one" (Dashboard), photos "stay on this device", backups "everything lives on this device", restore
   warnings (replace now wipes every signed-in device), Companion's "WiFi or packet file", Guide's
   import location, onboarding storage note.
+
+- **Electron** — Print sheets and TV mode did nothing in the packaged app (`window.open` of an `app://`
+  page was denied); they now open as locked-down app windows. The `app://` handler could be asked for
+  paths that decode outside `dist/` (`..%2F`); now refused (hardening — the old code's fetch failed
+  rather than leaking a file). Both decisions moved to `electron/policy.ts` with tests; verified in real
+  Electron under Xvfb (old code: no window; new: window opens, traversal 404). Untracked stale
+  `dist-electron/*.js` that `.gitignore` already excluded.
 
 ## Closed debt
 1, 24.

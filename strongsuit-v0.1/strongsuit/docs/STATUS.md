@@ -1,7 +1,7 @@
 # STATUS — read this first
 
 **Last updated:** 2026-09-28 (S25, Claude Code)
-**Health:** app 50 files · 672 tests · `tsc -b --force` 0 errors · lint:tailwind 0 errors · oxlint 0 errors · no import cycles
+**Health:** app 51 files · 676 tests · `tsc -b --force` 0 errors · lint:tailwind 0 errors · oxlint 0 errors · no import cycles
 · companion 7 files · 109 tests · clean · sync-server `tsc --noEmit` clean · 27 server tests
 
 > ⚠️ **The `tsc` command above is not a typo — read `AGENTS.md` §4 before you trust any prior "clean
@@ -93,7 +93,7 @@ connection. **Free tier: up to 3 clients. Coachwright Membership: $29/mo, unlimi
   assistant, AI card and "Ask assistant" absent on web, present on desktop.
 - **Companion PWA** — standalone logging, assigned programs, messaging, reminders, Film Room self-review.
   Connects with a code; push notifications via the cloud. 107 tests (P2P/E2EE suites deleted with the code).
-- **Desktop** — Electron shell, native menu, window-state persistence, splash. One real GUI launch done.
+- **Desktop** — Electron shell, native menu, window-state persistence, splash. One real GUI launch done (Windows). **S25:** the packaged-mode renderer (`app://`, via `CW_SERVE_DIST=1 electron .`) driven in Electron under Xvfb on Linux — loads, Print/TV windows now open (they silently didn't), `app://` path traversal refused.
 
 ## What is thin, stubbed, or unverified — the honest list
 
@@ -117,7 +117,7 @@ connection. **Free tier: up to 3 clients. Coachwright Membership: $29/mo, unlimi
 ## Commands
 
 ```bash
-npx vitest run          # 672 tests, ~15s
+npx vitest run          # 676 tests, ~15s
 npx tsc -b --force      # app typecheck — NOT `tsc --noEmit`, see banner at top of this file
 npm run dev             # vite dev server — talks to http://localhost:4000 (run the server below)
 npm run dev:web         # the website build (no on-device AI)
