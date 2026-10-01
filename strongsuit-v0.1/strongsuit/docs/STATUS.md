@@ -102,7 +102,6 @@ connection. **Free tier: up to 3 clients. Coachwright Membership: $29/mo, unlimi
 | **Local AI registry** | 12 entries, **5 unwired** (`multilingual-e5-small`, `whisper-small`, `qwen3-4b`, `qwen3-8b`, `rtmpose-m`) and visibly tagged "not downloadable yet" in the UI. |
 | **Coachwright Cloud** | Code complete + tested, **not deployed** — no server, no domain, no live Stripe or Postmark keys. Not load-tested. Password reset + account deletion built and verified live in Chromium (S24), but a real email has never been sent. |
 | **i18n string conversion** | Layer + RTL + (now) real type-checking all work. Conversion coverage itself unmeasured this session — recheck the "~53 of 57 components hardcoded" figure, it predates S16–S21's changes. |
-| **Edition flags vs Membership** | DEBT-70 — dead flags deleted S24. Still open: `maxAiTier` keys off the pre-pivot edition, so a member sees "Independent/Studio" on the (inert) larger assistant tiers. Needs Caleb's call on what Membership includes. |
 | **Film Room accuracy** | Rep-counter thresholds tuned against *synthetic* data only. Never run on real human footage or a real mid-range phone. |
 | **Mac** | Never attempted. No Mac in any build environment so far. |
 | **Android** | Real Capacitor project generated, **never compiled or run**. |

@@ -8,7 +8,6 @@ describe('editionCapabilities', () => {
     for (const bad of [undefined, null, '' as unknown as Edition, 'enterprise' as Edition]) {
       const cap = editionCapabilities(bad)
       expect(cap.edition).toBe('personal')
-      expect(cap.maxAiTier).toBe('light')
       expect(cap.multiSeat).toBe(false)
     }
   })
@@ -30,19 +29,12 @@ describe('editionCapabilities', () => {
     expect(editionCapabilities('studio').upgradeReason).toBeUndefined()
   })
 
-  it('caps the AI tier per edition', () => {
-    expect(editionCapabilities('personal').maxAiTier).toBe('light')
-    expect(editionCapabilities('independent').maxAiTier).toBe('pro')
-    expect(editionCapabilities('studio').maxAiTier).toBe('pro')
-  })
-
   it('capabilities are monotonic — a higher edition never has fewer', () => {
     const p = editionCapabilities('personal')
     const i = editionCapabilities('independent')
     const s = editionCapabilities('studio')
     expect(!p.multiSeat || i.multiSeat).toBe(true)   // personal ⊆ independent
     expect(!i.multiSeat || s.multiSeat).toBe(true)   // independent ⊆ studio
-    expect(tierAtLeast(i.maxAiTier, p.maxAiTier) && tierAtLeast(s.maxAiTier, i.maxAiTier)).toBe(true)
   })
 })
 

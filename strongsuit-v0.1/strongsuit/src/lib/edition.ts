@@ -20,14 +20,13 @@ export interface EditionCapabilities {
   edition: Edition
   /** Multi-seat, roles, shared roster, hub, commissions, audit log. */
   multiSeat: boolean
-  /** Largest local-AI tier this edition licenses. Hardware gates separately. */
-  maxAiTier: AiTier
   /** Plain-language reason a gated feature is unavailable. Undefined when nothing is gated. */
   upgradeReason?: string
 }
 
-/** Model tiers, smallest first. Edition sets the ceiling; hardware sets the
- *  recommendation (docs/plans/02-LOCAL-AI.md §3). Both gates must pass. */
+/** Model tiers, smallest first. Only hardware decides which a machine gets
+ *  (lib/localAi.ts) — no edition caps them since S25: they run on the coach's
+ *  own machine, so there's nothing to charge for. */
 export type AiTier = 'embeddings' | 'light' | 'standard' | 'pro'
 
 const TIER_ORDER: AiTier[] = ['embeddings', 'light', 'standard', 'pro']
@@ -42,7 +41,6 @@ const PERSONAL: EditionCapabilities = {
   // The client cap is a count, not a flag: lib/membership.ts canAddClient()
   // locally, and the server's /data/push since S24.
   multiSeat: false,
-  maxAiTier: 'light',
   // Only ever rendered by the multiSeat-gated pages (Team, Studio hub,
   // Location).
   upgradeReason:
@@ -53,7 +51,6 @@ const PERSONAL: EditionCapabilities = {
 const INDEPENDENT: EditionCapabilities = {
   edition: 'independent',
   multiSeat: false,
-  maxAiTier: 'pro',
   upgradeReason:
     'Running a team — multiple trainers, shared clients, commissions — is part of ' +
     'the Studio edition.',
@@ -62,7 +59,6 @@ const INDEPENDENT: EditionCapabilities = {
 const STUDIO: EditionCapabilities = {
   edition: 'studio',
   multiSeat: true,
-  maxAiTier: 'pro',
 }
 
 /** What this edition unlocks. Pure and synchronous — safe to call in render. */

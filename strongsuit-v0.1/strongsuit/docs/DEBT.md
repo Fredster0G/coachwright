@@ -69,16 +69,6 @@ cycle data is Companion, which has no readiness engine, and cycle rows are kept 
 by construction. **Do not close this by adding cycle rows to the payload** — a test forbids it. Needs a
 product decision: build readiness in Companion, or a per-field opt-in sharing only this number.
 
-**70 · (S22) `maxAiTier` still keys off the pre-pivot edition.** A $29 member is still `personal`, so the
-standard/pro assistant tiers show "Included with the Independent and Studio editions" — editions nobody
-can buy since S15 (the tiers are inert anyway, see ROADMAP §3). Needs Caleb's call: does Membership
-include a larger AI tier? (Pricing/promise — `AGENTS.md` §7.) S24 deleted the six flags nothing read
-(`clients`, `programBuilder`, `filmRoomPro`, `business`, `batchAi`, `sharedModelCache`); `multiSeat` is
-real and stays. **S25: this bites more than the (inert) assistant tiers.** Everything tagged `standard`
-or above is blocked for anyone without an old licence — including **Text from images (OCR)**, voice
-logging and the larger pose models, which do work (OCR verified in the packaged desktop app S25). So a
-paying member can't use OCR today. Simplest honest fix if Caleb agrees: `hasPaidAccess` → `maxAiTier: 'pro'`.
-
 **72 · (S22, NEW) The pitch deck still sells the old model.** `Coachwright Pitch Deck.dc.html` headlines
 "$60. Forever." / "$60 once", and root `BRANDING_PLAN.md` §1's positioning says "buy once and own
 outright". `BRANDING_PLAN.md` §5 and `STRONGSUIT_MASTER_SPEC.md` now carry a superseded banner; the deck

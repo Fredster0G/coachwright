@@ -122,6 +122,10 @@ Rules that keep this honest:
 
 ### 3.2 Gate 2 — edition (licensing)
 
+> **Superseded S25 (Caleb):** there is no edition gate any more. These models run on the coach's own
+> machine and cost the service nothing, so every plan gets every model its hardware can run.
+> `offerFor()` in `lib/localAi.ts` takes no edition. The rest of this section is history.
+
 Model access becomes a real differentiator between editions, per your instruction:
 
 | Model / feature | Personal | Independent | Studio |

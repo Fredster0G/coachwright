@@ -52,8 +52,12 @@
   (closes DEBT-29); OCR installs and reads a generated sheet ("225 ×5 / 225 ×5 / 235× 3" → 3 sets).
   Dialogs now named by their title (`aria-labelledby`); exercise search is a proper combobox/listbox.
 
+- **Local AI for everyone (Caleb: "the models run on their own systems… up to you")** — removed the
+  edition gate: `offerFor`/`offersFor`/`defaultSelection` take no edition, `maxAiTier` and the
+  `blocked-edition` state are gone. Hardware alone decides; OCR/voice/assistant open to every plan.
+
 ## Closed debt
-1, 24, 29.
+1, 24, 29, 70.
 
 ## Didn't do / couldn't
 - No real phone; Film Room checked with one generated clip, not two real videos.
