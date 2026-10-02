@@ -172,6 +172,10 @@ app.on('web-contents-created', (event, contents) => {
   })
 })
 
+// Windows shows renderer notifications (lib/coachNotify.ts) only for an app
+// with an AppUserModelID; it must match the installer's appId.
+if (process.platform === 'win32') app.setAppUserModelId('com.coachwright.app')
+
 app.whenReady().then(() => {
   // Serves the packaged renderer over app:// instead of file:// — see the
   // scheme-registration comment near the top of this file. `request.url`

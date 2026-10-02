@@ -1,5 +1,5 @@
 COACHWRIGHT — WHAT ONLY YOU CAN DO
-Last updated: 2026-10-02 (S26), by Claude Code. Claude keeps working on everything else and
+Last updated: 2026-10-02 (S27), by Claude Code. Claude keeps working on everything else and
 updates this file as items appear or get done. Details live in strongsuit-v0.1/strongsuit/docs/.
 
 =====================================================================
@@ -35,6 +35,8 @@ updates this file as items appear or get done. Details live in strongsuit-v0.1/s
     synthetic data and will need a tuning pass. (DEBT-7/10/61)
 [ ] Web Push: one real phone, allow notifications, check a coach message arrives. (DEBT-57)
 [ ] Run Lighthouse and open the app in Firefox and Safari. (DEBT-58)
+[ ] Turn on Settings → Notifications in the desktop app on Windows (and a Mac) and have a
+    client send a Companion message: check the system notification shows. (DEBT-84)
 
 =====================================================================
 4. DECISIONS ONLY YOU CAN MAKE
@@ -49,9 +51,9 @@ updates this file as items appear or get done. Details live in strongsuit-v0.1/s
 [ ] Client self-booking (new in S26) works for clients connected through Companion. Do you
     also want a public booking link for prospects who don't have the app? That would be the
     first page anyone can open without an account; worth deciding before it's built.
-[ ] Booking requests don't notify you yet (they show on Calendar and in Messages on the next
-    sync). Want an email or push for new requests? Email needs the Postmark account above.
-    (DEBT-84)
+[ ] You now get a system notification for client messages/requests while Coachwright is open
+    (Settings → Notifications). Want them when it's CLOSED too (email or phone push)? Email
+    needs the Postmark account above. (DEBT-84)
 
 =====================================================================
 DONE RECENTLY (no action needed — for your information)

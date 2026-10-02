@@ -3,6 +3,8 @@ import { RouterProvider } from 'react-router-dom'
 import { router } from './router'
 import { BootScreen } from './BootScreen'
 import { trainerRepo, invoicesRepo } from '@/db/repo'
+import { db } from '@/db/schema'
+import { notifyArrivals } from '@/lib/coachNotify'
 import { seedExercisesIfEmpty } from '@/db/seed'
 import { startMembershipRefreshLoop } from '@/lib/membershipApi'
 import { getSession, onSessionChange } from '@/lib/cloud/session'
@@ -144,6 +146,11 @@ export function AppRoot() {
       seen = s.lastSyncAt
       invoicesRepo.generateRecurring().catch(err => console.error('[recurring invoices]', err))
       trainerRepo.publishBookingSlots().catch(err => console.error('[booking slots]', err))
+      void (async () => {
+        const [messages, clients] = await Promise.all([db.messages.toArray(), db.clients.toArray()])
+        const names = new Map(clients.map(c => [c.id, c.firstName || 'A client']))
+        notifyArrivals(messages, id => names.get(id) ?? 'A client', id => { window.location.hash = `#/clients/${id}` })
+      })().catch(err => console.error('[notifications]', err))
     })
   }, [ready])
 

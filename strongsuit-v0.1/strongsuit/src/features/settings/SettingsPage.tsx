@@ -16,6 +16,7 @@ import { LicenceCard } from './LicenceCard'
 import { MembershipCard } from './MembershipCard'
 import { BookingCard } from './BookingCard'
 import { OnboardingSequenceCard } from './OnboardingSequenceCard'
+import { NotificationsCard } from './NotificationsCard'
 import { BRAND_MARK_VARIANTS, BrandMark, type BrandMarkVariant } from '@/app/brand/Logomark'
 import { canUseCustomBranding } from '@/lib/membership'
 import { resizeImageToDataUrl } from '@/lib/media'
@@ -509,6 +510,7 @@ export default function SettingsPage() {
       <ModulesCard />
       <BookingCard />
       <OnboardingSequenceCard />
+      <NotificationsCard />
       {LOCAL_AI_ENABLED && <LocalAiCard />}
       <AutomationsCard />
       <Guide />

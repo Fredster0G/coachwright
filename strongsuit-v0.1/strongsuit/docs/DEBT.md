@@ -102,10 +102,10 @@ changes — about once a day as the 14-day window rolls, plus on every booking/c
 today's sizes; move slots to their own row if the logo grows or coaches have many locations. Same
 family: since S26 the logo (≤256px PNG) also rides in every Companion `/client/bundle` response.
 
-**84 · (S26, NEW) Booking requests don't notify the coach.** A request shows on Today ("N session
-requests waiting"), Calendar → Booking requests and in the client's thread on the next sync; there is no push/email to the coach (the server's
-web push only targets Companion). The client's phone *is* told when the coach replies (existing
-outbound-message push).
+**84 · (S26; narrowed S27) The coach is only notified while Coachwright is open.** S27 added opt-in
+system notifications (Settings → Notifications, `lib/coachNotify.ts`) for client messages and session
+requests, raised after each sync on desktop and web. With the app closed nothing arrives — that needs
+server-side push or email to the coach (Postmark, DEBT-80). Never tried on a real Windows/macOS desktop.
 
 **79 · (S23, NEW) Old pricing tiers still described in strategy docs.** The $15/mo managed relay and the
 free self-hosted relay no longer exist. `SERVER_STRATEGY.md`, `CLIENT_APP_STRATEGY.md`,
