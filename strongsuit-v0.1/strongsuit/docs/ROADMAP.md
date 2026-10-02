@@ -68,7 +68,7 @@ Benchmarked against TrueCoach, QuickCoach, Trainerize, MyPTHub.
 Design that fits this codebase's doctrine:
 - **Data:** `FoodEntry` + `FoodItem` tables (Dexie v13). `FoodItem` caches every product ever scanned, keyed by barcode — so a re-scan is offline and instant.
 - **Lookup:** [Open Food Facts](https://world.openfoodfacts.org/data) — free, open, no API key.
-- **Doctrine handled explicitly:** the capability is gated by the `cloudTier` in `lib/cloudCapability.ts`. Fully local tiers are prevented from making Open Food Facts API calls.
+- **Lookup:** always on since S23 (the old `cloudTier` gate in `lib/cloudCapability.ts` was removed with the fully-local tiers). A scanned barcode is looked up once, then served from `foodItems`.
 - **Scanning:** native `BarcodeDetector` API first, falls back to bundled `zxing-wasm`.
 
 ### 2.2 🟩 Automated check-in summaries (DONE in S19)
@@ -148,7 +148,7 @@ Everything else competitors ship that we don't, with an honest call on each:
 |---|---|---|---|
 | **Client self-booking** | ✅ | Calendar exists, coach-entered only | 🟨 **Build.** Real friction; a booking link clients can use is high value, low risk. |
 | **Recurring billing for *their* clients** | ✅ | One-off invoices + pay-link | 🟨 **Build.** Coaches on retainer re-invoice manually every month today. |
-| **Progress photo side-by-side** | ✅ | Photos stored, no comparison view | 🟨 **Build.** Cheap — the data's already there, it's a view. |
+| **Progress photo side-by-side** | ✅ | ✅ **S26:** pick any two photos; shows days apart and the bodyweight within a week of each | Done. |
 | **Automated onboarding sequences** | ✅ | Manual | 🟨 Medium value. The automations engine is a natural host. |
 | **Meal plans / recipes** | ✅ | ❌ | 🟡 Only after §2.1 food logging. Validate demand first. |
 | **Groups / community / challenges** | ✅ | Leaderboards + challenges exist | 🟡 Partial already. Extend only if asked. |

@@ -71,3 +71,12 @@ export function presetsForGoal(goal?: TrainingGoal): MetricPreset[] {
   if (!goal) return METRIC_PRESETS
   return METRIC_PRESETS.filter(p => p.appliesTo.includes(goal))
 }
+
+/** The suggestion chips for a goal: every group's items, one per key. Two
+ *  groups can suggest the same measurement (resting HR is both a strength
+ *  fatigue flag and an endurance fitness sign) — the first group's wording
+ *  wins, so with no goal set the chip isn't shown twice. */
+export function suggestedItems(goal?: TrainingGoal): MetricPresetItem[] {
+  const seen = new Set<string>()
+  return presetsForGoal(goal).flatMap(p => p.items).filter(i => !seen.has(i.key) && !!seen.add(i.key))
+}
