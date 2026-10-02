@@ -35,7 +35,7 @@ export default function PrintSessionSheet() {
 
   return (
     <div className="bg-white text-black min-h-screen p-8 max-w-4xl mx-auto font-sans">
-      <div className="mb-8 pb-4 border-b-2 border-black flex justify-between items-end">
+      <div className="mb-8 pb-4 border-b-2 border-black flex flex-wrap justify-between items-end gap-x-4 gap-y-2">
         <div>
           <h1 className="text-3xl font-bold uppercase tracking-tight">{fullName(client)}</h1>
           <h2 className="text-xl text-gray-600 mt-1">{program.name}</h2>

@@ -32,7 +32,7 @@ export default function PrintIntakeSheet() {
   return (
     <div className="bg-white text-black min-h-screen p-8 max-w-4xl mx-auto font-sans text-sm leading-relaxed">
       {/* Header */}
-      <div className="mb-6 pb-4 border-b-2 border-black flex justify-between items-end">
+      <div className="mb-6 pb-4 border-b-2 border-black flex flex-wrap justify-between items-end gap-x-4 gap-y-2">
         <div>
           <div className="flex items-center gap-3">
             {brand.logo && <img src={brand.logo} alt="" className="h-10 w-auto max-w-[120px] object-contain" />}
@@ -51,27 +51,27 @@ export default function PrintIntakeSheet() {
         <div className="grid grid-cols-2 gap-4">
           <div className="border-b border-gray-300 pb-2">
             <span className="text-xs text-gray-500 block">{t('print.intake.fullName')}</span>
-            <span className="font-medium">{name || '________________________________'}</span>
+            <span className="font-medium [overflow-wrap:anywhere]">{name || '________________________________'}</span>
           </div>
           <div className="border-b border-gray-300 pb-2">
             <span className="text-xs text-gray-500 block">{t('print.intake.email')}</span>
-            <span className="font-medium">{client.email || '________________________________'}</span>
+            <span className="font-medium [overflow-wrap:anywhere]">{client.email || '________________________________'}</span>
           </div>
           <div className="border-b border-gray-300 pb-2">
             <span className="text-xs text-gray-500 block">{t('print.intake.phone')}</span>
-            <span className="font-medium">{client.phone || '________________________________'}</span>
+            <span className="font-medium [overflow-wrap:anywhere]">{client.phone || '________________________________'}</span>
           </div>
           <div className="border-b border-gray-300 pb-2">
             <span className="text-xs text-gray-500 block">{t('print.intake.startDate')}</span>
-            <span className="font-medium">{client.startDate || '________________________________'}</span>
+            <span className="font-medium [overflow-wrap:anywhere]">{client.startDate || '________________________________'}</span>
           </div>
           <div className="border-b border-gray-300 pb-2 col-span-2">
             <span className="text-xs text-gray-500 block">{t('print.intake.goals')}</span>
-            <span className="font-medium">{client.goals || '________________________________________________________________'}</span>
+            <span className="font-medium [overflow-wrap:anywhere]">{client.goals || '________________________________________________________________'}</span>
           </div>
           <div className="border-b border-gray-300 pb-2 col-span-2">
             <span className="text-xs text-gray-500 block">{t('print.intake.injuries')}</span>
-            <span className="font-medium">{client.injuries || '________________________________________________________________'}</span>
+            <span className="font-medium [overflow-wrap:anywhere]">{client.injuries || '________________________________________________________________'}</span>
           </div>
         </div>
       </div>

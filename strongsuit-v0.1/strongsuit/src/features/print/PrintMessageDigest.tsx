@@ -38,7 +38,7 @@ export default function PrintMessageDigest() {
   return (
     <div className="bg-white text-black min-h-screen p-8 max-w-4xl mx-auto font-sans text-sm">
       {/* Header */}
-      <div className="mb-6 pb-4 border-b-2 border-black flex justify-between items-end">
+      <div className="mb-6 pb-4 border-b-2 border-black flex flex-wrap justify-between items-end gap-x-4 gap-y-2">
         <div>
           <div className="flex items-center gap-3">
             {brand.logo && <img src={brand.logo} alt="" className="h-10 w-auto max-w-[120px] object-contain" />}
