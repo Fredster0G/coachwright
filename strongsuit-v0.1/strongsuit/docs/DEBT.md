@@ -101,8 +101,8 @@ devices are signed out (their session is gone) but keep their local copy until s
 changes — about once a day as the 14-day window rolls, plus on every booking/calendar change. Fine at
 today's sizes; move slots to their own row if the logo grows or coaches have many locations.
 
-**84 · (S26, NEW) Booking requests don't notify the coach.** A request shows in Calendar → Booking
-requests and in the client's thread on the next sync; there is no push/email to the coach (the server's
+**84 · (S26, NEW) Booking requests don't notify the coach.** A request shows on Today ("N session
+requests waiting"), Calendar → Booking requests and in the client's thread on the next sync; there is no push/email to the coach (the server's
 web push only targets Companion). The client's phone *is* told when the coach replies (existing
 outbound-message push).
 

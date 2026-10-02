@@ -533,6 +533,10 @@ export const en = {
   'clients.coaching.signed': 'signed {name}, {date} · ',
   'clients.coaching.disclaimer': "Coachwright helps you document screening and consent; it is not legal advice. You remain responsible for following your certification's scope of practice and local law.",
   'settings.title': 'Settings',
+  'dashboard.bookingRequests': {
+    one: '# session request waiting for your answer',
+    other: '# session requests waiting for your answer',
+  },
   'booking.requestTitle': 'Session request',
   'booking.accept': 'Accept',
   'booking.decline': 'Decline',

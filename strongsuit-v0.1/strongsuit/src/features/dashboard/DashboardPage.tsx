@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react'
 import { LOCAL_AI_ENABLED } from '@/lib/cloud/config'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, ClipboardList, FileDown, CheckCircle2, Circle, PenLine, ChevronRight, ChevronDown } from 'lucide-react'
-import { clientsRepo, trainerRepo, programsRepo, logsRepo, checkInsRepo, paymentsRepo, automationRulesRepo } from '@/db/repo'
+import { Plus, ClipboardList, FileDown, CheckCircle2, Circle, PenLine, ChevronRight, ChevronDown, CalendarClock } from 'lucide-react'
+import { clientsRepo, trainerRepo, programsRepo, logsRepo, checkInsRepo, paymentsRepo, automationRulesRepo, messagesRepo } from '@/db/repo'
 import { fullName } from '@/lib/core'
 import { APP_NAME } from '@/lib/brand'
 import { Card, SectionHeader, Button, EmptyState, Tag } from '@/design'
@@ -33,6 +33,7 @@ export default function DashboardPage() {
   const checkIns = useLiveQuery(() => checkInsRepo.all(), [], [])
   const payments = useLiveQuery(() => paymentsRepo.all(), [], [])
   const customRules = useLiveQuery(() => automationRulesRepo.active(), [], [])
+  const bookingRequests = useLiveQuery(() => messagesRepo.pendingBookings(), [], [])
   const [selectClientOpen, setSelectClientOpen] = useState(false)
   const [expandedKey, setExpandedKey] = useState<string | null>(null)
   const { t } = useTranslation()
@@ -63,6 +64,16 @@ export default function DashboardPage() {
           <Link to="/settings"><Button size="sm"><FileDown size={14} /> {t('dashboard.backup')}</Button></Link>
         </div>
       </div>
+
+      {bookingRequests.length > 0 && (
+        <Link to="/calendar">
+          <Card className="flex items-center gap-2.5 hover:border-verde-600">
+            <CalendarClock size={18} className="shrink-0 text-verde-600" />
+            <span className="text-sm font-medium text-ink">{t('dashboard.bookingRequests', { count: bookingRequests.length })}</span>
+            <ChevronRight size={16} className="ms-auto text-faint" />
+          </Card>
+        </Link>
+      )}
 
       {!setupDone && (
         <Card>

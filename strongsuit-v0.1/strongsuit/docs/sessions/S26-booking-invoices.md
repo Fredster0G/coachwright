@@ -15,7 +15,7 @@ list of what only he can do (→ `CALEB-TODO.md` at the repo root).
   adds `booking`, `openSlots` (notice applied server-side) and the client's own `sessions`; client pushes
   keep only `booking.{start,end}` (no self-accepting). Companion: `/book` page — sessions, requests with
   status, slots by local day, request bar. Coach: requests on Calendar ("Booking requests") and inline in
-  Messages; Accept creates the appointment + confirmation message, Decline replies (`messagesRepo.answerBooking`,
+  Messages, and a "requests waiting" card on Today; Accept creates the appointment + confirmation message, Decline replies (`messagesRepo.answerBooking`,
   one transaction). Tests: 9 slot tests, 4 repo, 2 server, 1 Companion↔server integration, 2 Companion
   helpers. **Live e2e in Chromium** (coach UI → Companion at 390px → coach accept → Companion "Confirmed"):
   3 slots/day, Mon 8:00 hidden by an existing session, zero console errors, zero off-origin requests.
