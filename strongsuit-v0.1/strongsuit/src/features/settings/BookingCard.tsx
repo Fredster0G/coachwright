@@ -22,6 +22,10 @@ export function BookingCard() {
   const booking: BookingSettings = trainer.booking ?? DEFAULT_BOOKING
   const open = trainer.bookingSlots?.length ?? 0
 
+  // Times are uncontrolled and commit every complete value: a controlled input
+  // fed by an async save is reset between keystrokes, and committing on blur
+  // loses the last edit (Tab stays inside a time input's hour/minute parts).
+  // Keyed on the row count so adding/removing a row re-seeds the values.
   // Each edit is applied to the row as it is NOW, one at a time. Building it
   // from this render's `booking` lost edits: two quick changes (From, then
   // To) both started from the same stale copy and the second undid the first.
@@ -69,9 +73,9 @@ export function BookingCard() {
                 <Select aria-label={t('settings.booking.dayLabel')} value={w.day} onChange={e => setWindow(i, { day: Number(e.target.value) })} className="w-32">
                   {DAY_KEYS.map((k, d) => <option key={d} value={d}>{t(k)}</option>)}
                 </Select>
-                <Input type="time" aria-label={t('settings.booking.fromLabel')} value={w.start} onChange={e => setWindow(i, { start: e.target.value })} className="w-28 font-mono" />
+                <Input key={`s${i}/${booking.windows.length}`} type="time" aria-label={t('settings.booking.fromLabel')} defaultValue={w.start} onChange={e => { const v = e.target.value; if (v) setWindow(i, { start: v }) }} className="w-28 font-mono" />
                 <span className="text-xs text-faint">–</span>
-                <Input type="time" aria-label={t('settings.booking.toLabel')} value={w.end} onChange={e => setWindow(i, { end: e.target.value })} className="w-28 font-mono" />
+                <Input key={`e${i}/${booking.windows.length}`} type="time" aria-label={t('settings.booking.toLabel')} defaultValue={w.end} onChange={e => { const v = e.target.value; if (v) setWindow(i, { end: v }) }} className="w-28 font-mono" />
                 <Button size="sm" variant="ghost" aria-label={t('settings.booking.removeLabel')} onClick={() => save(b => ({ windows: b.windows.filter((_, j) => j !== i) }))}><Trash2 size={13} /></Button>
                 {!validWindow(w) && <span className="text-2xs text-signal-600">{t('settings.booking.badWindow')}</span>}
               </div>

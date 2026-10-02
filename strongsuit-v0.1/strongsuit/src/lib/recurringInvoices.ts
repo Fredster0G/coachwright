@@ -14,9 +14,11 @@
 
 import type { Invoice } from '@/db/types'
 
-/** Catch-up cap per template per run — an app left closed for a year
- *  shouldn't bury the coach in drafts in one go. Older months are skipped,
- *  not queued: the coach can see the gap and bill it by hand if it's owed. */
+/** How far back a missed month is still generated: only months whose date
+ *  falls within the last MAX_CATCH_UP months of today. An app left closed for
+ *  a year doesn't bury the coach in drafts, and — unlike a per-run cap, which
+ *  every later sync would re-apply to the remaining gap — older months are
+ *  skipped for good. The coach can see the gap and bill it by hand. */
 export const MAX_CATCH_UP = 3
 
 export interface PlannedInvoice {
@@ -63,16 +65,16 @@ export function planRecurringInvoices(invoices: readonly Invoice[], today: strin
   for (const tpl of invoices) {
     if (!tpl.repeatMonthly || tpl.status === 'void' || tpl.repeatOf) continue
     const dueGap = tpl.dueDate ? dayOffset(tpl.date, tpl.dueDate) : null
-    const due: PlannedInvoice[] = []
+    const oldest = addMonthsClamped(today, -MAX_CATCH_UP)
     for (let k = 1; ; k++) {
       const date = addMonthsClamped(tpl.date, k)
       if (date > today) break
+      if (date <= oldest) continue
       const period = date.slice(0, 7)
       const id = recurrenceId(tpl.id, period)
       if (have.has(id)) continue
-      due.push({ id, templateId: tpl.id, period, date, dueDate: dueGap === null ? undefined : addDays(date, dueGap) })
+      out.push({ id, templateId: tpl.id, period, date, dueDate: dueGap === null ? undefined : addDays(date, dueGap) })
     }
-    out.push(...due.slice(-MAX_CATCH_UP))
   }
   return out
 }

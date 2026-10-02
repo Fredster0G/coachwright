@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { unseenInbound, summarize } from './coachNotify'
+import { unseenInbound, summarize, seenIdsFor, SEEN_WINDOW_DAYS } from './coachNotify'
 import type { CoachMessage } from '@/db/types'
 
 const m = (id: string, over: Partial<CoachMessage> = {}): CoachMessage => ({
@@ -8,10 +8,16 @@ const m = (id: string, over: Partial<CoachMessage> = {}): CoachMessage => ({
 const names: Record<string, string> = { a: 'Alex', b: 'Sam', c: 'Kim', d: 'Lee' }
 const nameOf = (id: string) => names[id] ?? 'A client'
 
+const NOW = new Date('2026-10-10T00:00:00.000Z')
 describe('unseenInbound', () => {
   it('returns only inbound, unseen, oldest first', () => {
-    const out = unseenInbound([m('xx'), m('x'), m('o', { direction: 'outbound' }), m('seen')], new Set(['seen']))
+    const out = unseenInbound([m('xx'), m('x'), m('o', { direction: 'outbound' }), m('seen')], new Set(['seen']), NOW)
     expect(out.map(x => x.id)).toEqual(['x', 'xx'])
+  })
+  it('ignores anything older than the window, so pruned ids never re-announce', () => {
+    const old = m('old', { date: new Date(NOW.getTime() - (SEEN_WINDOW_DAYS + 1) * 86_400_000).toISOString() })
+    expect(unseenInbound([old], new Set(), NOW)).toEqual([])
+    expect(seenIdsFor([old, m('x'), m('o', { direction: 'outbound' })], NOW)).toEqual(['x'])
   })
 })
 

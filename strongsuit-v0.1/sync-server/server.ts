@@ -635,6 +635,10 @@ export function applyChanges(
       const existing = getRecord.get(accountId, c.table, c.id) as
         { updated_at: string; client_id: string | null; deleted: number; status: string | null } | undefined
       if (forceClientId && existing && existing.client_id !== forceClientId) { stale.push(c.id); continue }
+      // A client's messages are append-only: Companion never edits one after
+      // sending, and letting it would let it overwrite the coach's answer on a
+      // booking request (reopening it, or a second appointment on accept).
+      if (forceClientId && existing && c.table === 'messages') { stale.push(c.id); continue }
       if (existing && Date.parse(existing.updated_at) > Date.parse(c.updatedAt)) { stale.push(c.id); continue }
       if (clientCap !== undefined && activates(c)
         && !(existing && !existing.deleted && existing.status === 'active')

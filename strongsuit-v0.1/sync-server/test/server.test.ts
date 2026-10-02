@@ -352,6 +352,14 @@ test('booking: a client can request a time but cannot accept its own request', a
   assert.deepEqual(p.changes.find(c => c.id === 'req1')!.data.booking, { start, end })
   assert.equal(p.changes.find(c => c.id === 'req2')!.data.booking, undefined)
   assert.ok(p.changes.some(c => c.id === 'log9'))
+
+  // Coach answers; a client re-sending the request later can't reopen it.
+  const req = p.changes.find(c => c.id === 'req1')!
+  await post('/data/push', { changes: [row('messages', 'req1', '2027-01-02T00:00:00.000Z', { ...req.data, booking: { start, end, status: 'accepted' } })] }, coach)
+  const again = await (await post('/client/push', { changes: [row('messages', 'req1', '2027-02-01T00:00:00.000Z', { direction: 'inbound', content: 'Booking request', booking: { start, end } })] }, client)).json() as { stale: string[] }
+  assert.deepEqual(again.stale, ['req1'])
+  const after = await (await get('/data/pull?since=0', coach)).json() as { changes: { id: string; data: { booking?: { status?: string } } }[] }
+  assert.equal(after.changes.find(c => c.id === 'req1')!.data.booking?.status, 'accepted')
 })
 
 test('branding: Companion gets the coach brand only when custom branding is allowed', async () => {

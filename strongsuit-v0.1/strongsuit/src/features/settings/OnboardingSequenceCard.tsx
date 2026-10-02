@@ -44,9 +44,13 @@ export function OnboardingSequenceCard() {
                 className="w-16 font-mono tabular-nums"
               />
             </label>
+            {/* Uncontrolled, saved on blur (like BrandCard): a controlled field
+                fed by an async save gets reset between keystrokes. Keyed on the
+                saved text so a reset or another device's edit shows up. */}
             <textarea
-              value={s.content}
-              onChange={e => { const content = e.target.value; setStep(i, { content }) }}
+              key={`${i}:${s.content}`}
+              defaultValue={s.content}
+              onBlur={e => { const content = e.target.value; if (content !== s.content) setStep(i, { content }) }}
               rows={2}
               aria-label={t('settings.onboarding.messageLabel', { n: i + 1 })}
               className="min-h-[44px] flex-1 resize-y rounded-ctl border border-line bg-surface px-3 py-2 text-sm text-ink"

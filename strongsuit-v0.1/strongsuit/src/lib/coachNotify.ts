@@ -8,20 +8,32 @@
 //
 // "New" is tracked by message id, not timestamp: a client's phone can queue a
 // message offline and deliver it with an older createdAt than our last check.
+// The seen-list is bounded by AGE, not count — anything older than
+// SEEN_WINDOW_DAYS counts as seen and is pruned. A count cap would drop old ids
+// and then announce those messages again on every sync.
 
 import type { CoachMessage } from '@/db/types'
 
 const ENABLED_KEY = 'cw.notify.enabled'
 const SEEN_KEY = 'cw.notify.seen'
-const MAX_SEEN = 2000
+export const SEEN_WINDOW_DAYS = 30
 
 export interface Arrival { title: string; body: string; clientId: string }
 
-/** Inbound messages not seen before, oldest first. */
-export function unseenInbound(messages: readonly CoachMessage[], seen: ReadonlySet<string>): CoachMessage[] {
+const windowStart = (now: Date) => new Date(now.getTime() - SEEN_WINDOW_DAYS * 86_400_000).toISOString()
+
+/** Inbound messages from the last SEEN_WINDOW_DAYS not seen before, oldest first. */
+export function unseenInbound(messages: readonly CoachMessage[], seen: ReadonlySet<string>, now = new Date()): CoachMessage[] {
+  const from = windowStart(now)
   return messages
-    .filter(m => m.direction === 'inbound' && !seen.has(m.id))
+    .filter(m => m.direction === 'inbound' && m.date >= from && !seen.has(m.id))
     .sort((a, b) => a.date.localeCompare(b.date))
+}
+
+/** The ids worth remembering: inbound, inside the window. */
+export function seenIdsFor(messages: readonly CoachMessage[], now = new Date()): string[] {
+  const from = windowStart(now)
+  return messages.filter(m => m.direction === 'inbound' && m.date >= from).map(m => m.id)
 }
 
 /** One notification for a batch: booking requests called out, names listed. */
@@ -61,7 +73,7 @@ export async function setNotificationsEnabled(on: boolean, existing: readonly Co
   if (!notificationsSupported()) return false
   const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission()
   if (permission !== 'granted') { write(ENABLED_KEY, false); return false }
-  write(SEEN_KEY, existing.map(m => m.id).slice(-MAX_SEEN))
+  write(SEEN_KEY, seenIdsFor(existing))
   write(ENABLED_KEY, true)
   return true
 }
@@ -69,11 +81,12 @@ export async function setNotificationsEnabled(on: boolean, existing: readonly Co
 /** Called after each sync. Records what's been seen even when off, so
  *  switching on later starts from "now". Returns the notification shown. */
 export function notifyArrivals(messages: readonly CoachMessage[], nameOf: (clientId: string) => string, open: (clientId: string) => void): Arrival | null {
-  const seenList = read<string[]>(SEEN_KEY, [])
-  const seen = new Set(seenList)
+  const seen = new Set(read<string[]>(SEEN_KEY, []))
   const fresh = unseenInbound(messages, seen)
   if (!fresh.length) return null
-  write(SEEN_KEY, [...seenList, ...fresh.map(m => m.id)].slice(-MAX_SEEN))
+  // Rebuilt from the messages themselves: everything in the window is now
+  // seen, and ids that aged out are dropped (they can't count as new again).
+  write(SEEN_KEY, seenIdsFor(messages))
   if (!notificationsEnabled()) return null
   const a = summarize(fresh, nameOf)
   if (!a) return null

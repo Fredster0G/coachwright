@@ -50,6 +50,12 @@ describe('planRecurringInvoices', () => {
     expect(plans).toHaveLength(MAX_CATCH_UP)
     expect(plans.at(-1)!.period).toBe('2026-12')
   })
+  it('never comes back for months older than the window (a per-run cap would)', () => {
+    const tpl = inv({ repeatMonthly: true })
+    const first = planRecurringInvoices([tpl], '2026-12-31')
+    const made = first.map(p => inv({ id: p.id, repeatOf: 'T', date: p.date }))
+    expect(planRecurringInvoices([tpl, ...made], '2026-12-31')).toEqual([])
+  })
 })
 
 describe('draftFromTemplate', () => {

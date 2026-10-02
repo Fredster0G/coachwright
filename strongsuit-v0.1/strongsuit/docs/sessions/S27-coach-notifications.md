@@ -1,7 +1,7 @@
-# S27 — coach notifications
+# S27 — coach notifications, review fixes
 
 **Tool:** Claude Code · **Date:** 2026-10-02
-**Tests:** app 724/724 (60 files) · **Typecheck:** `tsc -b --force` clean · electron tsc clean · oxlint/lint:tailwind 0 errors · no import cycles
+**Tests:** app 726/726 (60 files) · server 30/30 · **Typecheck:** `tsc -b --force` clean · electron tsc clean · oxlint/lint:tailwind 0 errors · no import cycles
 
 ## Asked
 Standing instruction: "always continue" — work through everything that doesn't need Caleb; keep
@@ -17,6 +17,22 @@ Standing instruction: "always continue" — work through everything that doesn't
   notifications on Windows; matches the installer's appId).
   Verified live: Companion sent two messages → coach sync → exactly one notification
   ("2 new messages from Alex"), none on the next sync, zero console errors.
+
+- **Self-review of S26–S27 (`/code-review` high) — 4 real bugs fixed, each with a test that fails on
+  the old code where testable:**
+  - Recurring invoices' 3-month catch-up was per run, so every sync generated 3 more older months
+    until the whole gap was filled. Now a fixed window (months within the last 3 of today).
+  - Notification seen-list was capped at 2000 ids; dropped ids would re-announce forever. Now bounded
+    by age (30 days) and rebuilt from the messages each time.
+  - A modified client could re-push its booking request after the coach answered and reopen it
+    (or get a second appointment on re-accept). Client messages are now append-only on the server.
+  - Welcome-message textarea and booking time fields were controlled inputs fed by an async save
+    (lost keystrokes). Textarea commits on blur; time fields are uncontrolled and commit each complete
+    value — a blur commit lost the last edit (Tab stays inside a time input), found by the live e2e.
+  - Not changed: old UTC-day `exceptions` aren't migrated to local days — nothing is deployed, and the
+    dual-match fallback would wrongly cancel adjacent-weekday series.
+- Not doable here: the 4B/8B assistant tiers need a verified real download and Hugging Face is
+  blocked by this environment's network policy (403 at the proxy).
 
 ## Didn't do / couldn't
 - Nothing reaches a coach whose app is closed (needs server push/email — DEBT-84, DEBT-80).
