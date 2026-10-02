@@ -568,6 +568,8 @@ export const en = {
   'settings.notify.title': 'Notifications',
   'settings.notify.hint': 'Get a system notification on this computer when a client messages you or asks for a session through Companion. Works while Coachwright is open.',
   'settings.notify.enable': 'Notify me about client messages and session requests',
+  'settings.notify.email': 'Also email me when Coachwright is closed',
+  'settings.notify.emailHint': 'At most one email every 30 minutes. It names the client but never includes what they wrote. Applies to all your devices.',
   'settings.notify.unsupported': 'This browser doesn’t support notifications.',
   'settings.notify.blocked': 'Notifications are blocked for Coachwright — allow them in your system or browser settings, then try again.',
   'settings.booking.title': 'Client booking',

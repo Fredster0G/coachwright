@@ -242,6 +242,12 @@ if (!(db.prepare(`SELECT 1 FROM pragma_table_info('accounts') WHERE name = 'clie
   db.exec(`ALTER TABLE accounts ADD COLUMN client_allowance INTEGER`)
 }
 
+// Added S27. When the coach was last emailed about client activity — the
+// throttle for coach notification emails (notifyCoachByEmail).
+if (!(db.prepare(`SELECT 1 FROM pragma_table_info('accounts') WHERE name = 'notify_email_at'`).get())) {
+  db.exec(`ALTER TABLE accounts ADD COLUMN notify_email_at TEXT`)
+}
+
 function upsertMembership(m: {
   accountId: string; stripeCustomerId: string; stripeSubscriptionId: string
   status: string; currentPeriodEnd: number | undefined
@@ -868,8 +874,44 @@ app.post('/client/push', requireClient, (req, res) => {
   const bad = changes.findIndex(c => !validChange(c) || !CLIENT_WRITABLE.has(c.table) || c.deleted
     || (c.table === 'messages' && (c.data as { direction?: unknown } | undefined)?.direction !== 'inbound'))
   if (bad !== -1) return res.status(400).json({ error: `Invalid change at index ${bad}` })
-  res.json({ success: true, ...applyChanges(req.accountId!, changes.map(clientBookingOnly), req.clientId) })
+  const result = applyChanges(req.accountId!, changes.map(clientBookingOnly), req.clientId)
+  const applied = new Set(result.applied)
+  const newMessages = (changes as Change[]).filter(c => c.table === 'messages' && applied.has(c.id))
+  if (newMessages.length) {
+    notifyCoachByEmail(req.accountId!, req.clientId!, newMessages.some(c => !!(c.data as { booking?: unknown })?.booking))
+      .catch(err => console.error('coach notification email failed:', err instanceof Error ? err.message : err))
+  }
+  res.json({ success: true, ...result })
 })
+
+/** Email the coach that a client wrote (or asked for a session) — only if
+ *  they opted in (trainer.emailNotify, Settings → Notifications), and at most
+ *  once per COACH_EMAIL_EVERY_MS so a chatty thread is one email, not twenty.
+ *  Names the client, never quotes the message: it may be health data, and an
+ *  inbox is not where that should be copied. */
+const COACH_EMAIL_EVERY_MS = 30 * 60_000
+export async function notifyCoachByEmail(accountId: string, clientId: string, booking: boolean, now = Date.now()): Promise<boolean> {
+  const t = db.prepare(`SELECT data FROM records WHERE account_id = ? AND tbl = 'trainer' AND deleted = 0 LIMIT 1`).get(accountId) as { data: string } | undefined
+  if (!t || (JSON.parse(t.data) as { emailNotify?: unknown }).emailNotify !== true) return false
+  const acct = db.prepare('SELECT email, notify_email_at FROM accounts WHERE id = ?').get(accountId) as { email: string; notify_email_at: string | null } | undefined
+  if (!acct) return false
+  if (acct.notify_email_at && now - Date.parse(acct.notify_email_at) < COACH_EMAIL_EVERY_MS) return false
+  // Claim the slot before the network call, so two pushes racing can't both send.
+  const claimed = db.prepare(`UPDATE accounts SET notify_email_at = ? WHERE id = ? AND (notify_email_at IS NULL OR notify_email_at = ?)`)
+    .run(new Date(now).toISOString(), accountId, acct.notify_email_at).changes
+  if (!claimed) return false
+  const c = db.prepare(`SELECT data FROM records WHERE account_id = ? AND tbl = 'clients' AND id = ? AND deleted = 0`).get(accountId, clientId) as { data: string } | undefined
+  const name = (c && (JSON.parse(c.data) as { firstName?: string }).firstName?.trim()) || 'A client'
+  const subject = booking ? `${name} asked for a session` : `${name} sent you a message`
+  await mailer.send(acct.email, subject, [
+    `${subject} in Coachwright.`,
+    '',
+    `Open Coachwright to read and reply: ${APP_URL}`,
+    '',
+    `You get at most one of these every ${COACH_EMAIL_EVERY_MS / 60_000} minutes. Turn them off in Settings → Notifications.`,
+  ].join('\n'))
+  return true
+}
 
 app.get('/client/reminders/due', requireClient, (req, res) => {
   const rows = db.prepare(`

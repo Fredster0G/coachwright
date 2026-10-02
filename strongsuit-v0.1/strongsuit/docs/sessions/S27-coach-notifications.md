@@ -1,7 +1,7 @@
 # S27 — coach notifications, review fixes
 
 **Tool:** Claude Code · **Date:** 2026-10-02
-**Tests:** app 726/726 (60 files) · server 30/30 · **Typecheck:** `tsc -b --force` clean · electron tsc clean · oxlint/lint:tailwind 0 errors · no import cycles
+**Tests:** app 726/726 (60 files) · server 31/31 · **Typecheck:** `tsc -b --force` clean · electron tsc clean · oxlint/lint:tailwind 0 errors · no import cycles
 
 ## Asked
 Standing instruction: "always continue" — work through everything that doesn't need Caleb; keep
@@ -18,6 +18,11 @@ Standing instruction: "always continue" — work through everything that doesn't
   Verified live: Companion sent two messages → coach sync → exactly one notification
   ("2 new messages from Alex"), none on the next sync, zero console errors.
 
+- **Email the coach when the app is closed** (rest of DEBT-84): opt-in "Also email me" (synced
+  `trainer.emailNotify`); the server emails on new client messages — first name only, never the text
+  (health data stays out of inboxes), at most one per 30 min (`accounts.notify_email_at`, claimed before
+  sending so racing pushes can't double-send). 1 server test (opt-in, throttle, no content, re-push
+  isn't activity). Needs Postmark like password reset.
 - **Self-review of S26–S27 (`/code-review` high) — 4 real bugs fixed, each with a test that fails on
   the old code where testable:**
   - Recurring invoices' 3-month catch-up was per run, so every sync generated 3 more older months
@@ -38,7 +43,7 @@ Standing instruction: "always continue" — work through everything that doesn't
   blocked by this environment's network policy (403 at the proxy).
 
 ## Didn't do / couldn't
-- Nothing reaches a coach whose app is closed (needs server push/email — DEBT-84, DEBT-80).
+- Coach emails have never really been sent (needs Postmark — DEBT-80/84).
 - Not tried on a real Windows/macOS desktop (TODO-FOR-CALEB).
 
 ## New debt

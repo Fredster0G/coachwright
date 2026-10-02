@@ -102,10 +102,11 @@ changes — about once a day as the 14-day window rolls, plus on every booking/c
 today's sizes; move slots to their own row if the logo grows or coaches have many locations. Same
 family: since S26 the logo (≤256px PNG) also rides in every Companion `/client/bundle` response.
 
-**84 · (S26; narrowed S27) The coach is only notified while Coachwright is open.** S27 added opt-in
-system notifications (Settings → Notifications, `lib/coachNotify.ts`) for client messages and session
-requests, raised after each sync on desktop and web. With the app closed nothing arrives — that needs
-server-side push or email to the coach (Postmark, DEBT-80). Never tried on a real Windows/macOS desktop.
+**84 · (S26; built S27) Coach notifications — code done, email never really sent.** While the app is
+open: opt-in system notifications (`lib/coachNotify.ts`). While it's closed: opt-in email
+(Settings → Notifications → "Also email me", server `notifyCoachByEmail`: client's first name only, never
+the message text, at most one per 30 min). The email path is tested with the mailer stubbed and has
+never reached Postmark (same blocker as DEBT-80). Neither has been seen on a real desktop.
 
 **79 · (S23, NEW) Old pricing tiers still described in strategy docs.** The $15/mo managed relay and the
 free self-hosted relay no longer exist. `SERVER_STRATEGY.md`, `CLIENT_APP_STRATEGY.md`,

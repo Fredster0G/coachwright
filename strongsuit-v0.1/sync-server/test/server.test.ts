@@ -373,6 +373,32 @@ test('branding: Companion gets the coach brand only when custom branding is allo
   assert.deepEqual(old.brand, { name: 'Iron Den', logo: 'data:image/png;base64,AAAA' })   // bad colour dropped
 })
 
+test('coach email: opt-in, names the client without quoting, at most one per window', async () => {
+  const { coach, client } = await connectedClient()
+  const sent: { to: string; subject: string; text: string }[] = []
+  const original = mod.mailer.send
+  mod.mailer.send = async (to, subject, text) => { sent.push({ to, subject, text }) }
+  try {
+    const msg = (id: string, extra: Record<string, unknown> = {}) => row('messages', id, '2027-01-01T00:00:00.000Z', { direction: 'inbound', content: 'my knee hurts after squats', ...extra })
+    await post('/client/push', { changes: [msg('e1')] }, client)
+    await new Promise(r => setTimeout(r, 50))
+    assert.equal(sent.length, 0)                                  // not opted in
+
+    await post('/data/push', { changes: [row('trainer', 'trainer', '2027-01-01T00:00:00.000Z', { emailNotify: true })] }, coach)
+    await post('/client/push', { changes: [msg('e2', { booking: { start: '2027-03-01T15:00:00.000Z', end: '2027-03-01T16:00:00.000Z' } })] }, client)
+    await post('/client/push', { changes: [msg('e3')] }, client)
+    await new Promise(r => setTimeout(r, 50))
+    assert.equal(sent.length, 1)                                  // throttled to one
+    assert.equal(sent[0].subject, 'Alex asked for a session')
+    assert.ok(!sent[0].text.includes('knee'))                     // never quotes the message
+    // A re-push of an existing message isn't new activity.
+    await post('/client/push', { changes: [msg('e3')] }, client)
+    const later = Date.now() + 31 * 60_000
+    assert.equal(await mod.notifyCoachByEmail((await (await get('/auth/me', coach)).json() as { account: { id: string } }).account.id, 'c1', false, later), true)
+    assert.equal(sent[1].subject, 'Alex sent you a message')
+  } finally { mod.mailer.send = original }
+})
+
 test('coach can disconnect a client', async () => {
   const { coach, client } = await connectedClient()
   await fetch(`${base}/invites/c1`, { method: 'DELETE', headers: json(coach) })

@@ -51,9 +51,10 @@ updates this file as items appear or get done. Details live in strongsuit-v0.1/s
 [ ] Client self-booking (new in S26) works for clients connected through Companion. Do you
     also want a public booking link for prospects who don't have the app? That would be the
     first page anyone can open without an account; worth deciding before it's built.
-[ ] You now get a system notification for client messages/requests while Coachwright is open
-    (Settings → Notifications). Want them when it's CLOSED too (email or phone push)? Email
-    needs the Postmark account above. (DEBT-84)
+[ ] Coach email alerts are built (Settings → Notifications → "Also email me"): when a client
+    messages or asks for a session and your app is closed, you get one email (name only, no
+    message text, max one per 30 min). Like password reset, it needs the Postmark account in
+    section 1 before any email actually sends. Then try it once. (DEBT-84)
 
 =====================================================================
 DONE RECENTLY (no action needed — for your information)

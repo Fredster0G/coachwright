@@ -35,6 +35,9 @@ export interface Trainer extends Base {
   /** The coach's welcome sequence for new Companion clients; absent = the
    *  built-in default (lib/onboardingSequence.ts). */
   onboardingSteps?: OnboardingStep[]
+  /** Email the coach (at most every 30 min, client's name only) when a client
+   *  writes through Companion — read by the server (notifyCoachByEmail). */
+  emailNotify?: boolean
   logoDataUrl?: string
   brandColor?: string
   units: Units
