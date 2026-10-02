@@ -354,6 +354,17 @@ test('booking: a client can request a time but cannot accept its own request', a
   assert.ok(p.changes.some(c => c.id === 'log9'))
 })
 
+test('branding: Companion gets the coach brand only when custom branding is allowed', async () => {
+  const { coach, client } = await connectedClient()
+  const brand = { businessName: 'Iron Den', logoDataUrl: 'data:image/png;base64,AAAA', brandColor: '#123abc' }
+  await post('/data/push', { changes: [row('trainer', 'trainer', '2026-09-02T00:00:00.000Z', { ...brand, createdAt: '2026-09-01T00:00:00.000Z' })] }, coach)
+  const free = await (await get('/client/bundle', client)).json() as { brand: unknown }
+  assert.equal(free.brand, null)                     // new free account: plain Coachwright
+  await post('/data/push', { changes: [row('trainer', 'trainer', '2026-09-03T00:00:00.000Z', { ...brand, brandColor: 'javascript:x', createdAt: '2026-03-01T00:00:00.000Z' })] }, coach)
+  const old = await (await get('/client/bundle', client)).json() as { brand: Record<string, string> }
+  assert.deepEqual(old.brand, { name: 'Iron Den', logo: 'data:image/png;base64,AAAA' })   // bad colour dropped
+})
+
 test('coach can disconnect a client', async () => {
   const { coach, client } = await connectedClient()
   await fetch(`${base}/invites/c1`, { method: 'DELETE', headers: json(coach) })

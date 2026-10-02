@@ -5,7 +5,7 @@ import { clientsRepo, trainerRepo } from '@/db/repo'
 import { fullName } from '@/lib/core'
 import { PARQ_QUESTIONS, PARQ_SOURCE, assumptionOfRiskText, informedConsentText } from '@/lib/parq'
 import { APP_NAME } from '@/lib/brand'
-import { canUseCustomBranding } from '@/lib/membership'
+import { artifactBrand } from '@/lib/branding'
 import { useTranslation } from '@/lib/i18n'
 
 export default function PrintIntakeSheet() {
@@ -24,8 +24,8 @@ export default function PrintIntakeSheet() {
 
   if (!client || !trainer) return <div className="p-8">{t('print.intake.loading')}</div>
 
-  const canBrand = canUseCustomBranding(trainer)
-  const business = (canBrand.allowed && trainer.businessName) ? trainer.businessName : APP_NAME
+  const brand = artifactBrand(trainer)
+  const business = brand.name
   const name = fullName(client)
   const hasScreening = !!client.screening
 
@@ -34,7 +34,10 @@ export default function PrintIntakeSheet() {
       {/* Header */}
       <div className="mb-6 pb-4 border-b-2 border-black flex justify-between items-end">
         <div>
-          <h1 className="text-2xl font-bold uppercase tracking-tight">{business}</h1>
+          <div className="flex items-center gap-3">
+            {brand.logo && <img src={brand.logo} alt="" className="h-10 w-auto max-w-[120px] object-contain" />}
+            <h1 className="text-2xl font-bold uppercase tracking-tight">{business}</h1>
+          </div>
           <h2 className="text-lg text-gray-600 mt-1">{t('print.intake.title', { name })}</h2>
         </div>
         <div className="text-end text-xs text-gray-500">

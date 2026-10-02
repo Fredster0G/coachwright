@@ -3,9 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { programsRepo, clientsRepo, exercisesRepo, trainerRepo } from '@/db/repo'
 import { fullName } from '@/lib/core'
-import { APP_NAME } from '@/lib/brand'
 import { Logomark } from '@/app/brand/Logomark'
-import { canUseCustomBranding } from '@/lib/membership'
+import { artifactBrand } from '@/lib/branding'
 import { useTranslation } from '@/lib/i18n'
 
 export default function PrintSessionSheet() {
@@ -31,8 +30,8 @@ export default function PrintSessionSheet() {
 
   const exMap = new Map(exercises.map(e => [e.id, e.name]))
   
-  const canBrand = canUseCustomBranding(trainer)
-  const business = (canBrand.allowed && trainer.businessName) ? trainer.businessName : APP_NAME
+  const brand = artifactBrand(trainer)
+  const business = brand.name
 
   return (
     <div className="bg-white text-black min-h-screen p-8 max-w-4xl mx-auto font-sans">
@@ -47,7 +46,9 @@ export default function PrintSessionSheet() {
             <p>{new Date().toLocaleDateString()}</p>
           </div>
           {/* tone pinned: this page is always white paper, regardless of the app's current theme */}
-          <Logomark size={28} tone="dark" />
+          {brand.logo
+            ? <img src={brand.logo} alt="" className="h-8 w-auto max-w-[120px] object-contain" />
+            : <Logomark size={28} tone="dark" />}
         </div>
       </div>
 

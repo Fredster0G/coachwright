@@ -784,9 +784,27 @@ app.get('/client/bundle', requireClient, (req, res) => {
     coachName: coach.name || 'Your coach',
     client: client && { id: client.id, firstName: client.firstName, lastName: client.lastName },
     programs, exercises, messages,
+    brand: brandFor(req.accountId!),
     ...bookingFor(req.accountId!, req.clientId!, Date.now()),
   })
 })
+
+/** The coach's own branding for Companion — same rule as the app's
+ *  canUseCustomBranding (lib/membership.ts): paid access, or an account
+ *  from before the 2026-08-15 cutoff (gate new, never claw back). Null
+ *  otherwise, and Companion shows plain Coachwright. */
+const BRANDING_GRANDFATHER_CUTOFF = '2026-08-15T00:00:00.000Z'
+export function brandFor(accountId: string): { name?: string; logo?: string; color?: string } | null {
+  const t = db.prepare(`SELECT data FROM records WHERE account_id = ? AND tbl = 'trainer' AND deleted = 0 LIMIT 1`).get(accountId) as { data: string } | undefined
+  if (!t) return null
+  const tr = JSON.parse(t.data) as { createdAt?: string; businessName?: string; logoDataUrl?: string; brandColor?: string }
+  const allowed = hasPaidAccess(accountId) || (typeof tr.createdAt === 'string' && tr.createdAt < BRANDING_GRANDFATHER_CUTOFF)
+  if (!allowed) return null
+  const logo = typeof tr.logoDataUrl === 'string' && tr.logoDataUrl.startsWith('data:image/') && tr.logoDataUrl.length < 400_000 ? tr.logoDataUrl : undefined
+  const color = typeof tr.brandColor === 'string' && /^#[0-9a-f]{6}$/i.test(tr.brandColor) ? tr.brandColor : undefined
+  const name = typeof tr.businessName === 'string' && tr.businessName.trim() ? tr.businessName.trim().slice(0, 80) : undefined
+  return name || logo || color ? { name, logo, color } : null
+}
 
 /** Client self-booking (coach app lib/booking.ts). `openSlots` is the slot
  *  list the coach's app published on its trainer row, minus anything inside

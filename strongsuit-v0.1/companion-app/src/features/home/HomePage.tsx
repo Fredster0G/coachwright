@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ClipboardList, Dumbbell, LineChart, MessageCircle, Video } from 'lucide-react'
 import { Card, Button, PageHeader } from '@/design'
+import { CoachBrand } from '@/features/coach/CoachBrand'
 import { workoutsRepo, coachLinkRepo, assignedProgramsRepo, messagesRepo } from '@/db/repo'
 import type { AssignedProgram, CoachLink, CoachMessage, CompanionProfile, PersonalWorkout } from '@/db/types'
 
@@ -24,8 +25,9 @@ export function HomePage({ profile }: { profile: CompanionProfile }) {
 
       {coachLink && (
         <Card className="flex items-center gap-2 text-xs">
-          <span className="h-2 w-2 rounded-full bg-verde-600" />
-          <span className="text-muted">Connected to {coachLink.coachName}</span>
+          <span className="h-2 w-2 shrink-0 rounded-full bg-verde-600" style={coachLink.brand?.color ? { backgroundColor: coachLink.brand.color } : undefined} />
+          <span className="text-muted">Connected to</span>
+          <span className="min-w-0 font-medium text-ink"><CoachBrand link={coachLink} size="sm" /></span>
           {coachLink.lastSyncAt && (
             <span className="ml-auto text-2xs text-faint">
               synced {new Date(coachLink.lastSyncAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}

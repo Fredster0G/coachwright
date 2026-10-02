@@ -67,7 +67,7 @@ export function BookPage() {
 
   return (
     <div className="space-y-4 pb-20">
-      <PageHeader eyebrow={link.coachName} title="Book a session"
+      <PageHeader eyebrow={link.brand?.name || link.coachName} title="Book a session"
         action={<Button onClick={() => doSync(link)} disabled={busy} aria-label="Refresh"><RefreshCw size={14} className={busy ? 'animate-spin' : ''} /></Button>} />
 
       {status && <p className="text-2xs text-verde-600">{status}</p>}

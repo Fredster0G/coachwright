@@ -5,6 +5,7 @@ import { Button, Card, EmptyState, Input } from '@/design'
 import { coachLinkRepo, messagesRepo, assignedProgramsRepo } from '@/db/repo'
 import { syncNow, pushMessageToCoach } from '@/features/sync/companionSyncApi'
 import { ConnectFlow } from '@/features/sync/ConnectFlow'
+import { CoachBrand, brandAccent } from './CoachBrand'
 import type { CoachLink, CoachMessage } from '@/db/types'
 
 /** The whole coach relationship on one screen: the message thread and a
@@ -81,9 +82,9 @@ export function CoachPage() {
   return (
     <div className="flex h-full flex-col gap-3">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="min-w-0 rounded-sm ps-2" style={brandAccent(coachLink)}>
           <p className="text-xs text-muted">Your coach</p>
-          <h1 className="font-display text-lg font-semibold text-ink">{coachLink.coachName}</h1>
+          <h1 className="font-display text-lg font-semibold text-ink"><CoachBrand link={coachLink} /></h1>
         </div>
         <div className="text-right text-2xs text-faint">
           {coachLink.lastSyncAt

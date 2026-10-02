@@ -3,10 +3,9 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { clientsRepo, exercisesRepo, logsRepo, trainerRepo } from '@/db/repo'
 import { calculateWeeklyTonnage, detectPRs } from '@/lib/analytics'
-import { APP_NAME } from '@/lib/brand'
 import { e1rm, fullName, isoDay } from '@/lib/core'
 import { useTranslation } from '@/lib/i18n'
-import { canUseCustomBranding } from '@/lib/membership'
+import { artifactBrand } from '@/lib/branding'
 
 
 export default function PrintProgressReport() {
@@ -48,8 +47,8 @@ export default function PrintProgressReport() {
     return <div className="p-8">{t('print.progress.loading')}</div>
   }
 
-  const canBrand = canUseCustomBranding(trainer)
-  const business = (canBrand.allowed && trainer.businessName) ? trainer.businessName : APP_NAME
+  const brand = artifactBrand(trainer)
+  const business = brand.name
 
   const weeklyTonnage = calculateWeeklyTonnage(logs, trainer.weekStartsOn)
 
@@ -93,6 +92,7 @@ export default function PrintProgressReport() {
           <p className="text-sm text-gray-500 mt-1 font-mono">{t('print.progress.dateRange', { start: rangeStart, end: rangeEnd })}</p>
         </div>
         <div className="text-end text-sm text-gray-500">
+          {brand.logo && <img src={brand.logo} alt="" className="mb-1 ms-auto h-10 w-auto max-w-[120px] object-contain" />}
           <p>{business}</p>
           <p>{new Date().toLocaleDateString()}</p>
         </div>

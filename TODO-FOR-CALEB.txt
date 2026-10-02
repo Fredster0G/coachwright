@@ -58,6 +58,7 @@ DONE RECENTLY (no action needed — for your information)
 =====================================================================
 - Clients can request sessions in your open hours from Companion; you accept/decline.
 - Welcome sequence: write your new-client messages once (Settings), start them per client.
+- Branding: upload your logo and pick a colour (Settings → Brand). Shows on printouts and in Companion.
 - Recurring monthly invoices (drafts you review and send).
 - Calendar was putting evening appointments on the next day (US time zones). Fixed.
 - Progress photos: compare any two, with days apart and weight change.

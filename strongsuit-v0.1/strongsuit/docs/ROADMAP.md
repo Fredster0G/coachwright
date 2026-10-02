@@ -88,7 +88,7 @@ the table to `CLIENT_WRITABLE`). It would make readiness dramatically better.
 
 ### 2.4 🟨 Branding on Membership + the tier story
 QuickCoach gates "brand your client app, welcome emails and printouts" behind Pro. **We already built
-most of this** — brand kit, logo variants, branded printouts, branded Companion export. Gating it for
+most of this** — *(S26 correction: logo and colour had no settings UI until S26, and Companion got no branding after the S23 cloud move; both fixed now)* brand kit, logo variants, branded printouts, branded Companion export. Gating it for
 *new free-tier* accounts is standard and defensible.
 
 ⚠️ **Don't retroactively remove it from anyone already using it.** Same discipline as the licence
@@ -155,7 +155,7 @@ Everything else competitors ship that we don't, with an honest call on each:
 | **In-app video calls** | ✅ | ❌ | 🔴 **Don't build.** Zoom/Meet links in the calendar cover it. Real infra, no differentiation. |
 | **Payment processing (their clients)** | ✅ (takes a cut) | Bring-your-own link | ✅ **Deliberate won't-do.** `SERVER_STRATEGY.md` §3. Our approach is *better* for the coach — no platform markup. Market it. |
 | **Zapier / API / webhooks** | ✅ | ❌ | 🟡 Low priority for solo coaches. Revisit for Studio. |
-| **White-label client app** | ✅ (upsell) | Brand kit exists, partial | 🟨 Finish it — QuickCoach charges for branding; we can include it. |
+| **White-label client app** | ✅ (upsell) | ✅ **S26:** logo + brand colour in Settings (they existed as fields but nothing could set them); logo on all four printouts; Companion shows the coach's name, logo and accent (server sends it only when branding is allowed). | Done. Theming all of Companion in the coach's colour is not attempted (contrast risk). |
 | **Exercise video recording in-app** | ✅ | Film Room does more | ✅ Already ahead. |
 | **Offline mode** | ❌ | Keeps working through a dropped connection; needs the cloud to sync | 🟡 Still ahead of web-only competitors on a bad gym connection — but don't claim "no server". |
 | **On-device movement AI** | ❌ | ✅ | ✅ **Nobody else has this.** Lead with it. |

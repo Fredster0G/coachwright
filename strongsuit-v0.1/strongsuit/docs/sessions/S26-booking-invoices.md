@@ -1,7 +1,7 @@
 # S26 — client self-booking, recurring invoices, photo compare, calendar day fix
 
 **Tool:** Claude Code · **Date:** 2026-10-02
-**Tests:** app 714/714 (58 files) · companion 112/112 · server 29/29 · **Typecheck:** `tsc -b --force` clean · electron tsc clean · oxlint/lint:tailwind 0 errors · no import cycles
+**Tests:** app 718/718 (59 files) · companion 112/112 · server 30/30 · **Typecheck:** `tsc -b --force` clean · electron tsc clean · oxlint/lint:tailwind 0 errors · no import cycles
 
 ## Asked
 "keep going" (twice) — continue optimizing and adding to the app; later "always continue" and leave Caleb a
@@ -26,6 +26,13 @@ list of what only he can do (→ `CALEB-TODO.md` at the repo root).
   previews and schedules them as Companion reminders with ids `onb~<client>~<step>`, then stamps
   `client.onboardingStartedAt` so it's never offered twice (the server's reminder upsert resets `sent`).
   4 tests; verified live (edited step used, 4 reminders listed, button replaced by "started").
+- **Branding was half a feature** (found, not asked): `logoDataUrl`/`brandColor` existed and the
+  membership copy sold "logos, colors, and branded client apps", but nothing could set them and
+  Companion got no branding after S23. Now: logo upload (PNG, 256px) + colour in Settings → Brand;
+  `lib/branding.ts` `artifactBrand()` is the one rule for all four printouts + the Companion file
+  (they each re-implemented it); server `brandFor()` sends name/logo/colour in the bundle only when
+  branding is allowed. Verified live: logo + name on every printout; Companion header/home show
+  "Iron Den Coaching", the logo and the accent rule.
 - **Calendar showed appointments on the wrong day** (`lib/schedule.ts`, pre-existing): occurrence dates
   were the UTC day, so in the Americas everything after ~5pm sat on tomorrow and an evening weekly
   series lost its first occurrence; mornings in Asia landed on yesterday. Now the local day. 3 tests

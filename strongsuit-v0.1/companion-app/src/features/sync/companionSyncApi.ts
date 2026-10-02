@@ -102,6 +102,7 @@ interface Bundle {
   booking?: { enabled: boolean }
   openSlots?: BookingSlot[]
   sessions?: CoachLink['sessions']
+  brand?: CoachLink['brand']
 }
 
 async function pullFromCoach(link: CoachLink): Promise<{ programs: number; messages: number }> {
@@ -127,6 +128,7 @@ async function pullFromCoach(link: CoachLink): Promise<{ programs: number; messa
     bookingEnabled: !!b.booking?.enabled,
     openSlots: b.openSlots ?? [],
     sessions: b.sessions ?? [],
+    brand: b.brand ?? null,
   })
   return { programs, messages }
 }

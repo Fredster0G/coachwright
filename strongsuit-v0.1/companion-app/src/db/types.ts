@@ -48,6 +48,8 @@ export interface CoachLink {
   openSlots?: BookingSlot[]
   /** This client's own upcoming sessions on the coach's calendar. */
   sessions?: { id: string; title: string; start: string; end: string; recurring: boolean }[]
+  /** The coach's branding, when their plan includes it (server decides). */
+  brand?: { name?: string; logo?: string; color?: string } | null
 }
 
 export interface BookingSlot { start: string; end: string }

@@ -99,7 +99,8 @@ devices are signed out (their session is gone) but keep their local copy until s
 **83 · (S26, NEW) Booking slots ride on the trainer row.** The open slots are published as
 `trainer.bookingSlots`, so the whole trainer row (logo data URL included) re-uploads whenever the offer
 changes — about once a day as the 14-day window rolls, plus on every booking/calendar change. Fine at
-today's sizes; move slots to their own row if the logo grows or coaches have many locations.
+today's sizes; move slots to their own row if the logo grows or coaches have many locations. Same
+family: since S26 the logo (≤256px PNG) also rides in every Companion `/client/bundle` response.
 
 **84 · (S26, NEW) Booking requests don't notify the coach.** A request shows on Today ("N session
 requests waiting"), Calendar → Booking requests and in the client's thread on the next sync; there is no push/email to the coach (the server's
