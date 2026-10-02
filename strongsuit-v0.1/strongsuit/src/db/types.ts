@@ -479,6 +479,11 @@ export interface Invoice extends Base {
   /** Which staff member issued this (Studio, v1.6) — independent of who the
    *  client is CURRENTLY assigned to. See lib/activeStaff.ts. */
   staffId?: string
+  /** Template for a monthly retainer: a draft copy is generated each month on
+   *  this invoice's day (lib/recurringInvoices.ts). Turning it off stops it. */
+  repeatMonthly?: boolean
+  /** On a generated copy: the template's id. Its own id is `<templateId>~<yyyy-MM>`. */
+  repeatOf?: string
 }
 
 export type CouponKind = 'percent' | 'flat'

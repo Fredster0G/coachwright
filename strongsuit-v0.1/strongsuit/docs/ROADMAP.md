@@ -135,7 +135,7 @@ takes."* Both paths must stay visible. **Do not quietly delete the old claim.**
 **③ The 1% has to buy something real.** If it's "a payment link, but we take a cut," no rational coach
 opts in. It's worth 1% only if it does work they'd otherwise do by hand: **auto-reconcile into The
 Ledger, auto-mark invoices paid, and real recurring billing for their clients** (§2.4's gap table —
-coaches re-invoice retainers manually today). Build the reconciliation, then the fee is earned.
+S26 added monthly repeating invoices as drafts — collecting the money still runs through the coach's own link). Build the reconciliation, then the fee is earned.
 
 *Effort: medium-large. 🟦 Claude for the Connect integration + webhook reconciliation (money paths and
 idempotency are unforgiving); 🟨 Gemini for the settings/onboarding UI after. **🟥 Caleb must accept the
@@ -147,7 +147,7 @@ Everything else competitors ship that we don't, with an honest call on each:
 | Feature | Them | Us | Call |
 |---|---|---|---|
 | **Client self-booking** | ✅ | Calendar exists, coach-entered only | 🟨 **Build.** Real friction; a booking link clients can use is high value, low risk. |
-| **Recurring billing for *their* clients** | ✅ | One-off invoices + pay-link | 🟨 **Build.** Coaches on retainer re-invoice manually every month today. |
+| **Recurring billing for *their* clients** | ✅ | ✅ **S26:** "Repeat monthly" on an invoice — a draft copy each month on the same day, for the coach to review and send (`lib/recurringInvoices.ts`). Charging the card automatically is §2.5. | Done (invoicing side). |
 | **Progress photo side-by-side** | ✅ | ✅ **S26:** pick any two photos; shows days apart and the bodyweight within a week of each | Done. |
 | **Automated onboarding sequences** | ✅ | Manual | 🟨 Medium value. The automations engine is a natural host. |
 | **Meal plans / recipes** | ✅ | ❌ | 🟡 Only after §2.1 food logging. Validate demand first. |

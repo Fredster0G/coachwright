@@ -1,6 +1,7 @@
 import { db } from '../schema'
 import { makeRepo } from './base'
-import { newId, nowIso, singleFlight, stamp } from '@/lib/core'
+import { newId, nowIso, singleFlight, stamp, today } from '@/lib/core'
+import { planRecurringInvoices, draftFromTemplate } from '@/lib/recurringInvoices'
 import type {
   Trainer, Client, ClientNote, Program, SessionLog, Metric, Waiver, CoachMessage,
   Staff, Location, Lead, ProgressPhoto, Habit, HabitEntry, Challenge, Invoice, Coupon, AutomationRule,
@@ -324,6 +325,27 @@ export const invoicesRepo = {
     const all = await db.invoices.toArray()
     return (all.reduce((max, i) => Math.max(max, i.number), 0)) + 1
   },
+  /** Create this month's (and any missed, up to a cap) draft copies of every
+   *  repeat-monthly invoice. One transaction, so numbering can't interleave
+   *  with itself; ids are deterministic, so re-runs are no-ops. Returns how
+   *  many drafts it made. */
+  generateRecurring: singleFlight(async (): Promise<number> => {
+    return db.transaction('rw', db.invoices, async () => {
+      const all = await db.invoices.toArray()
+      const plans = planRecurringInvoices(all, today())
+      if (!plans.length) return 0
+      const byId = new Map(all.map(i => [i.id, i]))
+      let number = all.reduce((max, i) => Math.max(max, i.number), 0)
+      // Timestamped at the billing date, not now: two devices generating the
+      // same month write the same row, and any real edit (sending it, marking
+      // it paid) is always newer, so last-write-wins can't revert it to draft.
+      for (const plan of plans) {
+        const at = `${plan.date}T00:00:00.000Z`
+        await db.invoices.add({ ...draftFromTemplate(byId.get(plan.templateId)!, plan, ++number), createdAt: at, updatedAt: at })
+      }
+      return plans.length
+    })
+  }),
 }
 export const couponsRepo = {
   ...makeRepo<Coupon>(db.coupons),

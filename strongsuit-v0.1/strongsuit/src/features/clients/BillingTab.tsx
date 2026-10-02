@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, CreditCard, ArrowDownLeft, ArrowUpRight, Scissors, FileText, Trash2, ExternalLink } from 'lucide-react'
-import { Card, Button, Input, EmptyState, Dialog, Label, Select, Field, Stat, Tag, toast, toastError } from '@/design'
+import { Plus, CreditCard, ArrowDownLeft, ArrowUpRight, Scissors, FileText, Trash2, ExternalLink, Repeat } from 'lucide-react'
+import { Card, Button, Input, EmptyState, Dialog, Label, Select, Field, Stat, Tag, Checkbox, toast, toastError } from '@/design'
 import { paymentsRepo, clientsRepo, invoicesRepo, couponsRepo, staffRepo } from '@/db/repo'
 import type { Client, Payment, PaymentType, Invoice, InvoiceLineItem, InvoiceStatus } from '@/db/types'
 import { nowIso, newId, isoDay } from '@/lib/core'
@@ -77,6 +77,7 @@ function NewInvoiceDialog({ clientId, open, onClose }: { clientId: string; open:
   const [couponCode, setCouponCode] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [paymentLink, setPaymentLink] = useState('')
+  const [repeatMonthly, setRepeatMonthly] = useState(false)
   const [applied, setApplied] = useState<{ code: string; discountAmount: number } | null>(null)
   const { t } = useTranslation()
 
@@ -102,9 +103,10 @@ function NewInvoiceDialog({ clientId, open, onClose }: { clientId: string; open:
       subtotal: saveTotals.subtotal, total: saveTotals.total, status: sendNow ? 'sent' : 'draft',
       paymentLink: paymentLink.trim() || undefined,
       staffId: getActiveStaffId(staff) ?? undefined,
+      repeatMonthly: repeatMonthly || undefined,
     })
     toast(sendNow ? t('clients.toast.invoiceSent', { number }) : t('clients.toast.invoiceDraft', { number }))
-    setLineItems([{ description: '', amount: 0, qty: 1 }]); setCouponCode(''); setApplied(null); setDueDate(''); setPaymentLink('')
+    setLineItems([{ description: '', amount: 0, qty: 1 }]); setCouponCode(''); setApplied(null); setDueDate(''); setPaymentLink(''); setRepeatMonthly(false)
     onClose()
   }
 
@@ -139,6 +141,10 @@ function NewInvoiceDialog({ clientId, open, onClose }: { clientId: string; open:
         <Field label={t('clients.billing.paymentLinkLabel')} hint={t('clients.billing.paymentLinkHint')}>
           <Input value={paymentLink} onChange={e => setPaymentLink(e.target.value)} placeholder="https://buy.stripe.com/…" />
         </Field>
+        <label className="flex items-start gap-2 text-sm text-ink">
+          <Checkbox checked={repeatMonthly} onChange={setRepeatMonthly} label={t('clients.billing.repeatMonthly')} />
+          <span>{t('clients.billing.repeatMonthly')}<span className="block text-2xs text-faint">{t('clients.billing.repeatMonthlyHint')}</span></span>
+        </label>
         <div className="rounded-ctl border border-line bg-surface2 p-3 text-sm">
           <div className="flex justify-between text-muted"><span>{t('clients.billing.subtotal')}</span><span className="font-mono tabular-nums">${totals.subtotal.toFixed(2)}</span></div>
           {totals.discountAmount > 0 && <div className="flex justify-between text-ember-600"><span>{t('clients.billing.discount', { code: applied?.code })}</span><span className="font-mono tabular-nums">−${totals.discountAmount.toFixed(2)}</span></div>}
@@ -165,6 +171,11 @@ function InvoicesCard({ clientId }: { clientId: string }) {
     toast(t('clients.toast.invoiceStatus', { number: inv.number, status }))
   }
 
+  async function stopRepeating(inv: Invoice) {
+    await invoicesRepo.update(inv.id, { repeatMonthly: false })
+    toast(t('clients.toast.repeatStopped', { number: inv.number }))
+  }
+
   return (
     <Card>
       <div className="mb-3 flex items-center justify-between">
@@ -184,6 +195,8 @@ function InvoicesCard({ clientId }: { clientId: string }) {
                 <div className="flex items-center gap-2 text-sm">
                   <span className="font-mono tabular-nums font-medium text-ink">#{inv.number}</span>
                   <Tag tone={inv.status === 'paid' ? 'verde' : inv.status === 'sent' ? 'ember' : 'neutral'}>{inv.status}</Tag>
+                  {inv.repeatMonthly && <Tag tone="verde"><Repeat size={11} className="me-1 inline" />{t('clients.billing.repeatsMonthly')}</Tag>}
+                  {inv.repeatOf && <Tag>{t('clients.billing.recurringCopy')}</Tag>}
                 </div>
                 <div className="text-2xs text-faint">{inv.date}{inv.dueDate ? t('clients.billing.due', { date: inv.dueDate }) : ''} · {inv.lineItems.length}{t('clients.billing.lineItems', { s: inv.lineItems.length === 1 ? '' : 's' })}</div>
               </div>
@@ -196,6 +209,7 @@ function InvoicesCard({ clientId }: { clientId: string }) {
                 )}
                 {inv.status === 'sent' && <Button size="sm" variant="secondary" onClick={() => setStatus(inv, 'paid')}>{t('clients.billing.markPaidBtn')}</Button>}
                 {inv.status === 'draft' && <Button size="sm" variant="secondary" onClick={() => setStatus(inv, 'sent')}>{t('clients.billing.sendBtn')}</Button>}
+                {inv.repeatMonthly && <Button size="sm" variant="ghost" onClick={() => stopRepeating(inv)}>{t('clients.billing.stopRepeating')}</Button>}
               </div>
             </div>
           ))}

@@ -1,7 +1,7 @@
 # STATUS — read this first
 
 **Last updated:** 2026-10-02 (S26, Claude Code)
-**Health:** app 53 files · 683 tests · `tsc -b --force` 0 errors · lint:tailwind 0 errors · oxlint 0 errors · no import cycles
+**Health:** app 54 files · 694 tests · `tsc -b --force` 0 errors · lint:tailwind 0 errors · oxlint 0 errors · no import cycles
 · companion 7 files · 109 tests · clean · sync-server `tsc --noEmit` clean · 27 server tests
 
 > ⚠️ **The `tsc` command above is not a typo — read `AGENTS.md` §4 before you trust any prior "clean
@@ -18,7 +18,7 @@
 
 | | |
 |---|---|
-| **Last worked on** | S26: progress-photo compare picks any two photos, shows days apart + bodyweight change; duplicate Resting-HR preset chip fixed; stale `cloudCapabilities` doc claims corrected (`sessions/S26-photo-compare.md`). S25: CI workflow added; desktop startup bundle 979KB → 461KB (AI runtime lazy); client page fixed on phones (unreachable tabs, off-screen actions); Dashboard facts one-pass; last UTC-date sites; server health/shutdown/reset-throttle. S24: **account basics** — password reset by emailed one-time link (Postmark, off until keys exist), account deletion (cancels Stripe, erases server + device), server-side free-tier cap. Debt sweep: local-vs-UTC date bugs in both apps, real session-pack ledger, dead edition flags removed, 11MB unused wasm dropped per app, Film Room Reference keys, web `/assistant` redirect. S23 (before): moved to cloud accounts — `docs/CLOUD.md`. |
+| **Last worked on** | S26: **recurring invoices** ("Repeat monthly" → a draft each month, sync-safe ids); progress-photo compare picks any two photos, shows days apart + bodyweight change; duplicate Resting-HR preset chip fixed; stale `cloudCapabilities` doc claims corrected (`sessions/S26-photo-compare.md`). S25: CI workflow added; desktop startup bundle 979KB → 461KB (AI runtime lazy); client page fixed on phones (unreachable tabs, off-screen actions); Dashboard facts one-pass; last UTC-date sites; server health/shutdown/reset-throttle. S24: **account basics** — password reset by emailed one-time link (Postmark, off until keys exist), account deletion (cancels Stripe, erases server + device), server-side free-tier cap. Debt sweep: local-vs-UTC date bugs in both apps, real session-pack ledger, dead edition flags removed, 11MB unused wasm dropped per app, Film Room Reference keys, web `/assistant` redirect. S23 (before): moved to cloud accounts — `docs/CLOUD.md`. |
 | **Safe to pick up** | Anything in `ROADMAP.md`. |
 | **Half-done / in flight** | Nothing mid-edit. **Not done:** legal review of the EULA + a privacy policy (DEBT-75). Reset emails need a Postmark account + a verified sender (`CLOUD.md` §4) — until then the server logs that it couldn't send. |
 | **Don't touch without reading first** | `docs/CLOUD.md` §2 — `SYNCED_TABLES` (app) must match `SYNC_TABLES` (server); `Table.clear()` bypasses the sync hooks. |

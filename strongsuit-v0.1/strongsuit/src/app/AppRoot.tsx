@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react'
 import { RouterProvider } from 'react-router-dom'
 import { router } from './router'
 import { BootScreen } from './BootScreen'
-import { trainerRepo } from '@/db/repo'
+import { trainerRepo, invoicesRepo } from '@/db/repo'
 import { seedExercisesIfEmpty } from '@/db/seed'
 import { startMembershipRefreshLoop } from '@/lib/membershipApi'
 import { getSession, onSessionChange } from '@/lib/cloud/session'
-import { installSyncHooks, linkDevice, startSyncLoop } from '@/lib/cloud/syncEngine'
+import { installSyncHooks, linkDevice, startSyncLoop, onSyncStatus, getSyncStatus } from '@/lib/cloud/syncEngine'
 import AuthScreen from '@/features/account/AuthScreen'
 import { I18nProvider } from '@/lib/i18n'
 import { TitleBar } from './TitleBar'
@@ -131,6 +131,19 @@ export function AppRoot() {
   // linked account, which the boot sequence is what guarantees.
   useEffect(() => (ready ? startMembershipRefreshLoop() : undefined), [ready])
   useEffect(() => (ready ? startSyncLoop() : undefined), [ready])
+  // Recurring invoices are generated only right after a sync completes, never
+  // before this session's first pull: otherwise a device that hadn't seen
+  // another device's copies yet would generate them blind.
+  useEffect(() => {
+    if (!ready) return
+    let seen = getSyncStatus().lastSyncAt
+    return onSyncStatus(() => {
+      const s = getSyncStatus()
+      if (s.phase !== 'idle' || s.lastSyncAt === seen) return
+      seen = s.lastSyncAt
+      invoicesRepo.generateRecurring().catch(err => console.error('[recurring invoices]', err))
+    })
+  }, [ready])
 
   const retry = () => {
     setError(null)
