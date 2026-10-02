@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, MessageSquare, Send, RefreshCw, Radio, AlarmClock, X } from 'lucide-react'
+import { Plus, MessageSquare, Send, RefreshCw, Radio, AlarmClock, X, Sparkles } from 'lucide-react'
 import { Button, EmptyState, Dialog, Label, Card, toast, toastError } from '@/design'
-import { messagesRepo } from '@/db/repo'
+import { messagesRepo, clientsRepo, trainerRepo } from '@/db/repo'
 import type { CoachMessage, MessageDirection, MessageChannel } from '@/db/types'
 import { nowIso, newId } from '@/lib/core'
 import { format } from 'date-fns'
 import { BookingRequestCard } from './BookingRequestCard'
+import { planOnboarding, DEFAULT_ONBOARDING_STEPS } from '@/lib/onboardingSequence'
+import { useTranslation } from '@/lib/i18n'
 import { scheduleReminder, listUpcomingReminders, cancelReminder, type UpcomingReminder } from '@/lib/cloud/reminders'
 import { syncNow } from '@/lib/cloud/syncEngine'
 
@@ -147,6 +149,31 @@ function ReminderScheduler({ clientId }: { clientId: string }) {
     }
   }
 
+  // ---- welcome sequence (lib/onboardingSequence.ts) ----
+  const { t } = useTranslation()
+  const client = useLiveQuery(() => clientsRepo.get(clientId), [clientId])
+  const steps = useLiveQuery(async () => (await trainerRepo.get())?.onboardingSteps ?? DEFAULT_ONBOARDING_STEPS, [], DEFAULT_ONBOARDING_STEPS)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const plan = client ? planOnboarding(steps, client, new Date()) : []
+
+  async function startSequence() {
+    if (!client) return
+    setBusy(true)
+    try {
+      for (const r of planOnboarding(steps, client, new Date())) await scheduleReminder(clientId, r.content, r.sendAt, r.id)
+      // Only once every step is on the server — a failed run can be retried
+      // safely (same ids), a finished one is never offered again.
+      await clientsRepo.update(clientId, { onboardingStartedAt: nowIso() })
+      toast(t('clients.onboarding.toast'))
+      setConfirmOpen(false)
+      await refresh()
+    } catch (e) {
+      toastError(e instanceof Error ? e.message : "Couldn't schedule the welcome sequence.")
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function cancel(id: string) {
     setBusy(true)
     try {
@@ -189,6 +216,33 @@ function ReminderScheduler({ clientId }: { clientId: string }) {
         Delivered the next time this client opens Companion after that time — reminders are
         picked up on open, not pushed to a locked phone.
       </p>
+
+      {client && (client.onboardingStartedAt ? (
+        <p className="mt-2 flex items-center gap-1.5 text-2xs text-muted">
+          <Sparkles size={12} className="text-verde-600" />
+          {t('clients.onboarding.started', { date: new Date(client.onboardingStartedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) })}
+        </p>
+      ) : plan.length > 0 && (
+        <Button size="sm" variant="ghost" className="mt-2" onClick={() => setConfirmOpen(true)} disabled={busy}>
+          <Sparkles size={13} /> {t('clients.onboarding.startCount', { count: plan.length })}
+        </Button>
+      ))}
+
+      <Dialog open={confirmOpen} onClose={() => setConfirmOpen(false)} title={t('clients.onboarding.confirmTitle')} width={480}>
+        <p className="mb-3 text-xs text-muted">{t('clients.onboarding.confirmBody', { name: client?.firstName ?? '' })}</p>
+        <ul className="mb-4 space-y-2">
+          {plan.map(r => (
+            <li key={r.id} className="text-sm">
+              <span className="block font-mono text-2xs tabular-nums text-faint">{r.sendAt.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+              <span className="text-ink">{r.content}</span>
+            </li>
+          ))}
+        </ul>
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setConfirmOpen(false)}>{t('clients.billing.cancelBtn')}</Button>
+          <Button variant="primary" onClick={startSequence} disabled={busy}>{t('clients.onboarding.start')}</Button>
+        </div>
+      </Dialog>
 
       {loadFailed && (
         <p className="mt-2 text-2xs text-ember-600">Couldn't load scheduled reminders — are you online?</p>

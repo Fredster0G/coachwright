@@ -149,7 +149,7 @@ Everything else competitors ship that we don't, with an honest call on each:
 | **Client self-booking** | ✅ | ✅ **S26:** via Companion — coach sets weekly hours (Settings → Client booking), clients request an open slot, coach accepts/declines from Calendar or Messages (`lib/booking.ts`). | Done for connected clients. A public link for *prospects* (no Companion) is not built — it'd be the first unauthenticated surface; design it first. |
 | **Recurring billing for *their* clients** | ✅ | ✅ **S26:** "Repeat monthly" on an invoice — a draft copy each month on the same day, for the coach to review and send (`lib/recurringInvoices.ts`). Charging the card automatically is §2.5. | Done (invoicing side). |
 | **Progress photo side-by-side** | ✅ | ✅ **S26:** pick any two photos; shows days apart and the bodyweight within a week of each | Done. |
-| **Automated onboarding sequences** | ✅ | Manual | 🟨 Medium value. The automations engine is a natural host. |
+| **Automated onboarding sequences** | ✅ | ✅ **S26:** Welcome sequence — coach edits the messages once (Settings), starts them per client (Messages tab); each becomes a scheduled Companion reminder (`lib/onboardingSequence.ts`). | Done. Not auto-started on client creation on purpose: it only reaches Companion-connected clients. |
 | **Meal plans / recipes** | ✅ | ❌ | 🟡 Only after §2.1 food logging. Validate demand first. |
 | **Groups / community / challenges** | ✅ | Leaderboards + challenges exist | 🟡 Partial already. Extend only if asked. |
 | **In-app video calls** | ✅ | ❌ | 🔴 **Don't build.** Zoom/Meet links in the calendar cover it. Real infra, no differentiation. |

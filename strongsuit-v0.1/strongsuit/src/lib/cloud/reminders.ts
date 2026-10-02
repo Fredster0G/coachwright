@@ -5,8 +5,10 @@ import { api } from './session'
 
 export interface UpcomingReminder { id: string; clientId: string; content: string; sendAt: string }
 
-export async function scheduleReminder(clientId: string, content: string, sendAt: Date): Promise<string> {
-  const r = await api<{ id: string }>('/reminders', { method: 'POST', json: { clientId, content, sendAt: sendAt.toISOString() } })
+/** `id` makes the call idempotent (same id = same reminder, updated) — used
+ *  by the welcome sequence so a retry can't schedule a step twice. */
+export async function scheduleReminder(clientId: string, content: string, sendAt: Date, id?: string): Promise<string> {
+  const r = await api<{ id: string }>('/reminders', { method: 'POST', json: { id, clientId, content, sendAt: sendAt.toISOString() } })
   return r.id
 }
 

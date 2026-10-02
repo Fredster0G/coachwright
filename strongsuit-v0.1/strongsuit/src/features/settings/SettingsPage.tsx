@@ -15,6 +15,7 @@ import { LOCAL_AI_ENABLED } from '@/lib/cloud/config'
 import { LicenceCard } from './LicenceCard'
 import { MembershipCard } from './MembershipCard'
 import { BookingCard } from './BookingCard'
+import { OnboardingSequenceCard } from './OnboardingSequenceCard'
 import { BRAND_MARK_VARIANTS, BrandMark, type BrandMarkVariant } from '@/app/brand/Logomark'
 import { canUseCustomBranding } from '@/lib/membership'
 import { useTranslation, type MessageKey } from '@/lib/i18n'
@@ -479,6 +480,7 @@ export default function SettingsPage() {
       <BrandMarkCard />
       <ModulesCard />
       <BookingCard />
+      <OnboardingSequenceCard />
       {LOCAL_AI_ENABLED && <LocalAiCard />}
       <AutomationsCard />
       <Guide />

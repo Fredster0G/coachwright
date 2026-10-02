@@ -1,7 +1,7 @@
 # S26 — client self-booking, recurring invoices, photo compare, calendar day fix
 
 **Tool:** Claude Code · **Date:** 2026-10-02
-**Tests:** app 710/710 (57 files) · companion 112/112 · server 29/29 · **Typecheck:** `tsc -b --force` clean · electron tsc clean · oxlint/lint:tailwind 0 errors · no import cycles
+**Tests:** app 714/714 (58 files) · companion 112/112 · server 29/29 · **Typecheck:** `tsc -b --force` clean · electron tsc clean · oxlint/lint:tailwind 0 errors · no import cycles
 
 ## Asked
 "keep going" (twice) — continue optimizing and adding to the app; later "always continue" and leave Caleb a
@@ -21,6 +21,11 @@ list of what only he can do (→ `CALEB-TODO.md` at the repo root).
   3 slots/day, Mon 8:00 hidden by an existing session, zero console errors, zero off-origin requests.
   - The e2e caught two bugs in the new Settings card before commit: quick edits saved over a stale copy
     (From then To → only To kept), and queued saves read `e.target` after React reset it. Both fixed.
+- **Welcome sequence** (ROADMAP §2.6 onboarding). Settings → Welcome sequence edits the messages
+  (`{firstName}`, day offsets; default 4 steps); a client's Messages tab → "Start welcome sequence"
+  previews and schedules them as Companion reminders with ids `onb~<client>~<step>`, then stamps
+  `client.onboardingStartedAt` so it's never offered twice (the server's reminder upsert resets `sent`).
+  4 tests; verified live (edited step used, 4 reminders listed, button replaced by "started").
 - **Calendar showed appointments on the wrong day** (`lib/schedule.ts`, pre-existing): occurrence dates
   were the UTC day, so in the Americas everything after ~5pm sat on tomorrow and an evening weekly
   series lost its first occurrence; mornings in Asia landed on yesterday. Now the local day. 3 tests

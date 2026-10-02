@@ -22,6 +22,8 @@ export interface BookingSettings {
   windows: BookingWindow[]
 }
 export interface BookingSlot { start: string; end: string }   // ISO instants
+/** One message in the welcome sequence: sent `dayOffset` days after it starts. */
+export interface OnboardingStep { dayOffset: number; content: string }
 
 export interface Trainer extends Base {
   businessName: string
@@ -30,6 +32,9 @@ export interface Trainer extends Base {
    *  app last published from them for Companion (lib/booking.ts). */
   booking?: BookingSettings
   bookingSlots?: BookingSlot[]
+  /** The coach's welcome sequence for new Companion clients; absent = the
+   *  built-in default (lib/onboardingSequence.ts). */
+  onboardingSteps?: OnboardingStep[]
   logoDataUrl?: string
   brandColor?: string
   units: Units
@@ -148,6 +153,9 @@ export interface Waiver extends Base {
 export interface Client extends Base {
   firstName: string
   lastName: string
+  /** When the welcome sequence (lib/onboardingSequence.ts) was scheduled for
+   *  this client — set once, so it's never sent twice. */
+  onboardingStartedAt?: string
   email?: string
   phone?: string
   photoDataUrl?: string
