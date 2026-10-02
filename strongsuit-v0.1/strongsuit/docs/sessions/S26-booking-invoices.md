@@ -1,12 +1,31 @@
-# S26 — photo compare, recurring invoices, preset dedupe, stale-doc fixes
+# S26 — client self-booking, recurring invoices, photo compare, calendar day fix
 
 **Tool:** Claude Code · **Date:** 2026-10-02
-**Tests:** app 694/694 (54 files) · **Typecheck:** `tsc -b --force` clean · electron tsc clean · oxlint/lint:tailwind 0 errors · no import cycles
+**Tests:** app 710/710 (57 files) · companion 112/112 · server 29/29 · **Typecheck:** `tsc -b --force` clean · electron tsc clean · oxlint/lint:tailwind 0 errors · no import cycles
 
 ## Asked
-"keep going" — continue optimizing and adding to the app.
+"keep going" (twice) — continue optimizing and adding to the app; later "always continue" and leave Caleb a
+list of what only he can do (→ `CALEB-TODO.md` at the repo root).
 
 ## Shipped
+- **Client self-booking via Companion** (ROADMAP §2.6). Coach: Settings → Client booking (weekly hours,
+  session length, minimum notice). The app publishes free slots for the next 14 days on the trainer row
+  after each sync (`lib/booking.ts` `computeOpenSlots`: skips any non-canceled appointment occurrence,
+  incl. series, and slots held by pending requests; republishes only on change). Server: `/client/bundle`
+  adds `booking`, `openSlots` (notice applied server-side) and the client's own `sessions`; client pushes
+  keep only `booking.{start,end}` (no self-accepting). Companion: `/book` page — sessions, requests with
+  status, slots by local day, request bar. Coach: requests on Calendar ("Booking requests") and inline in
+  Messages; Accept creates the appointment + confirmation message, Decline replies (`messagesRepo.answerBooking`,
+  one transaction). Tests: 9 slot tests, 4 repo, 2 server, 1 Companion↔server integration, 2 Companion
+  helpers. **Live e2e in Chromium** (coach UI → Companion at 390px → coach accept → Companion "Confirmed"):
+  3 slots/day, Mon 8:00 hidden by an existing session, zero console errors, zero off-origin requests.
+  - The e2e caught two bugs in the new Settings card before commit: quick edits saved over a stale copy
+    (From then To → only To kept), and queued saves read `e.target` after React reset it. Both fixed.
+- **Calendar showed appointments on the wrong day** (`lib/schedule.ts`, pre-existing): occurrence dates
+  were the UTC day, so in the Americas everything after ~5pm sat on tomorrow and an evening weekly
+  series lost its first occurrence; mornings in Asia landed on yesterday. Now the local day. 3 tests
+  pinned to Los Angeles/Tokyo fail on the old code. No migration needed (nothing deployed).
+- "Log Message" dialog pre-filled the UTC time into a local-time field; now local.
 - **Progress-photo compare, any two photos** (ROADMAP §2.6 gap row). The dialog used to be fixed at
   first vs. latest. Now each side has a date picker (default first/latest), the header shows days
   apart and the bodyweight change, and each photo shows the bodyweight reading within a week of it
@@ -33,7 +52,6 @@
     produced `TPL1~2026-09` #2 draft due 09-17 after the first sync (October not yet due on 10-02),
     and the row reached the server with `updated_at` 2026-09-10; UI checkbox → "Repeats monthly";
     "Stop repeating" cleared it; zero console errors.
-- Photo card header wraps instead of breaking "Add photo" across two lines on a phone.
 - **Docs that lied:** STATUS and ROADMAP §2.1 still said barcode lookup was gated by
   `cloudCapabilities()` / `lib/cloudCapability.ts` in a "fully-local mode". Both went in S23; the lookup
   is always on. Corrected.
@@ -42,8 +60,8 @@
 - Nothing half-done.
 
 ## New debt
-- None.
+- DEBT-83 booking slots ride on the trainer row (re-uploads incl. logo on change).
+- DEBT-84 booking requests don't notify the coach (only Companion gets push).
 
 ## For the next session
-ROADMAP §2.6: client self-booking is the next "Build" row (needs a public, unauthenticated surface —
-design it against `CLOUD.md` first).
+ROADMAP §2.6 "automated onboarding sequences" (the automations engine is the host), or DEBT-64 i18n.

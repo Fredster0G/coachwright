@@ -784,8 +784,56 @@ app.get('/client/bundle', requireClient, (req, res) => {
     coachName: coach.name || 'Your coach',
     client: client && { id: client.id, firstName: client.firstName, lastName: client.lastName },
     programs, exercises, messages,
+    ...bookingFor(req.accountId!, req.clientId!, Date.now()),
   })
 })
+
+/** Client self-booking (coach app lib/booking.ts). `openSlots` is the slot
+ *  list the coach's app published on its trainer row, minus anything inside
+ *  the notice period — times only, nothing about who fills the rest of the
+ *  calendar. `sessions` is this client's own upcoming appointments (one-offs
+ *  and series masters; Companion expands nothing, it shows the next dates). */
+const MAX_SLOTS = 400
+export function bookingFor(accountId: string, clientId: string, now: number): {
+  booking: { enabled: boolean; slotMinutes?: number }
+  openSlots: { start: string; end: string }[]
+  sessions: { id: string; title: string; start: string; end: string; recurring: boolean }[]
+} {
+  const t = db.prepare(`SELECT data FROM records WHERE account_id = ? AND tbl = 'trainer' AND deleted = 0 LIMIT 1`).get(accountId) as { data: string } | undefined
+  const trainer = t ? JSON.parse(t.data) as { booking?: { enabled?: boolean; noticeHours?: number; slotMinutes?: number }; bookingSlots?: unknown } : {}
+  const enabled = !!trainer.booking?.enabled
+  const notice = Math.max(0, Number(trainer.booking?.noticeHours) || 0) * 3_600_000
+  const openSlots = enabled && Array.isArray(trainer.bookingSlots)
+    ? (trainer.bookingSlots as { start?: unknown; end?: unknown }[])
+        .filter((x): x is { start: string; end: string } => typeof x?.start === 'string' && typeof x?.end === 'string')
+        .filter(x => Date.parse(x.start) > now + notice)
+        .slice(0, MAX_SLOTS)
+        .map(x => ({ start: x.start, end: x.end }))
+    : []
+  const nowIso = new Date(now).toISOString()
+  const sessions = (db.prepare(`SELECT data FROM records WHERE account_id = ? AND client_id = ? AND tbl = 'appointments' AND deleted = 0`)
+    .all(accountId, clientId) as { data: string }[])
+    .map(r => JSON.parse(r.data) as { id: string; title?: string; start: string; end: string; status?: string; recurrenceRule?: unknown })
+    .filter(a => a.status !== 'canceled' && (a.recurrenceRule || a.end > nowIso))
+    .map(a => ({ id: a.id, title: a.title || 'Session', start: a.start, end: a.end, recurring: !!a.recurrenceRule }))
+    .sort((a, b) => a.start.localeCompare(b.start))
+  return { booking: { enabled, slotMinutes: enabled ? trainer.booking?.slotMinutes : undefined }, openSlots, sessions }
+}
+
+/** A client may ASK for a time; only the coach answers. Keep a booking
+ *  request's start/end (if they're sane) and drop anything else — notably
+ *  `status`/`appointmentId`, which would let a client accept its own
+ *  request. Sanitised rather than rejected: a 400 would also block whatever
+ *  logs were queued in the same batch. */
+const MAX_BOOKING_MS = 4 * 3_600_000
+function clientBookingOnly(c: Change): Change {
+  if (c.table !== 'messages' || !c.data || !('booking' in c.data)) return c
+  const { booking, ...rest } = c.data as Record<string, unknown> & { booking?: { start?: unknown; end?: unknown } }
+  const s = typeof booking?.start === 'string' ? Date.parse(booking.start) : NaN
+  const e = typeof booking?.end === 'string' ? Date.parse(booking.end) : NaN
+  const ok = Number.isFinite(s) && Number.isFinite(e) && e > s && e - s <= MAX_BOOKING_MS
+  return { ...c, data: ok ? { ...rest, booking: { start: new Date(s).toISOString(), end: new Date(e).toISOString() } } : rest }
+}
 
 /** Companion's writes: logged sessions, metrics, check-ins and its side of
  *  the thread — nothing else. Rows are forced onto this token's client. */
@@ -798,7 +846,7 @@ app.post('/client/push', requireClient, (req, res) => {
   const bad = changes.findIndex(c => !validChange(c) || !CLIENT_WRITABLE.has(c.table) || c.deleted
     || (c.table === 'messages' && (c.data as { direction?: unknown } | undefined)?.direction !== 'inbound'))
   if (bad !== -1) return res.status(400).json({ error: `Invalid change at index ${bad}` })
-  res.json({ success: true, ...applyChanges(req.accountId!, changes, req.clientId) })
+  res.json({ success: true, ...applyChanges(req.accountId!, changes.map(clientBookingOnly), req.clientId) })
 })
 
 app.get('/client/reminders/due', requireClient, (req, res) => {

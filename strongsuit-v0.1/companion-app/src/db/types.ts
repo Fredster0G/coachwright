@@ -42,13 +42,24 @@ export interface CoachLink {
   lastSyncAt?: string
   /** Watermark for incremental uploads — rows changed after this go up. */
   lastPushAt?: string
+  // ---- self-booking, refreshed from the bundle on every sync (unindexed) ----
+  bookingEnabled?: boolean
+  /** Times the coach has free (ISO instants), notice period already applied. */
+  openSlots?: BookingSlot[]
+  /** This client's own upcoming sessions on the coach's calendar. */
+  sessions?: { id: string; title: string; start: string; end: string; recurring: boolean }[]
 }
+
+export interface BookingSlot { start: string; end: string }
 
 export interface CoachMessage {
   id: string
   direction: 'from-coach' | 'to-coach'
   content: string
   createdAt: string
+  /** A session request sent from the booking screen; the coach's answer
+   *  comes back on the same message id. Absent status = waiting. */
+  booking?: BookingSlot & { status?: 'accepted' | 'declined' }
 }
 
 export type ExerciseSet = { reps: number; load?: number; rpe?: number }

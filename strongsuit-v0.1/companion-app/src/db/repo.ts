@@ -87,6 +87,9 @@ export const messagesRepo = {
   async has(id: string) {
     return (await db.messages.get(id)) !== undefined
   },
+  async get(id: string) {
+    return db.messages.get(id)
+  },
 }
 
 export const assignedProgramsRepo = {

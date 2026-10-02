@@ -13,7 +13,7 @@ import {
 } from '@/db/repo'
 import { nowIso } from '@/lib/core'
 import { clientApi, CloudError } from '@/lib/cloud'
-import type { CoachLink, AssignedProgram, CoachExercise, PersonalWorkout, PersonalMetric, CoachMessage } from '@/db/types'
+import type { CoachLink, AssignedProgram, CoachExercise, PersonalWorkout, PersonalMetric, CoachMessage, BookingSlot } from '@/db/types'
 
 // ---- connect ----
 
@@ -40,6 +40,8 @@ interface CoachMessageRow {
   id: string; createdAt: string; updatedAt: string
   clientId: string; date: string; direction: 'inbound' | 'outbound'
   channel: 'app'; content: string
+  /** Only the requested time goes up — the server drops anything else. */
+  booking?: BookingSlot
 }
 interface OutboundPayload {
   tables: { sessionLogs: CoachSessionLogRow[]; metrics: CoachMetricRow[]; messages: CoachMessageRow[] }
@@ -69,6 +71,7 @@ export function buildOutbound(workouts: PersonalWorkout[], metrics: PersonalMetr
         id: m.id, createdAt: m.createdAt, updatedAt: m.createdAt,
         clientId, date: m.createdAt,
         direction: 'inbound' as const, channel: 'app' as const, content: m.content,
+        ...(m.booking ? { booking: { start: m.booking.start, end: m.booking.end } } : {}),
       })),
     },
   }
@@ -95,7 +98,10 @@ interface Bundle {
   client: { id: string; firstName?: string; lastName?: string } | null
   programs: AssignedProgram[]
   exercises: CoachExercise[]
-  messages: { id: string; direction: string; content: string; date: string }[]
+  messages: { id: string; direction: string; content: string; date: string; booking?: BookingSlot & { status?: 'accepted' | 'declined' } }[]
+  booking?: { enabled: boolean }
+  openSlots?: BookingSlot[]
+  sessions?: CoachLink['sessions']
 }
 
 async function pullFromCoach(link: CoachLink): Promise<{ programs: number; messages: number }> {
@@ -104,11 +110,24 @@ async function pullFromCoach(link: CoachLink): Promise<{ programs: number; messa
   await coachExercisesRepo.mergeUpsert(b.exercises)
   let messages = 0
   for (const m of b.messages) {
+    // Our own booking request, answered by the coach: take the answer.
+    if (m.direction === 'inbound' && m.booking?.status) {
+      const mine = await messagesRepo.get(m.id)
+      if (mine?.booking && mine.booking.status !== m.booking.status) {
+        await messagesRepo.put({ ...mine, booking: { ...mine.booking, status: m.booking.status } })
+      }
+      continue
+    }
     if (m.direction !== 'outbound' || await messagesRepo.has(m.id)) continue
     await messagesRepo.put({ id: m.id, direction: 'from-coach', content: m.content, createdAt: m.date })
     messages++
   }
-  await coachLinkRepo.patch(link.id, { coachName: b.coachName })
+  await coachLinkRepo.patch(link.id, {
+    coachName: b.coachName,
+    bookingEnabled: !!b.booking?.enabled,
+    openSlots: b.openSlots ?? [],
+    sessions: b.sessions ?? [],
+  })
   return { programs, messages }
 }
 
@@ -145,8 +164,8 @@ export async function syncNow(link: CoachLink): Promise<{ pulled: number; progra
 
 /** Save a message locally, then deliver it. Offline isn't an error: it's
  *  queued and goes out with the next sync. Returns true if delivered now. */
-export async function pushMessageToCoach(link: CoachLink, content: string): Promise<boolean> {
-  await messagesRepo.create({ direction: 'to-coach', content })
+export async function pushMessageToCoach(link: CoachLink, content: string, booking?: BookingSlot): Promise<boolean> {
+  await messagesRepo.create({ direction: 'to-coach', content, ...(booking ? { booking: { start: booking.start, end: booking.end } } : {}) })
   try {
     await pushToCoach(link)
     return true

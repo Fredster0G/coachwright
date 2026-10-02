@@ -314,6 +314,46 @@ test('client pushes are forced onto its own client id and limited to its tables'
   assert.deepEqual(hijack.stale, ['mc2'])
 })
 
+test('booking: bundle serves published slots past the notice period and only this client\'s sessions', async () => {
+  const { coach, client } = await connectedClient()
+  const off = await (await get('/client/bundle', client)).json() as { booking: { enabled: boolean }; openSlots: unknown[]; sessions: unknown[] }
+  assert.equal(off.booking.enabled, false)
+  assert.deepEqual(off.openSlots, [])
+
+  const h = 3_600_000, now = Date.now()
+  const at = (ms: number) => new Date(now + ms).toISOString()
+  await post('/data/push', { changes: [
+    row('trainer', 'trainer', '2026-01-02T00:00:00.000Z', {
+      booking: { enabled: true, slotMinutes: 60, noticeHours: 12, windows: [] },
+      bookingSlots: [{ start: at(2 * h), end: at(3 * h) }, { start: at(30 * h), end: at(31 * h) }, { bogus: true }],
+    }),
+    row('appointments', 'ap1', '2026-01-02T00:00:00.000Z', { clientId: 'c1', title: 'PT', start: at(48 * h), end: at(49 * h) }),
+    row('appointments', 'ap2', '2026-01-02T00:00:00.000Z', { clientId: 'c2', title: 'Someone else', start: at(50 * h), end: at(51 * h) }),
+    row('appointments', 'ap3', '2026-01-02T00:00:00.000Z', { clientId: 'c1', title: 'Old', start: at(-48 * h), end: at(-47 * h) }),
+    row('appointments', 'ap4', '2026-01-02T00:00:00.000Z', { clientId: 'c1', title: 'Called off', start: at(60 * h), end: at(61 * h), status: 'canceled' }),
+  ] }, coach)
+  const on = await (await get('/client/bundle', client)).json() as { booking: { enabled: boolean; slotMinutes: number }; openSlots: { start: string }[]; sessions: { id: string; title: string }[] }
+  assert.equal(on.booking.enabled, true)
+  assert.equal(on.booking.slotMinutes, 60)
+  assert.deepEqual(on.openSlots.map(x => x.start), [at(30 * h)])   // 2h-out slot is inside the 12h notice
+  assert.deepEqual(on.sessions.map(x => x.id), ['ap1'])
+})
+
+test('booking: a client can request a time but cannot accept its own request', async () => {
+  const { coach, client } = await connectedClient()
+  const start = '2027-03-01T15:00:00.000Z', end = '2027-03-01T16:00:00.000Z'
+  const r = await post('/client/push', { changes: [
+    row('messages', 'req1', '2027-01-01T00:00:00.000Z', { direction: 'inbound', content: 'Booking request', booking: { start, end, status: 'accepted', appointmentId: 'x' } }),
+    row('messages', 'req2', '2027-01-01T00:00:00.000Z', { direction: 'inbound', content: 'Bad', booking: { start: end, end: start } }),
+    row('sessionLogs', 'log9', '2027-01-01T00:00:00.000Z', { date: '2027-01-01' }),
+  ] }, client)
+  assert.equal(r.status, 200)   // sanitised, not rejected — the log in the same batch still lands
+  const p = await (await get('/data/pull?since=0', coach)).json() as { changes: { id: string; data: { booking?: Record<string, unknown> } }[] }
+  assert.deepEqual(p.changes.find(c => c.id === 'req1')!.data.booking, { start, end })
+  assert.equal(p.changes.find(c => c.id === 'req2')!.data.booking, undefined)
+  assert.ok(p.changes.some(c => c.id === 'log9'))
+})
+
 test('coach can disconnect a client', async () => {
   const { coach, client } = await connectedClient()
   await fetch(`${base}/invites/c1`, { method: 'DELETE', headers: json(coach) })

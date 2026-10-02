@@ -95,6 +95,36 @@ describe('Companion ↔ Coachwright Cloud', () => {
     expect((await repo.workoutsRepo.all()).map(w => w.title)).toEqual(['Mine'])
   })
 
+  it('booking: sees open slots and its sessions, requests one, and gets the coach\'s answer', async () => {
+    const c = await coach()
+    const h = 3_600_000, now = Date.now()
+    const at = (ms: number) => new Date(now + ms).toISOString()
+    const slot = { start: at(30 * h), end: at(31 * h) }
+    await c.push([
+      c.row('clients', 'cl1', { firstName: 'Alex' }),
+      c.row('trainer', 'trainer', { booking: { enabled: true, slotMinutes: 60, noticeHours: 12, windows: [] }, bookingSlots: [{ start: at(h), end: at(2 * h) }, slot] }),
+      c.row('appointments', 'ap1', { clientId: 'cl1', title: 'Session', start: at(48 * h), end: at(49 * h) }),
+    ])
+    await api.connectWithCode(await c.invite('cl1'))
+    await api.syncNow((await repo.coachLinkRepo.get())!)
+    let link = (await repo.coachLinkRepo.get())!
+    expect(link.bookingEnabled).toBe(true)
+    expect(link.openSlots).toEqual([slot])            // the 1h-out one is inside the notice period
+    expect(link.sessions?.map(s => s.id)).toEqual(['ap1'])
+
+    await api.pushMessageToCoach(link, 'Session request', slot)
+    const req = (await c.pull()).changes.find(x => x.table === 'messages' && x.data.booking)!
+    expect(req.data.booking).toEqual(slot)
+
+    // Coach accepts: same message id, newer stamp, status set.
+    const t1 = new Date(now + 1000).toISOString()
+    await c.push([{ table: 'messages', id: req.id, updatedAt: t1, data: { ...req.data, updatedAt: t1, booking: { ...slot, status: 'accepted', appointmentId: 'ap2' } } }])
+    link = (await repo.coachLinkRepo.get())!
+    await api.syncNow(link)
+    const mine = (await repo.messagesRepo.all()).find(m => m.id === req.id)!
+    expect(mine.booking?.status).toBe('accepted')
+  })
+
   it('a wrong code is a clear error', async () => {
     await expect(api.connectWithCode('ZZZZ-ZZZZ')).rejects.toThrow(/wrong or has expired/)
   })

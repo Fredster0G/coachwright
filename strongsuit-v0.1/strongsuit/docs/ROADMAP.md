@@ -146,7 +146,7 @@ Everything else competitors ship that we don't, with an honest call on each:
 
 | Feature | Them | Us | Call |
 |---|---|---|---|
-| **Client self-booking** | ✅ | Calendar exists, coach-entered only | 🟨 **Build.** Real friction; a booking link clients can use is high value, low risk. |
+| **Client self-booking** | ✅ | ✅ **S26:** via Companion — coach sets weekly hours (Settings → Client booking), clients request an open slot, coach accepts/declines from Calendar or Messages (`lib/booking.ts`). | Done for connected clients. A public link for *prospects* (no Companion) is not built — it'd be the first unauthenticated surface; design it first. |
 | **Recurring billing for *their* clients** | ✅ | ✅ **S26:** "Repeat monthly" on an invoice — a draft copy each month on the same day, for the coach to review and send (`lib/recurringInvoices.ts`). Charging the card automatically is §2.5. | Done (invoicing side). |
 | **Progress photo side-by-side** | ✅ | ✅ **S26:** pick any two photos; shows days apart and the bodyweight within a week of each | Done. |
 | **Automated onboarding sequences** | ✅ | Manual | 🟨 Medium value. The automations engine is a natural host. |

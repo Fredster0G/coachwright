@@ -5,7 +5,9 @@ import {
   ChevronLeft, ChevronRight, List, LayoutGrid,
 } from 'lucide-react'
 import { Card, Button, Input, Select, EmptyState, Dialog, Label, Tag, Field, toast } from '@/design'
-import { appointmentsRepo, clientsRepo, staffRepo, locationsRepo } from '@/db/repo'
+import { appointmentsRepo, clientsRepo, staffRepo, locationsRepo, messagesRepo } from '@/db/repo'
+import { BookingRequestCard } from '@/features/clients/BookingRequestCard'
+import { useTranslation } from '@/lib/i18n'
 import type { Appointment, RecurrenceFreq, Client, Staff, Location } from '@/db/types'
 import { nowIso, newId, fullName, today } from '@/lib/core'
 import { expandAll, describeRule, type Occurrence } from '@/lib/schedule'
@@ -307,6 +309,8 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState<string | null>(format(new Date(), 'yyyy-MM-dd'))
 
   const allMasters = useLiveQuery(() => appointmentsRepo.masters(), [], [])
+  const pendingBookings = useLiveQuery(() => messagesRepo.pendingBookings(), [], [])
+  const { t } = useTranslation()
   const clients = useLiveQuery(() => clientsRepo.all(), [], [])
   const staff = useLiveQuery(() => staffRepo.all(), [], [])
   const locations = useLiveQuery(() => locationsRepo.all(), [], [])
@@ -382,6 +386,20 @@ export default function CalendarPage() {
           <Button variant="primary" onClick={() => setDialogOpen(true)}><Plus size={16} className="me-2" /> New appointment</Button>
         </div>
       </div>
+
+      {pendingBookings.length > 0 && (
+        <Card>
+          <p className="mb-2 text-sm font-semibold text-ink">{t('booking.pendingTitle')} · {pendingBookings.length}</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {pendingBookings.map(m => (
+              <div key={m.id}>
+                <p className="text-xs font-medium text-muted">{clientMap.get(m.clientId) ? fullName(clientMap.get(m.clientId)!) : '—'}</p>
+                <BookingRequestCard message={m} />
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {showScope && (
         <div className="mb-4 flex flex-wrap items-end gap-3">

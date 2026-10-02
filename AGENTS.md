@@ -53,12 +53,15 @@ make it a pointer, not a copy.
 2. Check its "Baton" section — what the previous tool left half-done, and what not to touch.
 3. Confirm the tree is clean-ish: `git status`, `npx tsc -b --force`, `npx vitest run`.
 
-**On finish (all four, every time — even a 20-minute session)**
+**On finish (all of these, every time — even a 20-minute session)**
 1. Write `docs/sessions/S##-slug.md` — a **new file**, never an edit to an existing one.
 2. Update `docs/STATUS.md` in place (it is the only file that gets rewritten).
 3. Add any new debt to `docs/DEBT.md` with the next free id. **Never reuse an id.**
 4. Re-run the per-project checks in §4 for every project you touched and put the real numbers in the
    session file.
+5. If anything new needs Caleb (keys, money, hardware, a lawyer, a product decision), or you finished
+   something on it, update **`TODO-FOR-CALEB.txt`** at the repo root — plain language, no jargon. Caleb
+   asked for this so the work never stalls waiting on him: do everything you can, list the rest there.
 
 Session files are capped at **~60 lines**. If yours is longer, you are writing narrative — cut it. The
 format is in `docs/sessions/TEMPLATE.md`.

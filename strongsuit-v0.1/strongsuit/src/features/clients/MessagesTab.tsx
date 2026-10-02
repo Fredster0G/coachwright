@@ -5,6 +5,8 @@ import { Button, EmptyState, Dialog, Label, Card, toast, toastError } from '@/de
 import { messagesRepo } from '@/db/repo'
 import type { CoachMessage, MessageDirection, MessageChannel } from '@/db/types'
 import { nowIso, newId } from '@/lib/core'
+import { format } from 'date-fns'
+import { BookingRequestCard } from './BookingRequestCard'
 import { scheduleReminder, listUpcomingReminders, cancelReminder, type UpcomingReminder } from '@/lib/cloud/reminders'
 import { syncNow } from '@/lib/cloud/syncEngine'
 
@@ -19,7 +21,7 @@ function LogMessageDialog({ clientId, open, onClose }: { clientId: string; open:
     channel: MessageChannel
     content: string
   }>({
-    date: new Date().toISOString().slice(0, 16), // YYYY-MM-DDTHH:mm
+    date: format(new Date(), "yyyy-MM-dd'T'HH:mm"), // local, as datetime-local expects (was the UTC time)
     direction: 'outbound',
     channel: 'sms',
     content: ''
@@ -313,6 +315,7 @@ export default function MessagesTab({ clientId }: MessagesTabProps) {
                     <span>{timeStr}</span>
                   </div>
                   <div className="whitespace-pre-wrap text-sm">{m.content}</div>
+                  {m.booking && <BookingRequestCard message={m} />}
                 </div>
               </div>
             )

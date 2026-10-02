@@ -2,6 +2,7 @@ import { db } from '../schema'
 import { makeRepo } from './base'
 import { newId, nowIso, singleFlight, stamp, today } from '@/lib/core'
 import { planRecurringInvoices, draftFromTemplate } from '@/lib/recurringInvoices'
+import { computeOpenSlots, sameSlots, BOOKING_HORIZON_DAYS } from '@/lib/booking'
 import type {
   Trainer, Client, ClientNote, Program, SessionLog, Metric, Waiver, CoachMessage,
   Staff, Location, Lead, ProgressPhoto, Habit, HabitEntry, Challenge, Invoice, Coupon, AutomationRule,
@@ -52,6 +53,22 @@ export const trainerRepo = {
     await db.trainer.update(TRAINER_ID, { ...patch, updatedAt: nowIso() })
     return db.trainer.get(TRAINER_ID)
   },
+  /** Recompute the open booking slots and store them on the trainer row —
+   *  only when they changed, since the row (logo and all) re-uploads on every
+   *  write. Pending requests hold their slot. Returns whether it wrote. */
+  publishBookingSlots: singleFlight(async (): Promise<boolean> => {
+    const t = await db.trainer.get(TRAINER_ID)
+    if (!t) return false
+    const now = new Date()
+    const nowIsoStr = now.toISOString()
+    const held = (await db.messages.toArray())
+      .filter(m => m.direction === 'inbound' && m.booking && !m.booking.status && m.booking.end > nowIsoStr)
+      .map(m => ({ start: m.booking!.start, end: m.booking!.end }))
+    const slots = t.booking?.enabled ? computeOpenSlots(t.booking, await db.appointments.toArray(), now, BOOKING_HORIZON_DAYS, held) : []
+    if (sameSlots(t.bookingSlots ?? [], slots)) return false
+    await db.trainer.update(TRAINER_ID, { bookingSlots: slots, updatedAt: nowIso() })
+    return true
+  }),
 }
 
 // ---------- clients ----------
@@ -260,6 +277,35 @@ export const messagesRepo = {
   ...makeRepo<CoachMessage>(db.messages),
   async forClient(clientId: string) {
     return db.messages.where('clientId').equals(clientId).reverse().sortBy('date')
+  },
+  /** Booking requests from Companion still waiting on the coach, soonest
+   *  first. Past ones drop off — there's nothing left to answer. */
+  async pendingBookings(now = new Date()) {
+    const n = now.toISOString()
+    return (await db.messages.toArray())
+      .filter(m => m.direction === 'inbound' && m.booking && !m.booking.status && m.booking.end > n)
+      .sort((a, b) => a.booking!.start.localeCompare(b.booking!.start))
+  },
+  /** Answer a booking request: on accept, the appointment is created and
+   *  linked; either way the client gets a reply in the thread and the open
+   *  slots are republished. One transaction so a half-answered request can't
+   *  exist. Returns the appointment id on accept. */
+  async answerBooking(messageId: string, accept: boolean, replyText: string): Promise<string | undefined> {
+    const apptId = await db.transaction('rw', db.messages, db.appointments, async () => {
+      const m = await db.messages.get(messageId)
+      if (!m?.booking || m.booking.status) throw new Error('This request was already answered.')
+      const t = nowIso()
+      let id: string | undefined
+      if (accept) {
+        id = newId()
+        await db.appointments.add({ id, createdAt: t, updatedAt: t, clientId: m.clientId, title: 'Session', start: m.booking.start, end: m.booking.end, status: 'scheduled' })
+      }
+      await db.messages.update(messageId, { booking: { ...m.booking, status: accept ? 'accepted' : 'declined', appointmentId: id }, updatedAt: t })
+      await db.messages.add({ id: newId(), createdAt: t, updatedAt: t, clientId: m.clientId, date: t, direction: 'outbound', channel: 'app', content: replyText })
+      return id
+    })
+    await trainerRepo.publishBookingSlots()
+    return apptId
   },
 }
 

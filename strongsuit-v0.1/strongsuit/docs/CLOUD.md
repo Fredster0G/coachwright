@@ -50,13 +50,13 @@ device must receive the first device's ids or its programs would point at nothin
 | `POST /data/push`, `GET /data/pull?since=N` | coach | ≤500 changes per push; pull pages 1,000 at a time. Push also returns `refused` — clients over the free cap (`MEMBERSHIP.md` §4) |
 | `POST /invites`, `DELETE /invites/:clientId` | coach | connect code (8 chars, single use, 7 days) / disconnect every Companion for a client |
 | `POST /client/redeem` | — (auth-rate-limited) | code → client token |
-| `GET /client/bundle`, `POST /client/push`, `GET /client/reminders/due`, `/client/push/*` | client | Companion's whole surface |
+| `GET /client/bundle`, `POST /client/push`, `GET /client/reminders/due`, `/client/push/*` | client | Companion's whole surface. Since S26 the bundle also carries **self-booking**: `booking.enabled`, `openSlots` (the coach's published `trainer.bookingSlots`, minus anything inside `noticeHours` — free times only, nothing about who fills the rest) and `sessions` (this client's own upcoming appointments). A booking request is an inbound message with `booking: {start, end}`; the server keeps only those two fields from a client (so a client can't mark its own request accepted) and sanitises rather than rejects, so queued logs in the same batch still land |
 | `POST/GET/DELETE /reminders` | coach | released to Companion on its next check-in after `sendAt` |
 | `/membership/checkout`, `/status`, `/portal` | coach | Stripe, keyed by account — see `MEMBERSHIP.md` |
 | `POST /membership/webhook` | Stripe signature | |
 | `GET /health` | — | `{ok, uptime}` only; touches the database, so it returns 503 on a broken/full disk |
 
-Tests: `cd sync-server && npm test` (27 HTTP tests). The app's sync engine and Companion's sync code each
+Tests: `cd sync-server && npm test` (29 HTTP tests). The app's sync engine and Companion's sync code each
 have integration tests that start this real server in-process (`lib/cloud/syncEngine.test.ts`,
 `companion-app/src/features/sync/companionSyncApi.test.ts`).
 

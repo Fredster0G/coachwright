@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ClipboardList, Link2, RefreshCw, Send } from 'lucide-react'
+import { CalendarClock, ClipboardList, Link2, RefreshCw, Send } from 'lucide-react'
 import { Button, Card, EmptyState, Input } from '@/design'
 import { coachLinkRepo, messagesRepo, assignedProgramsRepo } from '@/db/repo'
 import { syncNow, pushMessageToCoach } from '@/features/sync/companionSyncApi'
@@ -101,6 +101,15 @@ export function CoachPage() {
         </Link>
       )}
 
+      {(coachLink.bookingEnabled || (coachLink.sessions?.length ?? 0) > 0) && (
+        <Link to="/book">
+          <Card className="flex items-center gap-2 py-2.5 text-sm text-ink hover:border-verde-600">
+            <CalendarClock size={16} className="text-verde-600" />
+            {coachLink.sessions?.length ? 'Your sessions · book another' : 'Book a session'}
+          </Card>
+        </Link>
+      )}
+
       <Button variant="primary" onClick={doSync} disabled={busy}>
         <RefreshCw size={14} className={busy ? 'animate-spin' : ''} /> {busy ? 'Syncing…' : 'Sync now'}
       </Button>
@@ -115,6 +124,11 @@ export function CoachPage() {
           <div key={m.id} className={`flex ${m.direction === 'to-coach' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-[85%] rounded-ctl px-3 py-2 text-sm ${m.direction === 'to-coach' ? 'bg-verde-600 text-white' : 'border border-line bg-surface text-ink'}`}>
               <p>{m.content}</p>
+              {m.booking && (
+                <p className="mt-0.5 text-2xs font-medium">
+                  {m.booking.status === 'accepted' ? '✓ Confirmed' : m.booking.status === 'declined' ? 'Declined' : 'Waiting for coach'}
+                </p>
+              )}
               <p className={`mt-0.5 text-2xs ${m.direction === 'to-coach' ? 'text-white/70' : 'text-faint'}`}>
                 {new Date(m.createdAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
               </p>

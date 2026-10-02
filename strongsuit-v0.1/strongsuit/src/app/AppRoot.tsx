@@ -131,9 +131,10 @@ export function AppRoot() {
   // linked account, which the boot sequence is what guarantees.
   useEffect(() => (ready ? startMembershipRefreshLoop() : undefined), [ready])
   useEffect(() => (ready ? startSyncLoop() : undefined), [ready])
-  // Recurring invoices are generated only right after a sync completes, never
-  // before this session's first pull: otherwise a device that hadn't seen
-  // another device's copies yet would generate them blind.
+  // Recurring invoices and booking slots are derived only right after a sync
+  // completes, never before this session's first pull: a device that hadn't
+  // seen another device's rows yet would generate invoices blind and publish
+  // slots over appointments it doesn't know about.
   useEffect(() => {
     if (!ready) return
     let seen = getSyncStatus().lastSyncAt
@@ -142,6 +143,7 @@ export function AppRoot() {
       if (s.phase !== 'idle' || s.lastSyncAt === seen) return
       seen = s.lastSyncAt
       invoicesRepo.generateRecurring().catch(err => console.error('[recurring invoices]', err))
+      trainerRepo.publishBookingSlots().catch(err => console.error('[booking slots]', err))
     })
   }, [ready])
 

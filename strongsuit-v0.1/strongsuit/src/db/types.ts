@@ -11,9 +11,25 @@ export interface Base {
 
 export type Units = 'lb' | 'kg'
 
+/** Weekly bookable hours (lib/booking.ts). `day` is 0 = Sunday, times are
+ *  the coach's local wall clock, 'HH:mm'. */
+export interface BookingWindow { day: number; start: string; end: string }
+export interface BookingSettings {
+  enabled: boolean
+  slotMinutes: number
+  /** Minimum lead time; applied by the server when serving slots. */
+  noticeHours: number
+  windows: BookingWindow[]
+}
+export interface BookingSlot { start: string; end: string }   // ISO instants
+
 export interface Trainer extends Base {
   businessName: string
   trainerName: string
+  /** Client self-booking (S26): the coach's hours, and the open slots this
+   *  app last published from them for Companion (lib/booking.ts). */
+  booking?: BookingSettings
+  bookingSlots?: BookingSlot[]
   logoDataUrl?: string
   brandColor?: string
   units: Units
@@ -343,6 +359,9 @@ export interface CoachMessage extends Base {
   direction: MessageDirection
   channel: MessageChannel
   content: string
+  /** Set on a client's booking request from Companion (lib/booking.ts). The
+   *  coach's answer is recorded here; absent `status` = still pending. */
+  booking?: BookingSlot & { status?: 'accepted' | 'declined'; appointmentId?: string }
 }
 
 export type MetricType =

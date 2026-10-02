@@ -2,7 +2,7 @@
 
 **Original numbering preserved** so older docs' cross-references still resolve. **Never reuse an id** —
 duplicate ids have already caused a fixed bug to be "rediscovered" and re-fixed a session later.
-Next free id: **83**.
+Next free id: **85**.
 
 Closed debts are *not* listed here. Pre-S21 closures live in the frozen `PROGRESS.md` archive; later ones
 are recorded in the closing session's file under `docs/sessions/` — grep by number.
@@ -95,6 +95,16 @@ cap is a nudge, and the in-app check still applies.
 **82 · (S24, NEW) Deleting the account clears only the device it was deleted from.** Other signed-in
 devices are signed out (their session is gone) but keep their local copy until someone signs in there
 (which replaces it) or they export and wipe it. Say so if a coach asks for erasure "everywhere".
+
+**83 · (S26, NEW) Booking slots ride on the trainer row.** The open slots are published as
+`trainer.bookingSlots`, so the whole trainer row (logo data URL included) re-uploads whenever the offer
+changes — about once a day as the 14-day window rolls, plus on every booking/calendar change. Fine at
+today's sizes; move slots to their own row if the logo grows or coaches have many locations.
+
+**84 · (S26, NEW) Booking requests don't notify the coach.** A request shows in Calendar → Booking
+requests and in the client's thread on the next sync; there is no push/email to the coach (the server's
+web push only targets Companion). The client's phone *is* told when the coach replies (existing
+outbound-message push).
 
 **79 · (S23, NEW) Old pricing tiers still described in strategy docs.** The $15/mo managed relay and the
 free self-hosted relay no longer exist. `SERVER_STRATEGY.md`, `CLIENT_APP_STRATEGY.md`,
