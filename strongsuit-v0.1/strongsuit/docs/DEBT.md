@@ -67,7 +67,7 @@ Guide, Film Room, Assistant. Pattern for engine prose (S28): `lib/i18n/msg.ts` �
 (key + params, params may nest) beside its English string, both from one catalogue entry; UI calls
 `renderMsg(msg, t)`. Done: `progression.ts`, `readiness.ts`, `nutrition.ts`, `nutritionAdvanced.ts`,
 `energyAvailability.ts` (all of the Nutrition + Science tabs), `trainingLoad.ts`, `quickLog.ts` (questions +
-`describePlanMsgs`). Next: `goals.ts` (Coaching tab goal card). `parq.ts` is a validated questionnaire —
+`describePlanMsgs`), `goals.ts` (static copy as `goal.<id>.*` keys + a drift test). `parq.ts` is a validated questionnaire —
 use an official PAR-Q+ translation, don't machine-translate it. Citations (`source`) stay untranslated on purpose. `lib/schedule.ts` `describeRule()` still returns English. **The science screens (Nutrition, Film Room
 summaries, readiness) are mostly engine-written prose from `lib/` (rationale, notes, warnings)** — translating
 only their component labels yields a half-English page; those engines need message keys + params first. Layer + RTL are done.

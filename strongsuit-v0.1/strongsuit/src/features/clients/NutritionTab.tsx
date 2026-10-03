@@ -7,7 +7,7 @@ import type { Client, Units, Sex, ActivityLevel, NutritionGoal } from '@/db/type
 import { nutritionPlan, ageFromBirthDate, toKg, ACTIVITY_FACTORS, carbCycle, dietBreakAdvice, type RationaleLine } from '@/lib/nutrition'
 import { assessEnergyAvailability, screenPrescription } from '@/lib/energyAvailability'
 import { chooseBmr, proteinDistribution, carbTarget, type SessionLoad } from '@/lib/nutritionAdvanced'
-import { goalPlan, GOAL_LABELS } from '@/lib/goals'
+import { goalPlan } from '@/lib/goals'
 import { today } from '@/lib/core'
 import { useTranslation, type MessageKey } from '@/lib/i18n'
 import { renderMsg } from '@/lib/i18n/msg'
@@ -281,7 +281,7 @@ export default function NutritionTab({ client, units }: { client: Client; units:
               <span className="text-2xs text-faint">{t('nutr.bmrTdee', { bmr: plan.bmr, tdee: plan.tdee })}</span>
             </div>
             {goalFromTraining && client.trainingGoal && (
-              <p className="mb-2 text-2xs text-muted">{t('nutr.goalFromTraining', { goal: GOAL_LABELS[client.trainingGoal] })}</p>
+              <p className="mb-2 text-2xs text-muted">{t('nutr.goalFromTraining', { goal: t(`goal.${client.trainingGoal}.label` as MessageKey) })}</p>
             )}
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               <Stat label={t('nutr.calories')} value={plan.calories} unit="kcal" tone="verde" />

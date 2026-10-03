@@ -8,7 +8,7 @@ import {
 } from '@/design'
 import { clientsRepo, waiversRepo, logsRepo, trainerRepo } from '@/db/repo'
 import type { Client, Units, TrainingGoal, WaiverKind } from '@/db/types'
-import { goalPlan, ALL_GOALS, GOAL_LABELS } from '@/lib/goals'
+import { goalPlan, ALL_GOALS } from '@/lib/goals'
 import {
   screen, PARQ_QUESTIONS, CLEARED_COPY, FLAGGED_COPY, PARQ_SOURCE,
   assumptionOfRiskText, informedConsentText, ASSUMPTION_OF_RISK_TITLE, INFORMED_CONSENT_TITLE,
@@ -17,7 +17,7 @@ import { acwr, type DayLoad } from '@/lib/trainingLoad'
 import { setTonnage } from '@/lib/core'
 import { sha256Hex } from '@/lib/hash'
 import { today } from '@/lib/core'
-import { useTranslation } from '@/lib/i18n'
+import { useTranslation, type MessageKey } from '@/lib/i18n'
 import { renderMsg } from '@/lib/i18n/msg'
 
 // ---------- Goal & programming ----------
@@ -38,7 +38,7 @@ function GoalCard({ client }: { client: Client }) {
             className="!h-8 w-48"
           >
             <option value="">{t('clients.coaching.chooseGoal')}</option>
-            {ALL_GOALS.map(g => <option key={g} value={g}>{GOAL_LABELS[g]}</option>)}
+            {ALL_GOALS.map(g => <option key={g} value={g}>{t(`goal.${g}.label` as MessageKey)}</option>)}
           </Select>
         </Field>
       </div>
@@ -47,7 +47,7 @@ function GoalCard({ client }: { client: Client }) {
         <p className="text-xs text-muted">{t('clients.coaching.noGoalBody')}</p>
       ) : (
         <>
-          <p className="mb-3 text-xs text-muted">{plan.summary}</p>
+          <p className="mb-3 text-xs text-muted">{t(`goal.${plan.goal}.summary` as MessageKey)}</p>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Stat label={t('clients.coaching.reps')} value={`${plan.repRange[0]}–${plan.repRange[1]}`} />
             <Stat label={t('clients.coaching.intensity')} value={`${plan.intensityPct[0]}–${plan.intensityPct[1]}`} unit="%1RM" />
@@ -58,12 +58,12 @@ function GoalCard({ client }: { client: Client }) {
             <Stat label={t('clients.coaching.protein')} value={plan.proteinPerKg} unit="g/kg" />
             <Stat label={t('clients.coaching.calories')} value={plan.calorieAdjustmentPct === 0 ? t('clients.coaching.maintain') : `${plan.calorieAdjustmentPct > 0 ? '+' : ''}${plan.calorieAdjustmentPct}%`} tone={plan.calorieAdjustmentPct < 0 ? 'ember' : 'verde'} />
           </div>
-          <p className="mt-3 text-xs text-muted"><span className="font-medium text-ink">{t('clients.coaching.conditioning')}</span> {plan.cardio}</p>
+          <p className="mt-3 text-xs text-muted"><span className="font-medium text-ink">{t('clients.coaching.conditioning')}</span> {t(`goal.${plan.goal}.cardio` as MessageKey)}</p>
           <div className="mt-3 border-t border-line pt-3">
             <div className="mb-1 flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-verde-600"><Info size={13} /> {t('clients.coaching.whyTargets')}</div>
             <ul className="space-y-1.5">
               {plan.rationale.map((r, i) => (
-                <li key={i} className="text-xs text-muted">{r.text}<span className="mt-0.5 block text-2xs text-faint">{t('clients.coaching.source')}{r.source}</span></li>
+                <li key={i} className="text-xs text-muted">{t(`goal.${plan.goal}.why${i}` as MessageKey)}<span className="mt-0.5 block text-2xs text-faint">{t('clients.coaching.source')}{r.source}</span></li>
               ))}
             </ul>
           </div>
