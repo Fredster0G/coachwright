@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Check, Save, Play, ShieldCheck, ShieldAlert } from 'lucide-react'
 import { Button, Input, Label, Card, FileDropzone, toastError } from '@/design'
-import { trainerRepo, clientsRepo } from '@/db/repo'
-import type { Trainer, Client } from '@/db/types'
-import { newId, nowIso } from '@/lib/core'
+import { trainerRepo } from '@/db/repo'
+import type { Trainer } from '@/db/types'
+import { seedDemoRoster } from '@/db/demo'
+import { useTranslation } from '@/lib/i18n'
 import { APP_NAME } from '@/lib/brand'
 import { Logomark } from '@/app/brand/Logomark'
 import { importClientPackageText } from '@/db/portability'
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export default function OnboardingWizard({ trainer }: Props) {
+  const { t } = useTranslation()
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({
     trainerName: trainer.trainerName || '',
@@ -51,33 +53,30 @@ export default function OnboardingWizard({ trainer }: Props) {
       }
       const rows = parseCsv(text)
       if (rows.length < 2) {
-        toastError("That CSV doesn't have any data rows to import.")
+        toastError(t('onboard.csvEmpty'))
         return
       }
       setCsvImport({ headerRow: rows[0], dataRows: rows.slice(1) })
     } catch (e) {
-      toastError(e instanceof Error ? e.message : "Couldn't import that file.")
+      toastError(e instanceof Error ? e.message : t('onboard.importFailed'))
     } finally {
       setImporting(false)
     }
   }
 
+  // Real sample data (db/demo.ts): an active program, three weeks of
+  // sessions, check-ins and weigh-ins per client — what step 3 promises.
+  // It used to create three bare client rows, with a timestamp as startDate.
   async function seedDemoData() {
     setSeeding(true)
-    const t = nowIso()
-    
-    const demoClients: Client[] = [
-      { id: newId(), createdAt: t, updatedAt: t, status: 'active', firstName: 'Alex', lastName: 'Demo', isDemo: true, email: 'alex@example.com', startDate: t, tags: [], goals: '', injuries: '', parqNotes: '' },
-      { id: newId(), createdAt: t, updatedAt: t, status: 'active', firstName: 'Sam', lastName: 'Sample', isDemo: true, email: 'sam@example.com', startDate: t, tags: [], goals: '', injuries: '', parqNotes: '' },
-      { id: newId(), createdAt: t, updatedAt: t, status: 'active', firstName: 'Jordan', lastName: 'Test', isDemo: true, email: 'jordan@example.com', startDate: t, tags: [], goals: '', injuries: '', parqNotes: '' }
-    ]
-
-    for (const c of demoClients) {
-      await clientsRepo.create(c)
+    try {
+      await seedDemoRoster(form.units as 'lb' | 'kg')
+      setStep(4)
+    } catch (e) {
+      toastError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setSeeding(false)
     }
-
-    setSeeding(false)
-    setStep(4)
   }
 
   async function complete() {
@@ -90,7 +89,7 @@ export default function OnboardingWizard({ trainer }: Props) {
     
     // Attempt storage persist
     if (navigator.storage && navigator.storage.persist) {
-      try { await navigator.storage.persist() } catch (e) { /* ignore */ }
+      try { await navigator.storage.persist() } catch { /* informational only */ }
     }
   }
 
@@ -101,13 +100,13 @@ export default function OnboardingWizard({ trainer }: Props) {
         {step === 1 && (
           <div className="text-center space-y-6">
             <Logomark size={48} animated className="mx-auto" />
-            <h1 className="text-3xl font-display font-bold text-ink">Welcome to {APP_NAME}</h1>
+            <h1 className="text-3xl font-display font-bold text-ink">{t('onboard.welcome', { app: APP_NAME })}</h1>
             <p className="text-muted text-lg">
-              The professional workshop instrument for coaches. Let's get your workspace set up in about 60 seconds.
+              {t('onboard.intro')}
             </p>
             <div className="pt-4">
               <Button variant="primary" className="w-full text-lg py-3" onClick={() => setStep(2)}>
-                Get Started
+                {t('onboard.getStarted')}
               </Button>
             </div>
           </div>
@@ -116,43 +115,43 @@ export default function OnboardingWizard({ trainer }: Props) {
         {step === 2 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-ink mb-1">Your Identity</h2>
-              <p className="text-faint text-sm">This powers the Companion app that clients will see.</p>
+              <h2 className="text-2xl font-bold text-ink mb-1">{t('onboard.identity')}</h2>
+              <p className="text-faint text-sm">{t('onboard.identityHint')}</p>
             </div>
 
             <div className="space-y-4">
-              <div><Label>Your Name</Label><Input 
+              <div><Label>{t('onboard.yourName')}</Label><Input 
                 value={form.trainerName} onChange={e => setForm({ ...form, trainerName: e.target.value })} 
                 autoFocus
               /></div>
-              <div><Label>Business Name</Label><Input 
+              <div><Label>{t('onboard.businessName')}</Label><Input 
                 value={form.businessName} onChange={e => setForm({ ...form, businessName: e.target.value })} 
               /></div>
               
               <div>
-                <Label>Units</Label>
+                <Label>{t('onboard.units')}</Label>
                 <div className="flex gap-4 mt-1">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="radio" name="units" value="lb" checked={form.units === 'lb'} onChange={() => setForm({ ...form, units: 'lb' })} />
-                    <span className="text-ink font-medium">Pounds (lb)</span>
+                    <span className="text-ink font-medium">{t('onboard.lb')}</span>
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input type="radio" name="units" value="kg" checked={form.units === 'kg'} onChange={() => setForm({ ...form, units: 'kg' })} />
-                    <span className="text-ink font-medium">Kilograms (kg)</span>
+                    <span className="text-ink font-medium">{t('onboard.kg')}</span>
                   </label>
                 </div>
               </div>
 
               <div className="pt-2">
                 <p className="text-sm text-faint">
-                  Custom branding (logos and colors) is unlocked automatically if you ever upgrade to Coachwright Membership. 
+                  {t('onboard.brandingNote')}
                 </p>
               </div>
             </div>
 
             <div className="pt-4 flex justify-end gap-3 border-t border-line mt-6">
-              <Button variant="ghost" onClick={() => setStep(1)}>Back</Button>
-              <Button variant="primary" onClick={() => setStep(3)}>Continue</Button>
+              <Button variant="ghost" onClick={() => setStep(1)}>{t('onboard.back')}</Button>
+              <Button variant="primary" onClick={() => setStep(3)}>{t('onboard.continue')}</Button>
             </div>
           </div>
         )}
@@ -160,32 +159,32 @@ export default function OnboardingWizard({ trainer }: Props) {
         {step === 3 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-ink mb-1">Demo Data</h2>
-              <p className="text-faint text-sm">Explore with sample clients, bring in your real roster, or start empty.</p>
+              <h2 className="text-2xl font-bold text-ink mb-1">{t('onboard.demoTitle')}</h2>
+              <p className="text-faint text-sm">{t('onboard.demoHint')}</p>
             </div>
 
             <div className="bg-surface2 p-6 rounded-xl border border-line text-center">
               <Play size={32} className="mx-auto text-verde-600 mb-4" />
-              <h3 className="font-semibold text-lg text-ink mb-2">Explore with 3 sample clients</h3>
+              <h3 className="font-semibold text-lg text-ink mb-2">{t('onboard.demoCardTitle')}</h3>
               <p className="text-muted text-sm mb-6 max-w-sm mx-auto">
-                Includes sample history, check-ins, and active programs so you can see how the analytics and logger work. Remove them anytime in one click.
+                {t('onboard.demoCardBody')}
               </p>
               <Button variant="primary" className="w-full justify-center" onClick={seedDemoData} disabled={seeding}>
-                {seeding ? 'Loading...' : 'Add Demo Data'}
+                {seeding ? t('onboard.loading') : t('onboard.addDemo')}
               </Button>
             </div>
 
             <div>
-              <Label>Or import your existing roster</Label>
-              <p className="mb-2 text-2xs text-faint">A Coachwright client-package file, or a roster CSV exported from TrueCoach, Trainerize, and similar platforms.</p>
+              <Label>{t('onboard.importLabel')}</Label>
+              <p className="mb-2 text-2xs text-faint">{t('onboard.importHint')}</p>
               <FileDropzone accept=".json,application/json,.csv,text/csv" onFile={handleRosterFile} />
-              {importing && <p className="mt-1 text-2xs text-faint">Importing…</p>}
+              {importing && <p className="mt-1 text-2xs text-faint">{t('onboard.importing')}</p>}
             </div>
 
             <div className="pt-4 flex justify-between border-t border-line mt-6">
-              <Button variant="ghost" onClick={() => setStep(2)}>Back</Button>
+              <Button variant="ghost" onClick={() => setStep(2)}>{t('onboard.back')}</Button>
               <Button variant="ghost" onClick={() => setStep(4)}>
-                Skip, start with an empty roster
+                {t('onboard.skip')}
               </Button>
             </div>
           </div>
@@ -194,8 +193,8 @@ export default function OnboardingWizard({ trainer }: Props) {
         {step === 4 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-ink mb-1">Data Ownership</h2>
-              <p className="text-faint text-sm">Your data is saved to your {APP_NAME} account and synced to every device you sign in on.</p>
+              <h2 className="text-2xl font-bold text-ink mb-1">{t('onboard.dataTitle')}</h2>
+              <p className="text-faint text-sm">{t('onboard.dataHint', { app: APP_NAME })}</p>
             </div>
 
             <div className="bg-amber-50 dark:bg-amber-950/20 p-5 rounded-xl border border-amber-200 dark:border-amber-900/50">
@@ -204,12 +203,12 @@ export default function OnboardingWizard({ trainer }: Props) {
                   <Save size={24} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-amber-900 dark:text-amber-500 mb-1">Your data lives in your account</h3>
+                  <h3 className="font-semibold text-amber-900 dark:text-amber-500 mb-1">{t('onboard.dataCardTitle')}</h3>
                   <p className="text-amber-800/80 dark:text-amber-500/80 text-sm leading-relaxed mb-4">
-                    Client data, programs, and history sync to your account and to every device you sign in on, including the web app. If the internet drops, changes wait on this device and upload when you're back.
+                    {t('onboard.dataCardBody')}
                   </p>
                   <p className="text-amber-800/80 dark:text-amber-500/80 text-sm font-semibold">
-                    Want your own copy too? We'll remind you to export a backup file every 7 days.
+                    {t('onboard.dataCardBackup')}
                   </p>
                 </div>
               </div>
@@ -217,7 +216,7 @@ export default function OnboardingWizard({ trainer }: Props) {
 
             {importedCount !== null && (
               <p className="text-sm text-verde-600">
-                {importedCount === 1 ? '1 client imported.' : `${importedCount} clients imported.`}
+                {t('onboard.imported', { count: importedCount })}
               </p>
             )}
 
@@ -227,17 +226,17 @@ export default function OnboardingWizard({ trainer }: Props) {
                 (heuristic, no-permission-prompt) persistence model. */}
             <div className="flex items-center gap-2 text-xs text-muted">
               {storagePersisted === null ? (
-                <span className="text-faint">Checking storage…</span>
+                <span className="text-faint">{t('onboard.storageChecking')}</span>
               ) : storagePersisted ? (
-                <><ShieldCheck size={14} className="text-verde-600" /> Persistent storage granted — your data won't be cleared under storage pressure.</>
+                <><ShieldCheck size={14} className="text-verde-600" /> {t('onboard.storageYes')}</>
               ) : (
-                <><ShieldAlert size={14} className="text-ember-600" /> Persistent storage not granted by this browser. Your account still has everything — only changes made while offline could be lost if the browser clears its storage.</>
+                <><ShieldAlert size={14} className="text-ember-600" /> {t('onboard.storageNo')}</>
               )}
             </div>
 
             <div className="pt-4 flex justify-end gap-3 border-t border-line mt-6">
-              <Button variant="ghost" onClick={() => setStep(3)}>Back</Button>
-              <Button variant="primary" onClick={complete}><Check size={16} className="me-2" /> I understand, let's go</Button>
+              <Button variant="ghost" onClick={() => setStep(3)}>{t('onboard.back')}</Button>
+              <Button variant="primary" onClick={complete}><Check size={16} className="me-2" /> {t('onboard.finish')}</Button>
             </div>
           </div>
         )}

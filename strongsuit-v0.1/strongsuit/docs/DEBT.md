@@ -60,9 +60,9 @@ and the synced-table list + licence public key must match between app and server
 `core.ts` is deliberately different per app (Companion's is a small subset) — S24 found its `today()` was
 the UTC day, fixed.
 
-**64 · i18n: about 14 components still hold hardcoded English** (re-measured S27 — the old "~53 of 57"
-was stale: 30 of 55 feature components already use `t()`). Calendar, Messages, Team, Leads, Leaderboard, Reports, Studio (hub + location), Library (+ video viewer) converted S27; Program Builder S28. Biggest left: Settings
-Guide, Film Room, Nutrition tab, builder sub-views (outline, grid, rows), Onboarding wizard. `lib/schedule.ts` `describeRule()` still returns English. **The science screens (Nutrition, Film Room
+**64 · i18n: about 13 components still hold hardcoded English** (re-measured S27 — the old "~53 of 57"
+was stale: 30 of 55 feature components already use `t()`). Calendar, Messages, Team, Leads, Leaderboard, Reports, Studio (hub + location), Library (+ video viewer) converted S27; Program Builder and Onboarding wizard S28. Biggest left: Settings
+Guide, Film Room, Nutrition tab, builder sub-views (outline, grid, rows). `lib/schedule.ts` `describeRule()` still returns English. **The science screens (Nutrition, Film Room
 summaries, readiness) are mostly engine-written prose from `lib/` (rationale, notes, warnings)** — translating
 only their component labels yields a half-English page; those engines need message keys + params first. Layer + RTL are done.
 `es.json`/`ar.json` are **seed translations** marked in their own `_meta` — must not ship to customers
@@ -94,7 +94,8 @@ one real reset.
 **81 · (S24, NEW) The free cap's "never claw back" allowance trusts the first push.** An account's first
 `/data/push` sets its allowance to however many active clients it carries — that's how a pre-cloud
 install keeps its roster. A hand-crafted first push could claim a bigger allowance once. Accepted: the
-cap is a nudge, and the in-app check still applies.
+cap is a nudge, and the in-app check still applies. Same for `isDemo` (S28): sample clients don't count,
+so a crafted push could mark real clients as samples.
 
 **82 · (S24, NEW) Deleting the account clears only the device it was deleted from.** Other signed-in
 devices are signed out (their session is gone) but keep their local copy until someone signs in there

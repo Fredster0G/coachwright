@@ -205,6 +205,16 @@ test('free cap: members and verified one-time licences are uncapped; a forged li
   assert.equal(mod.verifiedLicenceEdition(mintLicence('studio')), 'studio')
 })
 
+test('free cap: onboarding sample clients (isDemo) do not use up the 3 free slots', async () => {
+  const t = await signup()
+  await push(t, [row('trainer', 'me', '2026-01-01T00:00:00.000Z')])
+  const demo = ['s1', 's2', 's3'].map(id => row('clients', id, '2026-01-01T00:00:00.000Z', { status: 'active', isDemo: true }))
+  assert.equal((await push(t, demo)).refused.length, 0)
+  const r = await push(t, ['a', 'b', 'c', 'd'].map(id => activeClient(id)))
+  assert.deepEqual(r.applied, ['a', 'b', 'c'])
+  assert.deepEqual(r.refused, ['d'])
+})
+
 test('free cap: an install that arrives with more clients keeps them (never claw back) but cannot add more', async () => {
   const t = await signup()
   const first = await push(t, [row('trainer', 'me', '2026-01-01T00:00:00.000Z'), ...['a', 'b', 'c', 'd', 'e'].map(id => activeClient(id))])

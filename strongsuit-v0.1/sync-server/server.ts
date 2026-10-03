@@ -574,6 +574,7 @@ function hasPaidAccess(accountId: string): boolean {
 const countActiveClients = db.prepare(`
   SELECT COUNT(*) AS n FROM records
   WHERE account_id = ? AND tbl = 'clients' AND deleted = 0 AND json_extract(data, '$.status') = 'active'
+    AND COALESCE(json_extract(data, '$.isDemo'), 0) = 0
 `)
 function activeClientCount(accountId: string): number {
   return (countActiveClients.get(accountId) as { n: number }).n
@@ -634,7 +635,8 @@ export function applyChanges(
   const refused: string[] = []
   // Under a cap, apply everything else before clients becoming active, so a
   // batch that archives one client and adds another is order-independent.
-  const activates = (c: Change) => c.table === 'clients' && !c.deleted && c.data?.status === 'active'
+  // Onboarding's sample clients (isDemo) never count toward the free cap.
+  const activates = (c: Change) => c.table === 'clients' && !c.deleted && c.data?.status === 'active' && !c.data?.isDemo
   const ordered = clientCap === undefined ? changes : [...changes.filter(c => !activates(c)), ...changes.filter(activates)]
   db.transaction(() => {
     for (const c of ordered) {

@@ -220,6 +220,9 @@ export default function ClientsPage() {
   }, [clients, query, statusFilter, sortKey, sortDir, logs, programMap, weekStartsOn])
 
   const loading = clients === undefined
+  // Sample clients from onboarding (db/demo.ts) — the wizard promises they
+  // can be removed in one click; this is that click.
+  const demoCount = clients?.filter(c => c.isDemo).length ?? 0
 
   return (
     <div>
@@ -240,6 +243,17 @@ export default function ClientsPage() {
           </div>
         }
       />
+
+      {demoCount > 0 && (
+        <Card className="mb-3 flex flex-wrap items-center justify-between gap-2 py-2.5">
+          <span className="text-sm text-muted">{t('clients.demo.banner', { count: demoCount })}</span>
+          <Button size="sm" variant="ghost" className="text-ember-600" onClick={async () => {
+            if (!window.confirm(t('clients.demo.confirm'))) return
+            await clientsRepo.purgeDemo()
+            toast(t('clients.demo.removed'))
+          }}>{t('clients.demo.remove')}</Button>
+        </Card>
+      )}
 
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <div className="relative flex-1 max-w-xs">
@@ -316,7 +330,7 @@ export default function ClientsPage() {
       <NewClientDialog
         open={showNew}
         onClose={() => setShowNew(false)}
-        activeClientCount={clients?.filter(c => c.status === 'active').length ?? 0}
+        activeClientCount={clients?.filter(c => c.status === 'active' && !c.isDemo).length ?? 0}
         hasActiveMembership={!!trainer && hasPaidAccess(trainer)}
       />
       {csvImport && (
@@ -325,7 +339,7 @@ export default function ClientsPage() {
           dataRows={csvImport.dataRows}
           open={!!csvImport}
           onClose={() => setCsvImport(null)}
-          activeClientCount={clients?.filter(c => c.status === 'active').length ?? 0}
+          activeClientCount={clients?.filter(c => c.status === 'active' && !c.isDemo).length ?? 0}
           hasActiveMembership={!!trainer && hasPaidAccess(trainer)}
         />
       )}
