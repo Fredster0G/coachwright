@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import type { KeyboardEvent } from 'react'
-import { GripVertical, Trash2, Plus } from 'lucide-react'
+import { GripVertical, Trash2, Plus, Link2, Unlink } from 'lucide-react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { ExercisePrescription, SetPrescription } from '@/db/types'
@@ -14,6 +14,8 @@ interface ExerciseRowProps {
   updateExercise: (exId: string, updates: Partial<ExercisePrescription>) => void
   removeExercise: (exId: string) => void
   onToggleSuperset?: () => void
+  inSuperset?: boolean
+  canJoin?: boolean
 }
 
 export default function ExerciseRow({
@@ -21,7 +23,9 @@ export default function ExerciseRow({
   exercise,
   updateExercise,
   removeExercise,
-  onToggleSuperset
+  onToggleSuperset,
+  inSuperset,
+  canJoin,
 }: ExerciseRowProps) {
   const { t } = useTranslation()
   const exDef = useLiveQuery(() => exercisesRepo.get(exercise.exerciseId), [exercise.exerciseId])
@@ -111,7 +115,17 @@ export default function ExerciseRow({
           {/* Header */}
           <div className="px-3 py-2 flex items-center justify-between border-b border-line/50">
             <span className="font-semibold text-ink text-sm">{exDef.name}</span>
-            <div className="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition-opacity">
+            <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 flex items-center gap-2 transition-opacity">
+              {onToggleSuperset && (inSuperset || canJoin) && (
+                <button
+                  title={inSuperset ? t('builder.splitSuperset') : t('builder.joinSuperset')}
+                  aria-label={inSuperset ? t('builder.splitSuperset') : t('builder.joinSuperset')}
+                  onClick={onToggleSuperset}
+                  className="text-muted hover:text-verde-600"
+                >
+                  {inSuperset ? <Unlink size={14} /> : <Link2 size={14} />}
+                </button>
+              )}
                <button title={t('builder.removeExercise')} aria-label={t('builder.removeExercise')} onClick={() => removeExercise(exercise.id)} className="text-muted hover:text-ember-600">
                 <Trash2 size={14} />
               </button>

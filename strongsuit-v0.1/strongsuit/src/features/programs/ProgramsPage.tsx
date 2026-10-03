@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ClipboardList, Plus, FileSignature } from 'lucide-react'
+import { ClipboardList, Plus, FileSignature, Copy } from 'lucide-react'
 import { programsRepo, clientsRepo, staffRepo } from '@/db/repo'
 import type { Program, ProgramStatus } from '@/db/types'
 import { stamp, fullName } from '@/lib/core'
@@ -55,6 +55,14 @@ export default function ProgramsPage() {
     navigate(`/programs/${fresh.id}/edit`)
   }
 
+  // A client's program can't become a template in place — copy it out first.
+  const duplicate = async (p: Program) => {
+    const copy = await programsRepo.duplicate(p.id, {
+      name: t('programs.copyName', { name: p.name }), clientId: undefined, status: 'draft', startDate: undefined,
+    })
+    navigate(`/programs/${copy.id}/edit`)
+  }
+
   const getClientName = (clientId?: string) => {
     if (!clientId) return t('programs.template')
     const c = clients?.find(c => c.id === clientId)
@@ -92,7 +100,7 @@ export default function ProgramsPage() {
           action={filter === 'all' && <Button variant="primary" onClick={createNewProgram}><Plus size={14} /> {t('programs.createFirst')}</Button>}
         />
       ) : (
-        <Table head={<><th>{t('programs.col.name')}</th><th>{t('programs.col.client')}</th><th>{t('programs.col.status')}</th><th className="w-32">{t('programs.col.updated')}</th></>}>
+        <Table head={<><th>{t('programs.col.name')}</th><th>{t('programs.col.client')}</th><th>{t('programs.col.status')}</th><th className="w-32">{t('programs.col.updated')}</th><th className="w-10"><span className="sr-only">{t('programs.col.actions')}</span></th></>}>
           {filtered.map(p => (
             <tr key={p.id}>
               <td>
@@ -115,6 +123,11 @@ export default function ProgramsPage() {
               <td><Tag tone={STATUS_TONE[p.status]}>{t(STATUS_LABEL[p.status])}</Tag></td>
               <td className="font-mono tabular-nums text-xs text-muted">
                 {new Date(p.updatedAt).toLocaleDateString()}
+              </td>
+              <td>
+                <Button size="sm" variant="ghost" onClick={() => duplicate(p)} title={t('programs.duplicate')} aria-label={t('programs.duplicateNamed', { name: p.name })}>
+                  <Copy size={13} />
+                </Button>
               </td>
             </tr>
           ))}

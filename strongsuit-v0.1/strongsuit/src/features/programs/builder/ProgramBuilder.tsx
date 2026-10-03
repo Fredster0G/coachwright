@@ -222,12 +222,13 @@ export default function ProgramBuilder() {
         </div>
       </Dialog>
 
-      <ProgramSettingsDialog 
+      {/* Per-open mount: its fields seed from `draft` once (stale after undo/redo otherwise). */}
+      {settingsOpen && <ProgramSettingsDialog
         draft={draft}
-        open={settingsOpen}
+        open
         onClose={() => setSettingsOpen(false)}
         commitChange={commitChange}
-      />
+      />}
 
       {/* Two Pane Layout */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
@@ -271,6 +272,9 @@ function ProgramSettingsDialog({ draft, open, onClose, commitChange }: { draft: 
   const { t } = useTranslation()
   const [desc, setDesc] = useState(draft.description || '')
   const [goalTag, setGoalTag] = useState(draft.goalTag || '')
+  // Nothing could make a program a template before S28 — the Templates filter
+  // and assignToClient's copy-a-template path were unreachable.
+  const [isTemplate, setIsTemplate] = useState(draft.status === 'template')
   
   const pol = draft.progressionPolicy
   const [polKind, setPolKind] = useState<'none'|'linear-load'|'double-progression'|'rpe-target'>(pol ? pol.kind : 'none')
@@ -291,7 +295,8 @@ function ProgramSettingsDialog({ draft, open, onClose, commitChange }: { draft: 
       ...draft,
       description: desc,
       goalTag,
-      progressionPolicy: newPol
+      progressionPolicy: newPol,
+      ...(draft.clientId ? {} : { status: isTemplate ? 'template' : draft.status === 'template' ? 'draft' : draft.status }),
     })
     onClose()
   }
@@ -306,6 +311,15 @@ function ProgramSettingsDialog({ draft, open, onClose, commitChange }: { draft: 
         <Field label={t('builder.goalTag')} hint={t('builder.goalTagHint')}>
           <Input value={goalTag} onChange={e => setGoalTag(e.target.value)} />
         </Field>
+
+        {draft.clientId ? (
+          <p className="text-2xs text-faint">{t('builder.templateAssigned')}</p>
+        ) : (
+          <label className="flex items-start gap-2 text-sm text-ink">
+            <input type="checkbox" checked={isTemplate} onChange={e => setIsTemplate(e.target.checked)} className="mt-0.5 accent-[var(--verde-600)]" />
+            <span>{t('builder.template')}<span className="block text-2xs text-faint">{t('builder.templateHint')}</span></span>
+          </label>
+        )}
         
         <div className="border-t border-line pt-4">
           <h3 className="font-bold mb-3">{t('builder.progression')}</h3>

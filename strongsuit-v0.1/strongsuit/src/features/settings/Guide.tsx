@@ -73,15 +73,15 @@ export default function Guide() {
           <Steps items={[
             <>Go to <B>Programs → New</B>. A program is weeks → days → blocks → exercises.</>,
             <>Press <Kbd>/</Kbd> to focus the exercise search. Type gym slang — “rdl”, “ohp”, “bss” — and aliases resolve it instantly.</>,
-            <>Edit sets, reps, and load like a spreadsheet; arrow keys move between cells. Drag rows to reorder, or drag one onto another to make a superset.</>,
+            <>Edit sets, reps, and load like a spreadsheet; arrow keys move between cells. Drag rows to reorder. The <B>link</B> button on an exercise makes it a superset with the one above (the same button splits it out again).</>,
             <><B>Duplicate week</B> is the fastest way to progress — it can auto-add load or reps. Undo/redo (<Kbd>⌘Z</Kbd>) covers everything.</>,
-            <>Save any program as a <B>template</B>, then start new clients from it. <B>Assign to client</B> makes it active and drives their logger and Companion file.</>,
+            <>In the builder’s <B>Settings</B>, tick <B>Reusable template</B> to keep a program in your library. <B>Assign to client</B> gives that client their own copy and makes it their active program. To reuse a client’s program, <B>Duplicate</B> it from the Programs list first.</>,
           ]} />
         </Section>
 
         <Section icon={<PenLine size={16} />} title="Log sessions & read progress">
           <p>
-            From a client or the dashboard, <B>Log session</B> opens the prescribed day pre-filled with targets. Tap in actuals, check off sets, add RPE. Big touch targets — it works on the gym floor on a phone.
+            From a client’s page, <B>Log session</B> opens the next day of their program (the one after the last day logged), pre-filled with targets. Ticking a set done records the target as performed unless you change it. Big touch targets — it works on the gym floor on a phone. For a one-off set, <Kbd>⌘L</Kbd> opens <B>Quick log</B>: type it the way you’d say it.
           </p>
           <p>
             Tap any exercise to open its <B>history drawer</B>: last five performances, an e1RM trend, a <B>Suggested next</B> load with the reasoning behind it, and a percent-based warm-up ramp.
@@ -94,6 +94,9 @@ export default function Guide() {
         <Section icon={<CalendarDays size={16} />} title="Calendar & scheduling">
           <p>
             <B>Calendar</B> shows a real month grid — click a day to see and add appointments, or switch to <B>List</B> view for a scrollable agenda. Sessions link back to the client they’re for.
+          </p>
+          <p>
+            Set your <B>booking hours</B> in Settings and clients connected through Companion can request a free slot; requests wait on the Calendar and Dashboard for you to accept or decline.
           </p>
         </Section>
 
@@ -145,6 +148,7 @@ export default function Guide() {
             <>Record client payments on their <B>Billing</B> tab. They aggregate on the <B>Business</B> page.</>,
             <><B>Profit planner:</B> set the profit you need this month. {APP_NAME} subtracts expenses and shows the gap, a month-end projection, and roughly how many more sessions it takes to hit your goal.</>,
             <><B>Expenses:</B> add rent, insurance, software, and the like. Monthly ones carry forward automatically.</>,
+            <><B>Invoices:</B> create them from a client’s Billing tab — drafts, sent, paid, optional monthly repeat, and discount codes you set up in <B>Settings → Coupons</B>.</>,
             <><B>The gym’s cut:</B> on a client’s Billing tab, set what the facility takes — a <B>percent</B> of their income or a <B>flat monthly fee</B>. It’s subtracted from your real profit on the Business page, so the number you see is what you actually keep.</>,
           ]} />
         </Section>
@@ -175,7 +179,7 @@ export default function Guide() {
         <Section icon={<ShieldCheck size={16} />} title="Back up & move machines">
           <Steps items={[
             <><B>Back up now</B> (below) saves one file with everything in it. Add a passphrase to encrypt it — but there’s no recovery, so store the passphrase safely.</>,
-            <>The shield in the sidebar tracks days since your last backup and turns amber at seven. Keep it green.</>,
+            <>The shield in the sidebar tracks days since your last backup and turns amber after 30 days — your account is the main copy; a backup is an extra one.</>,
             <>Moving to a new computer? Just sign in there — your account brings everything with it. A backup file is your own extra copy, independent of the cloud.</>,
           ]} />
         </Section>
@@ -183,6 +187,7 @@ export default function Guide() {
         <Section icon={<Keyboard size={16} />} title="Keyboard shortcuts">
           <ul className="space-y-1.5">
             <li><Kbd>⌘K</Kbd> / <Kbd>Ctrl K</Kbd> — command palette: jump anywhere, do anything</li>
+            <li><Kbd>⌘L</Kbd> / <Kbd>Ctrl L</Kbd> — Quick log a set</li>
             <li><Kbd>/</Kbd> — focus exercise search in the program builder</li>
             <li><Kbd>⌘Z</Kbd> / <Kbd>⇧⌘Z</Kbd> — undo / redo in the builder</li>
             <li><Kbd>Space</Kbd> — play/pause in the Film Room</li>

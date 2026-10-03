@@ -116,6 +116,28 @@ export default function DayCanvas({ draft, dayId, commitChange }: DayCanvasProps
     updateDay({ ...day, blocks: newBlocks })
   }
 
+  // Supersets had no way to be made (the row's ⌘S hook was never wired, and
+  // dragging between blocks is a no-op). Joining moves a lone exercise into
+  // the block above; splitting moves it out into its own block below.
+  const canJoin = (blockId: string) => day.blocks.findIndex(b => b.id === blockId) > 0
+  const toggleSuperset = (blockId: string, exId: string) => {
+    const idx = day.blocks.findIndex(b => b.id === blockId)
+    const block = day.blocks[idx]
+    const ex = block?.exercises.find(e => e.id === exId)
+    if (!block || !ex) return
+    const blocks = [...day.blocks]
+    if (block.exercises.length > 1) {
+      const rest = block.exercises.filter(e => e.id !== exId)
+      blocks[idx] = { ...block, exercises: rest, type: rest.length > 1 ? block.type : 'straight' }
+      blocks.splice(idx + 1, 0, { ...makeBlock(), exercises: [ex] })
+    } else if (idx > 0) {
+      const prev = blocks[idx - 1]
+      blocks[idx - 1] = { ...prev, type: prev.type === 'straight' ? 'superset' : prev.type, exercises: [...prev.exercises, ex] }
+      blocks.splice(idx, 1)
+    } else return
+    updateDay({ ...day, blocks })
+  }
+
   const removeExercise = (blockId: string, exId: string) => {
     const newBlocks = day.blocks.map(b => {
       if (b.id === blockId) {
@@ -175,7 +197,10 @@ export default function DayCanvas({ draft, dayId, commitChange }: DayCanvasProps
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <div className="space-y-6">
             {day.blocks.map(block => (
-              <div key={block.id} className="relative">
+              <div key={block.id} className={`relative ${block.exercises.length > 1 ? 'rounded-card border-s-4 border-verde-600/50 ps-2' : ''}`}>
+                {block.exercises.length > 1 && (
+                  <p className="mb-1 text-2xs font-semibold uppercase tracking-wide text-verde-700">{t('builder.superset')}</p>
+                )}
                 <SortableContext items={block.exercises.map(e => e.id)} strategy={verticalListSortingStrategy}>
                   {block.exercises.map(ex => (
                     <ExerciseRow 
@@ -184,6 +209,9 @@ export default function DayCanvas({ draft, dayId, commitChange }: DayCanvasProps
                       exercise={ex}
                       updateExercise={(id, u) => updateExercise(block.id, id, u)}
                       removeExercise={(id) => removeExercise(block.id, id)}
+                      inSuperset={block.exercises.length > 1}
+                      canJoin={canJoin(block.id)}
+                      onToggleSuperset={() => toggleSuperset(block.id, ex.id)}
                     />
                   ))}
                 </SortableContext>

@@ -35,6 +35,10 @@ Standing instruction: "always continue" — work through everything not blocked 
   last one logged; stays on the last day at the end; 4 tests). Client page prefers `activeProgramId`.
 - **Archived clients could never be restored** → "Restore client" (free-cap gated). **Lead → client
   skipped the free cap** (server then refused the 4th client) → gated like New client. Verified live.
+- **Templates and supersets had no UI:** nothing could mark a program a template (the Templates filter and
+  template-copy were unreachable) or create a superset (row ⌘S hook unwired; drag between blocks no-op).
+  Now: Program settings "Reusable template", Programs list "Duplicate", a link/unlink button per exercise.
+  The Settings Guide claimed both, plus a 7-day backup shield (it's 30) — Guide corrected and extended.
 - **TV display** showed only the first set (5/3/1 read "3×5") and any active program → every set + the
   client's current program.
 - **Food Log** targets disagreed with Nutrition (own goal shortcut) → `goalPlan()`; float totals rounded;
