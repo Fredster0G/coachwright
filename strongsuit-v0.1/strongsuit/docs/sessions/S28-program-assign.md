@@ -28,13 +28,20 @@ Standing instruction: "always continue" (and "Continue") — work through everyt
   client. The "we'll remind you every 7 days" backup line now matches the 30-day indicator.
   2 seeder tests + 1 server test. Verified live through the real wizard + EULA: 3 clients / 27 sessions /
   9 check-ins / 3 programs; New client not blocked; remove → 0 clients, 0 logs, 0 programs.
-- **i18n:** Onboarding wizard (onboard.* keys), Program Builder (header, assign dialog, settings/progression dialog; builder.* keys).
+- **i18n:** Onboarding wizard (onboard.* keys), Program Builder incl. its sub-views — outline, day canvas,
+  exercise rows, exercise search, grid (builder.* keys); icon-only buttons and set inputs got aria-labels.
+- **Builder bugs found in that pass:** (1) leaving the builder within the 2 s autosave debounce (Done, back,
+  sidebar) dropped the edit — now flushed on unmount (not after Assign, which already saved and may have
+  changed the row). (2) Duplicate week "+1 rep" did `"5" + 1` → `"51"`; now `bumpReps` ("8-10" → "9-11",
+  AMRAP untouched) and "+2.5% load" skips %1RM/RPE loads (`builderMutations.ts`, 5 tests). (3) Clearing a
+  load stored 0; now unset. (4) Delete week/day had no confirm. Verified live: copies `5→6` reps /
+  `100→102.5`, confirm text, fast rename+Done persists, 0 raw keys, 0 console errors.
 
 ## Didn't do / couldn't
-- Builder sub-views (outline, grid, exercise rows) still hold English (DEBT-64).
+- Settings Guide, Film Room, Nutrition still hold English (DEBT-64).
 
 ## New debt
 - None.
 
 ## For the next session
-Continue DEBT-64: builder sub-views, Settings Guide, then the science engines' prose.
+Continue DEBT-64: Settings Guide, then the science engines' prose.

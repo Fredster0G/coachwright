@@ -8,6 +8,7 @@ import { Plus } from 'lucide-react'
 import ExerciseRow from './ExerciseRow'
 import ExerciseSearch from './ExerciseSearch'
 import { makeBlock, makeExercisePrescription } from './builderMutations'
+import { useTranslation } from '@/lib/i18n'
 
 interface DayCanvasProps {
   draft: Program
@@ -18,6 +19,7 @@ interface DayCanvasProps {
 export default function DayCanvas({ draft, dayId, commitChange }: DayCanvasProps) {
   const [searchOpen, setSearchOpen] = useState(false)
   const [targetBlockId, setTargetBlockId] = useState<string | null>(null)
+  const { t } = useTranslation()
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -79,7 +81,7 @@ export default function DayCanvas({ draft, dayId, commitChange }: DayCanvasProps
   }, [day])
 
   if (!day) {
-    return <div className="p-8 text-faint">Day not found.</div>
+    return <div className="p-8 text-faint">{t('builder.dayNotFound')}</div>
   }
 
 
@@ -156,8 +158,8 @@ export default function DayCanvas({ draft, dayId, commitChange }: DayCanvasProps
       {day.blocks.length === 0 ? (
         <EmptyState
           icon={<Plus size={28} />}
-          title="Empty Day"
-          body="Press '/' to quickly search and add an exercise, or click below."
+          title={t('builder.emptyDay')}
+          body={t('builder.emptyDayBody')}
           action={<Button variant="primary" onClick={() => {
             // Don't call addBlock() then read day.blocks — `day` is this
             // render's stale prop, so the just-added block wouldn't be in it
@@ -167,7 +169,7 @@ export default function DayCanvas({ draft, dayId, commitChange }: DayCanvasProps
             updateDay({ ...day, blocks: [...day.blocks, newBlock] })
             setTargetBlockId(newBlock.id)
             setSearchOpen(true)
-          }}><Plus size={14} /> Add Exercise</Button>}
+          }}><Plus size={14} /> {t('builder.addExercise')}</Button>}
         />
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -188,7 +190,7 @@ export default function DayCanvas({ draft, dayId, commitChange }: DayCanvasProps
                 
                 <div className="mt-2">
                   <Button variant="ghost" size="sm" onClick={() => { setTargetBlockId(block.id); setSearchOpen(true); }} className="text-faint hover:text-ink">
-                    <Plus size={14} className="me-1.5" /> Add Exercise
+                    <Plus size={14} className="me-1.5" /> {t('builder.addExercise')}
                   </Button>
                 </div>
               </div>
@@ -201,7 +203,7 @@ export default function DayCanvas({ draft, dayId, commitChange }: DayCanvasProps
       {day.blocks.length > 0 && (
         <div className="mt-8 pt-4 border-t border-line border-dashed">
           <Button variant="ghost" size="sm" onClick={addBlock} className="text-muted hover:text-ink">
-            <Plus size={14} className="me-1.5" /> New Block
+            <Plus size={14} className="me-1.5" /> {t('builder.newBlock')}
           </Button>
         </div>
       )}

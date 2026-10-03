@@ -63,6 +63,7 @@ DONE RECENTLY (no action needed — for your information)
 - Welcome sequence: write your new-client messages once (Settings), start them per client.
 - New-coach setup: the 3 sample clients now come with real history and can be removed in one click.
 - Assigning a program template to a client copies it (the template stays in your library).
+- Program builder: edits made right before clicking Done are no longer lost; "duplicate week +1 rep" no longer turns 5 reps into 51.
 - Branding: upload your logo and pick a colour (Settings → Brand). Shows on printouts and in Companion.
 - Recurring monthly invoices (drafts you review and send).
 - Calendar was putting evening appointments on the next day (US time zones). Fixed.

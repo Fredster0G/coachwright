@@ -3,6 +3,8 @@ import { Plus, Copy, Trash2 } from 'lucide-react'
 import type { Program, Week, ExercisePrescription } from '@/db/types'
 import { newId } from '@/lib/core'
 import { Button, Dialog, Field, Select } from '@/design'
+import { useTranslation } from '@/lib/i18n'
+import { progressSet, type WeekProgression } from './builderMutations'
 
 interface BuilderOutlineProps {
   draft: Program
@@ -19,18 +21,19 @@ export default function BuilderOutline({
 }: BuilderOutlineProps) {
   const [duplicateOpen, setDuplicateOpen] = useState(false)
   const [weekToDuplicate, setWeekToDuplicate] = useState<Week | null>(null)
-  const [progressionMode, setProgressionMode] = useState<'none' | 'load' | 'reps'>('none')
+  const [progressionMode, setProgressionMode] = useState<WeekProgression>('none')
+  const { t } = useTranslation()
 
   const addWeek = () => {
     const wId = newId()
     const dId = newId()
     const newWeek: Week = {
       id: wId,
-      label: `Week ${draft.weeks.length + 1}`,
+      label: t('builder.weekN', { n: draft.weeks.length + 1 }),
       days: [
         {
           id: dId,
-          name: 'Day 1',
+          name: t('builder.dayN', { n: 1 }),
           blocks: []
         }
       ]
@@ -54,7 +57,7 @@ export default function BuilderOutline({
               ...w.days,
               {
                 id: dId,
-                name: `Day ${w.days.length + 1}`,
+                name: t('builder.dayN', { n: w.days.length + 1 }),
                 blocks: []
               }
             ]
@@ -79,7 +82,7 @@ export default function BuilderOutline({
     const clonedWeek: Week = {
       ...structuredClone(week),
       id: newWeekId,
-      label: `${week.label} (Copy)`
+      label: t('builder.copyOf', { label: week.label })
     }
     
     // Re-key and optionally progress
@@ -88,18 +91,7 @@ export default function BuilderOutline({
       blocks: d.blocks.map(b => ({
         ...b, id: newId(),
         exercises: b.exercises.map(e => {
-          const newEx: ExercisePrescription = { ...e, id: newId() }
-          if (progressionMode === 'load') {
-            newEx.sets = newEx.sets.map(s => ({
-              ...s,
-              load: s.load ? Number((s.load * 1.025).toFixed(1)) : s.load
-            }))
-          } else if (progressionMode === 'reps') {
-            newEx.sets = newEx.sets.map(s => ({
-              ...s,
-              reps: s.reps ? s.reps + 1 : s.reps
-            }))
-          }
+          const newEx: ExercisePrescription = { ...e, id: newId(), sets: e.sets.map(s => progressSet(s, progressionMode)) }
           return newEx
         })
       }))
@@ -117,7 +109,9 @@ export default function BuilderOutline({
     setWeekToDuplicate(null)
   }
 
-  const deleteWeek = (weekId: string) => {
+  const deleteWeek = (week: Week) => {
+    if (!window.confirm(t('builder.confirmDeleteWeek', { label: week.label }))) return
+    const weekId = week.id
     const newWeeks = draft.weeks.filter(w => w.id !== weekId)
     commitChange({ ...draft, weeks: newWeeks })
     
@@ -129,7 +123,8 @@ export default function BuilderOutline({
     }
   }
 
-  const deleteDay = (weekId: string, dayId: string) => {
+  const deleteDay = (weekId: string, dayId: string, name: string) => {
+    if (!window.confirm(t('builder.confirmDeleteDay', { name }))) return
     const newWeeks = draft.weeks.map(w => {
       if (w.id === weekId) {
         return { ...w, days: w.days.filter(d => d.id !== dayId) }
@@ -146,7 +141,7 @@ export default function BuilderOutline({
   return (
     <div className="flex flex-col h-full">
       <div className="p-3 font-semibold text-sm text-ink border-b border-line flex items-center justify-between">
-        <span>Outline</span>
+        <span>{t('builder.outline')}</span>
       </div>
 
       <div className="flex-1 overflow-y-auto p-2 space-y-3">
@@ -155,10 +150,10 @@ export default function BuilderOutline({
             <div className="flex items-center justify-between group px-2 py-1 rounded-sm hover:bg-surface2 transition-colors">
               <span className="text-sm font-semibold text-ink">{week.label}</span>
               <div className="opacity-0 group-hover:opacity-100 flex items-center gap-1 transition-opacity">
-                <button title="Duplicate week" onClick={() => openDuplicateDialog(week)} className="text-muted hover:text-ink">
+                <button title={t('builder.duplicateWeek')} aria-label={t('builder.duplicateWeek')} onClick={() => openDuplicateDialog(week)} className="text-muted hover:text-ink">
                   <Copy size={13} />
                 </button>
-                <button title="Delete week" onClick={() => deleteWeek(week.id)} className="text-muted hover:text-ember-600">
+                <button title={t('builder.deleteWeek')} aria-label={t('builder.deleteWeek')} onClick={() => deleteWeek(week)} className="text-muted hover:text-ember-600">
                   <Trash2 size={13} />
                 </button>
               </div>
@@ -179,8 +174,9 @@ export default function BuilderOutline({
                   >
                     <span>{day.name}</span>
                     <button 
-                      title="Delete day" 
-                      onClick={(e) => { e.stopPropagation(); deleteDay(week.id, day.id) }} 
+                      title={t('builder.deleteDay')}
+                      aria-label={t('builder.deleteDay')}
+                      onClick={(e) => { e.stopPropagation(); deleteDay(week.id, day.id, day.name) }}
                       className={`opacity-0 group-hover:opacity-100 text-muted hover:text-ember-600 transition-opacity ${isActive ? 'hover:text-verde-700' : ''}`}
                     >
                       <Trash2 size={13} />
@@ -193,7 +189,7 @@ export default function BuilderOutline({
                 onClick={() => addDay(week.id)}
                 className="w-full flex items-center gap-1.5 px-2 py-1 text-xs text-faint hover:text-ink transition-colors mt-1"
               >
-                <Plus size={12} /> Add Day
+                <Plus size={12} /> {t('builder.addDay')}
               </button>
             </div>
           </div>
@@ -201,23 +197,23 @@ export default function BuilderOutline({
 
         <div className="px-2 pt-2">
           <Button variant="ghost" size="sm" onClick={addWeek} className="w-full text-faint hover:text-ink">
-            <Plus size={14} className="me-1.5" /> Add Week
+            <Plus size={14} className="me-1.5" /> {t('builder.addWeek')}
           </Button>
         </div>
       </div>
 
-      <Dialog open={duplicateOpen} onClose={() => setDuplicateOpen(false)} title="Duplicate Week" width={400}>
+      <Dialog open={duplicateOpen} onClose={() => setDuplicateOpen(false)} title={t('builder.dup.title')} width={400}>
         <div className="space-y-4">
-          <Field label="Auto-Progression">
-            <Select value={progressionMode} onChange={e => setProgressionMode(e.target.value as any)}>
-              <option value="none">Exact Copy (No changes)</option>
-              <option value="load">+2.5% Load on all sets</option>
-              <option value="reps">+1 Rep on all sets</option>
+          <Field label={t('builder.dup.progression')}>
+            <Select value={progressionMode} onChange={e => setProgressionMode(e.target.value as WeekProgression)}>
+              <option value="none">{t('builder.dup.none')}</option>
+              <option value="load">{t('builder.dup.load')}</option>
+              <option value="reps">{t('builder.dup.reps')}</option>
             </Select>
           </Field>
           <div className="flex justify-end gap-2 mt-4">
-            <Button variant="ghost" onClick={() => setDuplicateOpen(false)}>Cancel</Button>
-            <Button variant="primary" onClick={executeDuplicate}>Duplicate</Button>
+            <Button variant="ghost" onClick={() => setDuplicateOpen(false)}>{t('builder.cancel')}</Button>
+            <Button variant="primary" onClick={executeDuplicate}>{t('builder.dup.go')}</Button>
           </div>
         </div>
       </Dialog>

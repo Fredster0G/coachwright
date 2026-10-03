@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, Save, Settings } from 'lucide-react'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -60,12 +60,22 @@ export default function ProgramBuilder() {
     })
   }, [id, navigate])
 
+  // Edits not yet written. Leaving the builder inside the 2 s debounce (Done,
+  // the back arrow, the sidebar) used to drop them — the timer was cleared on
+  // unmount and nothing saved. Flushed on unmount instead.
+  const pendingRef = useRef<Program | null>(null)
+  useEffect(() => () => {
+    const p = pendingRef.current
+    if (p) void programsRepo.update(p.id, p)
+  }, [])
+
   // Save changes automatically (debounced)
   useEffect(() => {
     if (!draft || !lastSaved) return
     
     // Simple deep equality check (could use a faster one, but this is fine for small JSON)
     const isDirty = JSON.stringify(draft) !== JSON.stringify(lastSaved)
+    pendingRef.current = isDirty ? draft : null
     if (!isDirty) return
 
     const timer = setTimeout(() => {
@@ -197,6 +207,9 @@ export default function ProgramBuilder() {
                 // client's activeProgramId was never set.)
                 await programsRepo.update(draft.id, draft)
                 setLastSaved(draft)
+                // Saved; assignToClient may now change this row (status,
+                // client) — the unmount flush must not write the draft back.
+                pendingRef.current = null
                 await programsRepo.assignToClient(draft.id, assignClientId, today())
                 setAssignOpen(false)
                 toast(draft.status === 'template' ? t('builder.toast.assignedCopy') : t('builder.toast.assigned'))

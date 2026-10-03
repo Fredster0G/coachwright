@@ -61,8 +61,8 @@ and the synced-table list + licence public key must match between app and server
 the UTC day, fixed.
 
 **64 · i18n: about 13 components still hold hardcoded English** (re-measured S27 — the old "~53 of 57"
-was stale: 30 of 55 feature components already use `t()`). Calendar, Messages, Team, Leads, Leaderboard, Reports, Studio (hub + location), Library (+ video viewer) converted S27; Program Builder and Onboarding wizard S28. Biggest left: Settings
-Guide, Film Room, Nutrition tab, builder sub-views (outline, grid, rows). `lib/schedule.ts` `describeRule()` still returns English. **The science screens (Nutrition, Film Room
+was stale: 30 of 55 feature components already use `t()`). Calendar, Messages, Team, Leads, Leaderboard, Reports, Studio (hub + location), Library (+ video viewer) converted S27; Program Builder (incl. outline, grid, rows, exercise search) and Onboarding wizard S28. Biggest left: Settings
+Guide, Film Room, Nutrition tab. `lib/schedule.ts` `describeRule()` still returns English. **The science screens (Nutrition, Film Room
 summaries, readiness) are mostly engine-written prose from `lib/` (rationale, notes, warnings)** — translating
 only their component labels yields a half-English page; those engines need message keys + params first. Layer + RTL are done.
 `es.json`/`ar.json` are **seed translations** marked in their own `_meta` — must not ship to customers
