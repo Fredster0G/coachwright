@@ -3,7 +3,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Zap, AlertTriangle, Check } from 'lucide-react'
 import { Dialog, Button, Input, Avatar, Tag, toast, toastError } from '@/design'
 import { clientsRepo, exercisesRepo, logsRepo, programsRepo, trainerRepo, staffRepo } from '@/db/repo'
-import { buildQuickLogPlan, describePlan, type Clarification } from '@/lib/quickLog'
+import { buildQuickLogPlan, describePlanMsgs, type Clarification } from '@/lib/quickLog'
+import { renderMsg } from '@/lib/i18n/msg'
 import { fullName, daysSince, today } from '@/lib/core'
 import type { Client, LoggedSet } from '@/db/types'
 import { getActiveStaffId } from '@/lib/activeStaff'
@@ -200,7 +201,7 @@ export function QuickLogDialog({ open, onClose, presetClientId }: {
               {exercise?.name ?? <span className="text-faint">{t('quicklog.exerciseUnknown')}</span>}
               {' · '}
               <span className="font-mono tabular-nums">
-                {describePlan({ ...plan.draft.prescription, reps: reps ?? undefined }, units)}
+                {describePlanMsgs({ ...plan.draft.prescription, reps: reps ?? undefined }, units).map(m => renderMsg(m, t)).join(' · ')}
               </span>
             </p>
             <p className="mt-0.5 text-2xs text-muted">

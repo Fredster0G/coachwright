@@ -15,6 +15,8 @@
 // phrasing into the same shape, but it never gets to skip the confirmation —
 // it feeds this pipeline, it doesn't bypass it.
 
+import type { Msg } from './i18n/msg'
+
 export interface ParsedPrescription {
   sets?: number
   reps?: number
@@ -336,6 +338,17 @@ export function buildQuickLogPlan<C extends ClientLike, E extends ExerciseLike>(
 
 /** One-line preview of exactly what will be written. Shown next to the client
  *  card so the coach confirms the whole thing, not just the name. */
+/** describePlan's pieces as messages, for the UI to translate and join. */
+export function describePlanMsgs(p: ParsedPrescription, units: 'lb' | 'kg' = 'lb'): Msg[] {
+  const parts: Msg[] = []
+  if (p.sets && p.reps) parts.push({ key: 'quicklog.plan.setsReps', params: { sets: p.sets, reps: p.reps } })
+  else if (p.reps) parts.push({ key: 'quicklog.plan.reps', params: { reps: p.reps } })
+  if (p.bodyweight) parts.push({ key: 'quicklog.plan.bodyweight' })
+  else if (p.load != null) parts.push({ key: 'quicklog.plan.load', params: { load: p.load, units: p.units ?? units } })
+  if (p.rpe != null) parts.push({ key: 'quicklog.plan.rpe', params: { rpe: p.rpe } })
+  return parts.length ? parts : [{ key: 'quicklog.plan.none' }]
+}
+
 export function describePlan(p: ParsedPrescription, units: 'lb' | 'kg' = 'lb'): string {
   const parts: string[] = []
   if (p.sets && p.reps) parts.push(`${p.sets} × ${p.reps}`)

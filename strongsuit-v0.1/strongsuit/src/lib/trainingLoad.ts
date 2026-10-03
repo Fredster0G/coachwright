@@ -30,6 +30,8 @@
 // genuinely useful. We report it as a DESCRIPTION OF LOAD CHANGE, never as a
 // prediction of injury. Zone names and copy are descriptive for that reason.
 
+import { english, type Msg } from './i18n/msg'
+
 export interface DayLoad { date: string; load: number } // yyyy-MM-dd, arbitrary load unit
 
 /** session-RPE load (Foster): RPE (0–10) × duration in minutes. */
@@ -50,12 +52,15 @@ export interface ACWR {
   ratio: number
   zone: LoadZone
   note: string
+  noteMsg: Msg
   /** False until there's enough history for the ratio to mean anything. */
   reliable: boolean
 }
 
 /** Below this many days of history, the ratio is noise. */
 export const MIN_DAYS_FOR_ACWR = 21
+
+const said = (m: Msg) => ({ note: english(m), noteMsg: m })
 
 /** Exponentially weighted moving average over a load series, oldest first. */
 export function ewma(loads: number[], days: number): number {
@@ -98,28 +103,14 @@ export function acwr(loads: DayLoad[], today: string): ACWR {
     return {
       acute: Math.round(acute), chronic: Math.round(chronic), ratio: 0,
       zone: 'insufficient-data', reliable: false,
-      note: 'Not enough training history yet to compare recent load against a baseline. A few weeks of logging will fill this in.',
+      ...said({ key: 'load.insufficient' }),
     }
   }
 
   const ratio = Math.round((acute / chronic) * 100) / 100
 
-  let zone: LoadZone
-  let note: string
-  if (ratio < 0.8) {
-    zone = 'below-norm'
-    note = `Recent load is ${ratio}× the 4-week norm — below their usual. Expected during a taper, a deload, or a return from time off; worth a look if none of those apply.`
-  } else if (ratio <= 1.3) {
-    zone = 'steady'
-    note = `Recent load is ${ratio}× the 4-week norm — tracking close to what they're used to.`
-  } else if (ratio <= 1.5) {
-    zone = 'rising'
-    note = `Recent load is ${ratio}× the 4-week norm — climbing faster than usual. Worth a deliberate easier day if this keeps up.`
-  } else {
-    zone = 'sharp-rise'
-    note = `Recent load is ${ratio}× the 4-week norm — a sharp jump. Not a risk prediction, but a big change worth doing on purpose rather than by accident.`
-  }
-  return { acute: Math.round(acute), chronic: Math.round(chronic), ratio, zone, note, reliable: true }
+  const zone: LoadZone = ratio < 0.8 ? 'below-norm' : ratio <= 1.3 ? 'steady' : ratio <= 1.5 ? 'rising' : 'sharp-rise'
+  return { acute: Math.round(acute), chronic: Math.round(chronic), ratio, zone, ...said({ key: `load.${zone}`, params: { ratio } }), reliable: true }
 }
 
 export interface Monotony { monotony: number; strain: number; note: string }

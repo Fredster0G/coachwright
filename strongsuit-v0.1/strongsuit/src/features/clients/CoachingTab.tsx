@@ -18,6 +18,7 @@ import { setTonnage } from '@/lib/core'
 import { sha256Hex } from '@/lib/hash'
 import { today } from '@/lib/core'
 import { useTranslation } from '@/lib/i18n'
+import { renderMsg } from '@/lib/i18n/msg'
 
 // ---------- Goal & programming ----------
 function GoalCard({ client }: { client: Client }) {
@@ -107,7 +108,7 @@ function LoadCard({ clientId }: { clientId: string }) {
           <div className="absolute inset-y-0 bg-verde-100" style={{ left: `${(0.8 / 2) * 100}%`, width: `${((1.3 - 0.8) / 2) * 100}%` }} />
           <div className={`absolute inset-y-0 start-0 rounded-full ${barCls}`} style={{ width: `${Math.min(100, (a.ratio / 2) * 100)}%`, opacity: 0.5 }} />
         </div>
-        <p className={`mt-2 text-xs ${toneCls}`}>{a.note}</p>
+        <p className={`mt-2 text-xs ${toneCls}`}>{renderMsg(a.noteMsg, t)}</p>
         <p className="mt-1 text-2xs text-faint">{t('clients.coaching.loadNote')}</p>
       </div>
     </Card>
