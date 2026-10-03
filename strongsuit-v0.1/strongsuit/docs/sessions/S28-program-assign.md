@@ -51,6 +51,11 @@ Standing instruction: "always continue" (and "Continue") — work through everyt
 - **i18n (cont.):** sign-in/reset screens, Account & sync, Programs list (status tags no longer raw
   `draft`), session logger, Quick log (clarifying questions keyed by `status`), rest timer, log-sheet scan.
 
+- **TV display showed only the first set** for every set (a 5/3/1 pyramid read "3×5 @100") and dropped
+  %1RM/RPE; it also showed any "active" program rather than the client's current one. Now uses the
+  builder's `formatSetsSummary` and `activeProgramId`. Verified live: "5 @100, 3 @110, 1 @120 · rest 180s",
+  "2×8 @70%".
+
 ## Didn't do / couldn't
 - Settings Guide, Film Room, Nutrition, Science, Assistant still hold English (DEBT-64).
 
