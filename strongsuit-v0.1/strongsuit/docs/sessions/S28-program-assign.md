@@ -56,6 +56,11 @@ Standing instruction: "always continue" (and "Continue") — work through everyt
   builder's `formatSetsSummary` and `activeProgramId`. Verified live: "5 @100, 3 @110, 1 @120 · rest 180s",
   "2×8 @70%".
 
+- **Settings → Membership** counted sample clients in its "N/3" bar (nothing else does since S28).
+  **Licence card** promised "the key never leaves your computer" — false since S23 (trainer row syncs; the
+  server re-verifies the key for the cap exemption); copy corrected. Companion disconnect now confirms.
+  Translated: Membership, Licence, Connect Companion, TV display, exercise history.
+
 ## Didn't do / couldn't
 - Settings Guide, Film Room, Nutrition, Science, Assistant still hold English (DEBT-64).
 
