@@ -37,8 +37,22 @@ Standing instruction: "always continue" (and "Continue") — work through everyt
   load stored 0; now unset. (4) Delete week/day had no confirm. Verified live: copies `5→6` reps /
   `100→102.5`, confirm text, fast rename+Done persists, 0 raw keys, 0 console errors.
 
+- **Three more bugs found by live-testing the i18n pass:** (1) **Quick log never opened** — the command
+  palette returned `null` while closed, and Quick log is rendered inside it, so ⌘/Ctrl+L and the palette
+  action both did nothing. (2) **Dialogs never focused their input** — React `autoFocus` fires while the
+  `<dialog>` is still closed, then `showModal()` focuses the Close button: typing after ⌘K went nowhere and
+  Enter closed the palette; same for exercise search and every "name" field. `Dialog` now focuses
+  `[data-autofocus]` after `showModal()`; `Input` sets it from `autoFocus`. (3) **Session logger: "done"
+  saved nothing** — the load box showed the target, but ticking a set done stored no load/reps, so sets
+  done as prescribed reached history and analytics empty. `completeSet()` records the shown values (reps
+  only from a plain number); a %1RM/RPE target is no longer shown as a weight. 4 tests. Verified live:
+  saved `{100 kg × 5}` / `{}` for a 75%-1RM 8–10 set; ⌘K → "quick" → Enter opens Quick log; New client
+  dialog takes typing immediately.
+- **i18n (cont.):** sign-in/reset screens, Account & sync, Programs list (status tags no longer raw
+  `draft`), session logger, Quick log (clarifying questions keyed by `status`), rest timer, log-sheet scan.
+
 ## Didn't do / couldn't
-- Settings Guide, Film Room, Nutrition still hold English (DEBT-64).
+- Settings Guide, Film Room, Nutrition, Science, Assistant still hold English (DEBT-64).
 
 ## New debt
 - None.

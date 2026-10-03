@@ -225,11 +225,12 @@ export default function CommandPalette() {
     setQuery('')
   }
 
-  if (!open) return null
-
+  // Quick Log renders whether or not the palette is open — it's opened by
+  // Ctrl/⌘+L or by the palette closing itself first. An early `return null`
+  // here used to take Quick Log down with it: neither way ever showed it.
   return (
     <>
-    <Dialog open={open} onClose={handleClose} title="">
+    {open && <Dialog open={open} onClose={handleClose} title="">
       <div className="-mt-4 -mx-4 -mb-4">
         <div className="flex items-center px-4 py-3 border-b border-line">
           <Search size={20} className="text-muted me-3" />
@@ -242,6 +243,7 @@ export default function CommandPalette() {
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleInputKeyDown}
             autoFocus
+            data-autofocus
           />
           <kbd className="hidden sm:inline-flex items-center gap-1 bg-surface border border-line rounded px-2 py-1 text-xs text-faint font-mono">
             ESC
@@ -275,7 +277,7 @@ export default function CommandPalette() {
           )}
         </div>
       </div>
-    </Dialog>
+    </Dialog>}
     <QuickLogDialog open={quickLogOpen} onClose={() => setQuickLogOpen(false)} />
     </>
   )

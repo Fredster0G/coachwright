@@ -12,7 +12,13 @@ export function Dialog({ open, onClose, title, children, width = 440 }: {
   useEffect(() => {
     const d = ref.current
     if (!d) return
-    if (open && !d.open) d.showModal()
+    if (open && !d.open) {
+      d.showModal()
+      // showModal() focuses the first focusable (the Close button), and an
+      // input's React autoFocus already fired while the dialog was closed —
+      // so typing went nowhere (⌘K search, exercise search, every "name" field).
+      d.querySelector<HTMLElement>('[data-autofocus]')?.focus()
+    }
     if (!open && d.open) d.close()
   }, [open])
   return (

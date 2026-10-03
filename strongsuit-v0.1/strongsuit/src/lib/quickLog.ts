@@ -52,7 +52,11 @@ export interface Resolution<T> {
 
 export interface Clarification {
   id: 'client' | 'exercise' | 'reps' | 'load'
+  /** English wording; the UI translates from `status` + `query` instead. */
   question: string
+  /** Why it's asked: nothing given, nothing matched `query`, or several did. */
+  status: 'none' | 'missing' | 'ambiguous'
+  query?: string
   /** Present for pick-one questions; absent when the coach must type a value. */
   options?: { id: string; label: string; hint?: string }[]
 }
@@ -289,15 +293,15 @@ export function buildQuickLogPlan<C extends ClientLike, E extends ExerciseLike>(
   const clarifications: Clarification[] = []
 
   if (client.status === 'none') {
-    clarifications.push({ id: 'client', question: 'Who is this for?' })
+    clarifications.push({ id: 'client', status: 'none', question: 'Who is this for?' })
   } else if (client.status === 'missing') {
     clarifications.push({
-      id: 'client',
+      id: 'client', status: 'missing', query: draft.clientQuery,
       question: `No client matches “${draft.clientQuery}”. Who is this for?`,
     })
   } else if (client.status === 'ambiguous') {
     clarifications.push({
-      id: 'client',
+      id: 'client', status: 'ambiguous', query: draft.clientQuery,
       question: `Which client did you mean by “${draft.clientQuery}”?`,
       options: client.candidates.map(c => ({
         id: c.item.id,
@@ -307,15 +311,15 @@ export function buildQuickLogPlan<C extends ClientLike, E extends ExerciseLike>(
   }
 
   if (exercise.status === 'none') {
-    clarifications.push({ id: 'exercise', question: 'Which exercise?' })
+    clarifications.push({ id: 'exercise', status: 'none', question: 'Which exercise?' })
   } else if (exercise.status === 'missing') {
     clarifications.push({
-      id: 'exercise',
+      id: 'exercise', status: 'missing', query: draft.exerciseQuery,
       question: `No exercise matches “${draft.exerciseQuery}”. Which one?`,
     })
   } else if (exercise.status === 'ambiguous') {
     clarifications.push({
-      id: 'exercise',
+      id: 'exercise', status: 'ambiguous', query: draft.exerciseQuery,
       question: `Which exercise did you mean by “${draft.exerciseQuery}”?`,
       options: exercise.candidates.map(c => ({ id: c.item.id, label: c.item.name })),
     })
@@ -324,7 +328,7 @@ export function buildQuickLogPlan<C extends ClientLike, E extends ExerciseLike>(
   // Reps are the minimum needed for a set to mean anything. Load is genuinely
   // optional (bodyweight, machines with no readable stack), so it's never asked for.
   if (draft.prescription.reps == null) {
-    clarifications.push({ id: 'reps', question: 'How many reps?' })
+    clarifications.push({ id: 'reps', status: 'none', question: 'How many reps?' })
   }
 
   return { draft, client, exercise, clarifications, ready: clarifications.length === 0 }
