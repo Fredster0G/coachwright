@@ -94,6 +94,31 @@ describe('Companion ↔ Coachwright Cloud', () => {
     expect(entries[1].sets).toEqual([{ actualLoad: 40.8, done: true }])
   })
 
+  it('a workout deleted on the phone is deleted for the coach; coach-written rows cannot be deleted by the client', async () => {
+    const c = await coach()
+    await c.push([
+      c.row('clients', 'cl1', { firstName: 'Alex' }),
+      c.row('sessionLogs', 'coach-log', { clientId: 'cl1', date: '2026-01-01', title: 'Coached', entries: [], source: 'trainer' }),
+    ])
+    await api.connectWithCode(await c.invite('cl1'))
+    const w = await repo.workoutsRepo.create({ date: '2026-01-02', title: 'Mine', exercises: [] })
+    await api.syncNow((await repo.coachLinkRepo.get())!)
+    expect((await c.pull()).changes.find(x => x.id === w.id)?.data.source).toBe('companion-import')
+
+    await repo.workoutsRepo.remove(w.id)
+    expect(await repo.workoutsRepo.all()).toEqual([])                     // hidden at once
+    await api.syncNow((await repo.coachLinkRepo.get())!)
+    expect((await c.pull()).changes.find(x => x.id === w.id)?.data).toBeNull() // tombstone reached the coach
+    expect(await repo.workoutsRepo.allForSync()).toEqual([])              // purged after the push
+
+    // A forged delete of the coach's own log is dropped, not applied.
+    const link = (await repo.coachLinkRepo.get())!
+    const r = await fetch(`${base}/client/push`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${link.token}` },
+      body: JSON.stringify({ changes: [{ table: 'sessionLogs', id: 'coach-log', updatedAt: '2027-01-01T00:00:00.000Z', deleted: true }] }) })
+    expect(((await r.json()) as { stale: string[] }).stale).toContain('coach-log')
+    expect((await c.pull()).changes.find(x => x.id === 'coach-log')?.data?.title).toBe('Coached')
+  })
+
   it('only uploads what changed since the last sync', async () => {
     const c = await coach()
     await c.push([c.row('clients', 'cl1', { firstName: 'Alex' })])

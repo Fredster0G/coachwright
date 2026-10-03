@@ -1,7 +1,7 @@
 # S28 — program assignment, sample data, a live-testing bug sweep, i18n continues
 
 **Tool:** Claude Code · **Date:** 2026-10-03
-**Tests:** app 739/739 · server 32/32 · companion 114/114 · **Typecheck:** `tsc -b --force` clean (app, companion, electron, server) · oxlint/lint:tailwind 0 errors
+**Tests:** app 743/743 · server 32/32 · companion 115/115 · **Typecheck:** `tsc -b --force` clean (app, companion, electron, server) · oxlint/lint:tailwind 0 errors
 
 ## Asked
 Standing instruction: "always continue" — work through everything not blocked on Caleb.
@@ -37,6 +37,7 @@ Standing instruction: "always continue" — work through everything not blocked 
   client's current program.
 - **Food Log** targets disagreed with Nutrition (own goal shortcut) → `goalPlan()`; float totals rounded;
   hover-only Remove; barcode camera left on if granted after close.
+- **Business:** last-month income and the 6-month chart skipped refunds (gross vs this month's net).
 - **Settings:** Membership bar counted sample clients; Licence card claimed "the key never leaves your
   computer" (false since S23 — trainer row syncs, server re-verifies) → copy corrected. Companion
   disconnect and Companion workout delete now confirm.
@@ -49,8 +50,9 @@ Standing instruction: "always continue" — work through everything not blocked 
   comes from `lib/` engines (DEBT-64).
 
 ## New debt
-- **85** Companion deletions never reach the coach (client push rejects `deleted`).
+- **85** Companion deletions never reached the coach — opened and resolved this session (client may delete
+  only rows it authored; soft-delete → upload → purge; verified live).
 
 ## For the next session
-DEBT-64 (key the engines' prose: `progression.ts` reason, nutrition rationale), DEBT-85, keep live-testing
-flows not yet driven end to end (Reports export, Leads → client, Business).
+DEBT-64 (key the engines' prose: `progression.ts` reason, nutrition rationale); keep live-testing flows
+not yet driven end to end (Reports export, invoices email, Film Room on real video).

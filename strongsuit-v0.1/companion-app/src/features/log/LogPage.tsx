@@ -90,8 +90,7 @@ export function LogPage() {
   useEffect(() => { refresh() }, [])
 
   async function remove(id: string) {
-    // The coach's copy isn't deleted (Companion uploads, never deletes) — say so.
-    if (!window.confirm('Delete this workout from this phone? If it already synced, your coach still has their copy.')) return
+    if (!window.confirm('Delete this workout? If you’re connected to a coach, it’s removed from their copy at the next sync.')) return
     await workoutsRepo.remove(id)
     refresh()
   }

@@ -314,9 +314,17 @@ test('client pushes are forced onto its own client id and limited to its tables'
   assert.equal(ok.status, 200)
   const p = await (await get('/data/pull?since=0', coach)).json() as { changes: { id: string; data: { clientId: string } }[] }
   assert.equal(p.changes.find(c => c.id === 'log1')!.data.clientId, 'c1')
-  // Can't write programs, can't delete, can't send as the coach.
+  // Can't write programs, can't delete outside its tables, can't send as the coach.
   assert.equal((await post('/client/push', { changes: [row('programs', 'p1', '2027-01-01T00:00:00.000Z')] }, client)).status, 400)
-  assert.equal((await post('/client/push', { changes: [{ table: 'sessionLogs', id: 'log1', updatedAt: '2027-01-01T00:00:00.000Z', deleted: true }] }, client)).status, 400)
+  assert.equal((await post('/client/push', { changes: [{ table: 'programs', id: 'p1', updatedAt: '2027-01-01T00:00:00.000Z', deleted: true }] }, client)).status, 400)
+  // May delete a log it wrote (stamped companion-import), not one the coach wrote.
+  await post('/data/push', { changes: [row('sessionLogs', 'coachlog', '2026-01-01T00:00:00.000Z', { clientId: 'c1', source: 'trainer' })] }, coach)
+  const del = await (await post('/client/push', { changes: [
+    { table: 'sessionLogs', id: 'log1', updatedAt: '2027-01-01T00:00:00.000Z', deleted: true },
+    { table: 'sessionLogs', id: 'coachlog', updatedAt: '2027-01-01T00:00:00.000Z', deleted: true },
+  ] }, client)).json() as { applied: string[]; stale: string[] }
+  assert.deepEqual(del.applied, ['log1'])
+  assert.deepEqual(del.stale, ['coachlog'])
   assert.equal((await post('/client/push', { changes: [row('messages', 'm9', '2027-01-01T00:00:00.000Z', { direction: 'outbound', content: 'x' })] }, client)).status, 400)
   // Can't overwrite a row that belongs to another client.
   await post('/data/push', { changes: [row('metrics', 'mc2', '2026-01-01T00:00:00.000Z', { clientId: 'c2', value: 1 })] }, coach)

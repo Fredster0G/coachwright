@@ -141,15 +141,30 @@ export const coachExercisesRepo = {
 
 export const workoutsRepo = {
   async all(): Promise<PersonalWorkout[]> {
-    return db.workouts.orderBy('date').reverse().toArray()
+    return (await db.workouts.orderBy('date').reverse().toArray()).filter(w => !w.deletedAt)
+  },
+  /** Including deletions the coach hasn't heard about yet — sync only. */
+  async allForSync(): Promise<PersonalWorkout[]> {
+    return db.workouts.toArray()
+  },
+  /** Drop deletions the coach now knows about. */
+  async purgeDeleted(upTo: string) {
+    await db.workouts.filter(w => !!w.deletedAt && w.deletedAt <= upTo).delete()
   },
   async create(w: Omit<PersonalWorkout, 'id' | 'createdAt' | 'updatedAt'>) {
     const row: PersonalWorkout = { ...w, ...stamp({}) }
     await db.workouts.add(row)
     return row
   },
+  /** Connected to a coach: kept as a deletion until the next sync tells the
+   *  coach (their copy used to stay forever). Otherwise removed outright. */
   async remove(id: string) {
-    await db.workouts.delete(id)
+    if (await db.coachLink.count()) {
+      const t = nowIso()
+      await db.workouts.update(id, { deletedAt: t, updatedAt: t })
+    } else {
+      await db.workouts.delete(id)
+    }
   },
 }
 

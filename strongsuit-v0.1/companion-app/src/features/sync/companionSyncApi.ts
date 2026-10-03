@@ -35,6 +35,9 @@ interface CoachSessionLogRow {
   entries: { exerciseId: string; exerciseName: string; sets: { actualReps?: number; actualLoad?: number; rpe?: number; done: true }[] }[]
   source: 'companion-import'
 }
+/** A workout deleted on the phone. The server accepts it only for a row
+ *  this client authored (`source: 'companion-import'`). */
+interface Tombstone { id: string; updatedAt: string; deleted: true }
 interface CoachMetricRow {
   id: string; createdAt: string; updatedAt: string
   clientId: string; date: string; type: string; key: string; value: number; unit: string
@@ -47,7 +50,7 @@ interface CoachMessageRow {
   booking?: BookingSlot
 }
 interface OutboundPayload {
-  tables: { sessionLogs: CoachSessionLogRow[]; metrics: CoachMetricRow[]; messages: CoachMessageRow[] }
+  tables: { sessionLogs: (CoachSessionLogRow | Tombstone)[]; metrics: CoachMetricRow[]; messages: CoachMessageRow[] }
 }
 
 /** Only rows changed since `since` (ISO), so a long history isn't re-sent on
@@ -60,7 +63,9 @@ export function buildOutbound(
   const changed = (updatedAt: string) => !since || updatedAt > since
   return {
     tables: {
-      sessionLogs: workouts.filter(w => changed(w.updatedAt)).map(w => ({
+      sessionLogs: workouts.filter(w => changed(w.updatedAt)).map((w): CoachSessionLogRow | Tombstone => w.deletedAt
+        ? { id: w.id, updatedAt: w.updatedAt, deleted: true }
+        : ({
         id: w.id, createdAt: w.createdAt, updatedAt: w.updatedAt,
         clientId, date: w.date, title: w.title,
         // Until S28 this sent the client's own {reps, load} shape with the
@@ -97,15 +102,18 @@ const PUSH_BATCH = 400
 
 async function pushToCoach(link: CoachLink): Promise<void> {
   const startedAt = nowIso()
-  const [workouts, metrics, messages, profile, fresh] = await Promise.all([workoutsRepo.all(), metricsRepo.all(), messagesRepo.all(), profileRepo.get(), coachLinkRepo.get()])
+  const [workouts, metrics, messages, profile, fresh] = await Promise.all([workoutsRepo.allForSync(), metricsRepo.all(), messagesRepo.all(), profileRepo.get(), coachLinkRepo.get()])
   const units = { mine: profile?.units ?? 'lb', coach: fresh?.coachUnits ?? link.coachUnits ?? 'lb' }
   const { tables } = buildOutbound(workouts, metrics, messages, link.clientIdOnCoachSide ?? '', link.lastPushAt, units)
   const changes = (Object.entries(tables) as [string, { id: string; updatedAt: string }[]][])
-    .flatMap(([table, rows]) => rows.map(r => ({ table, id: r.id, updatedAt: r.updatedAt, data: r })))
+    .flatMap(([table, rows]) => rows.map(r => 'deleted' in r
+      ? { table, id: r.id, updatedAt: r.updatedAt, deleted: true }
+      : { table, id: r.id, updatedAt: r.updatedAt, data: r }))
   for (let i = 0; i < changes.length; i += PUSH_BATCH) {
     await clientApi('/client/push', link.token, { json: { changes: changes.slice(i, i + PUSH_BATCH) } })
   }
   await coachLinkRepo.patch(link.id, { lastPushAt: startedAt })
+  await workoutsRepo.purgeDeleted(startedAt)
 }
 
 // ---- coach → client ----

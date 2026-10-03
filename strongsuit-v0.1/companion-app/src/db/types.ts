@@ -80,6 +80,9 @@ export interface PersonalWorkout {
   notes?: string
   createdAt: string
   updatedAt: string
+  /** Deleted on this phone but not yet told to the coach (connected only) —
+   *  hidden everywhere, uploaded as a delete, then purged. */
+  deletedAt?: string
 }
 
 export type MetricType = 'bodyweight' | 'waist' | 'chest' | 'hips' | 'bodyfat'

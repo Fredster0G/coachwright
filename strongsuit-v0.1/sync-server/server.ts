@@ -900,17 +900,33 @@ function clientBookingOnly(c: Change): Change {
 }
 
 /** Companion's writes: logged sessions, metrics, check-ins and its side of
- *  the thread — nothing else. Rows are forced onto this token's client. */
+ *  the thread — nothing else. Rows are forced onto this token's client, and
+ *  data rows are stamped `source: 'companion-import'` — the mark of a row the
+ *  client authored. A client may delete only rows carrying that mark (its
+ *  own logs), never anything the coach wrote about it. */
 const CLIENT_WRITABLE = new Set(['sessionLogs', 'metrics', 'checkIns', 'messages'])
+const CLIENT_DELETABLE = new Set(['sessionLogs', 'metrics', 'checkIns'])
+const getClientRow = db.prepare(`SELECT client_id, json_extract(data, '$.source') AS source FROM records WHERE account_id = ? AND tbl = ? AND id = ? AND deleted = 0`)
+function clientAuthored(accountId: string, clientId: string, c: Change): boolean {
+  const r = getClientRow.get(accountId, c.table, c.id) as { client_id: string | null; source: string | null } | undefined
+  return !!r && r.client_id === clientId && r.source === 'companion-import'
+}
 app.post('/client/push', requireClient, (req, res) => {
   const { changes } = req.body
   if (!Array.isArray(changes) || changes.length > MAX_CHANGES_PER_PUSH) {
     return res.status(400).json({ error: `changes must be an array of at most ${MAX_CHANGES_PER_PUSH}` })
   }
-  const bad = changes.findIndex(c => !validChange(c) || !CLIENT_WRITABLE.has(c.table) || c.deleted
+  const bad = changes.findIndex(c => !validChange(c) || !CLIENT_WRITABLE.has(c.table)
+    || (c.deleted && !CLIENT_DELETABLE.has(c.table))
     || (c.table === 'messages' && (c.data as { direction?: unknown } | undefined)?.direction !== 'inbound'))
   if (bad !== -1) return res.status(400).json({ error: `Invalid change at index ${bad}` })
-  const result = applyChanges(req.accountId!, resolveExerciseNames(req.accountId!, changes.map(clientBookingOnly)), req.clientId)
+  // A delete of anything the client didn't author is dropped (reported stale),
+  // not a 400 — the same batch may carry new logs that must still land.
+  const notOwn = (changes as Change[]).filter(c => c.deleted && !clientAuthored(req.accountId!, req.clientId!, c)).map(c => c.id)
+  const stamped = (changes as Change[]).filter(c => !notOwn.includes(c.id)).map(c =>
+    !c.deleted && CLIENT_DELETABLE.has(c.table) ? { ...c, data: { ...c.data, source: 'companion-import' } } : c)
+  const result = applyChanges(req.accountId!, resolveExerciseNames(req.accountId!, stamped.map(clientBookingOnly)), req.clientId)
+  result.stale.push(...notOwn)
   const applied = new Set(result.applied)
   const newMessages = (changes as Change[]).filter(c => c.table === 'messages' && applied.has(c.id))
   if (newMessages.length) {

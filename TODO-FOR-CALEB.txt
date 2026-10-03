@@ -67,7 +67,8 @@ DONE RECENTLY (no action needed — for your information)
 - Assigning a program template to a client copies it (the template stays in your library).
 - Program builder: edits made right before clicking Done are no longer lost; "duplicate week +1 rep" no longer turns 5 reps into 51.
 - Workouts your clients log in Companion now show up properly on your side (exercise name, sets,
-  your units). Before, they arrived as "Unknown exercise" with nothing in them.
+  your units), and a workout they delete on their phone is removed on your side too. Before, they
+  arrived as "Unknown exercise" with nothing in them.
 - "Log session" now opens the next day of the program (it always opened week 1, day 1). Archived
   clients can be restored (there was no way back).
 - Session logger: ticking a set "done" now saves the load/reps shown (it used to save nothing).
