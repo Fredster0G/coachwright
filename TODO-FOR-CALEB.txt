@@ -71,6 +71,7 @@ DONE RECENTLY (no action needed — for your information)
   arrived as "Unknown exercise" with nothing in them.
 - "Log session" now opens the next day of the program (it always opened week 1, day 1). Archived
   clients can be restored (there was no way back).
+- Coupons: create them in Settings → Coupons, then use them on invoices (nothing could create one before).
 - Session logger: ticking a set "done" now saves the load/reps shown (it used to save nothing).
 - Quick log (Ctrl/Cmd+L) and the Ctrl/Cmd+K search box work now (Quick log never opened; typing in search went nowhere).
 - Branding: upload your logo and pick a colour (Settings → Brand). Shows on printouts and in Companion.

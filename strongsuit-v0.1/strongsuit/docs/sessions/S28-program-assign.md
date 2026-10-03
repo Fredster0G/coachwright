@@ -38,6 +38,8 @@ Standing instruction: "always continue" — work through everything not blocked 
 - **Food Log** targets disagreed with Nutrition (own goal shortcut) → `goalPlan()`; float totals rounded;
   hover-only Remove; barcode camera left on if granted after close.
 - **Business:** last-month income and the 6-month chart skipped refunds (gross vs this month's net).
+  **Coupons couldn't be created anywhere** (STATUS claimed "invoicing w/ coupons") → Settings → Coupons;
+  an applied coupon froze its discount (10% stayed $10 after adding a line) and inactive codes applied at $0.
 - **Settings:** Membership bar counted sample clients; Licence card claimed "the key never leaves your
   computer" (false since S23 — trainer row syncs, server re-verifies) → copy corrected. Companion
   disconnect and Companion workout delete now confirm.

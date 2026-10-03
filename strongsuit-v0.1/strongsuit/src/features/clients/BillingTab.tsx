@@ -3,7 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Plus, CreditCard, ArrowDownLeft, ArrowUpRight, Scissors, FileText, Trash2, ExternalLink, Repeat } from 'lucide-react'
 import { Card, Button, Input, EmptyState, Dialog, Label, Select, Field, Stat, Tag, Checkbox, toast, toastError } from '@/design'
 import { paymentsRepo, clientsRepo, invoicesRepo, couponsRepo, staffRepo } from '@/db/repo'
-import type { Client, Payment, PaymentType, Invoice, InvoiceLineItem, InvoiceStatus } from '@/db/types'
+import type { Client, Coupon, Payment, PaymentType, Invoice, InvoiceLineItem, InvoiceStatus } from '@/db/types'
 import { nowIso, newId, isoDay } from '@/lib/core'
 import { gymCutForClient, invoiceTotals, clientBalance } from '@/lib/business'
 import { getActiveStaffId } from '@/lib/activeStaff'
@@ -78,23 +78,28 @@ function NewInvoiceDialog({ clientId, open, onClose }: { clientId: string; open:
   const [dueDate, setDueDate] = useState('')
   const [paymentLink, setPaymentLink] = useState('')
   const [repeatMonthly, setRepeatMonthly] = useState(false)
-  const [applied, setApplied] = useState<{ code: string; discountAmount: number } | null>(null)
+  // The coupon itself, not the discount it gave at the moment it was applied:
+  // a 10% coupon applied and then a line added still took 10% of the OLD total.
+  const [applied, setApplied] = useState<Coupon | null>(null)
   const { t } = useTranslation()
 
-  const totals = invoiceTotals(lineItems, applied ? { id: '', createdAt: '', updatedAt: '', code: applied.code, kind: 'flat', value: applied.discountAmount, active: true } : null)
+  const totals = invoiceTotals(lineItems, applied)
 
   async function checkCoupon() {
     if (!couponCode.trim()) { setApplied(null); return }
     const coupon = await couponsRepo.byCode(couponCode.trim())
+    // An inactive or expired code used to "apply" silently at $0 off.
     if (!coupon) { toastError(t('clients.toast.noCoupon', { code: couponCode })); setApplied(null); return }
-    const t_totals = invoiceTotals(lineItems, coupon)
-    setApplied({ code: coupon.code, discountAmount: t_totals.discountAmount })
+    if (!coupon.active || (coupon.expiresAt && coupon.expiresAt < isoDay(new Date()))) {
+      toastError(t('clients.toast.couponInactive', { code: coupon.code })); setApplied(null); return
+    }
+    setApplied(coupon)
   }
 
   async function save(sendNow: boolean) {
     const clean = lineItems.filter(li => li.description.trim() && li.amount > 0)
     if (!clean.length) return
-    const saveTotals = invoiceTotals(clean, applied ? { id: '', createdAt: '', updatedAt: '', code: applied.code, kind: 'flat', value: applied.discountAmount, active: true } : null)
+    const saveTotals = invoiceTotals(clean, applied)
     const number = await invoicesRepo.nextNumber()
     await invoicesRepo.create({
       clientId, number, date: isoDay(new Date()),
@@ -125,7 +130,7 @@ function NewInvoiceDialog({ clientId, open, onClose }: { clientId: string; open:
               <Field label={i === 0 ? t('clients.billing.amountLabel') : ''}>
                 <Input type="number" min="0" step="0.01" value={li.amount || ''} onChange={e => setLineItems(rows => rows.map((r, j) => j === i ? { ...r, amount: Number(e.target.value) || 0 } : r))} className="font-mono tabular-nums" />
               </Field>
-              <Button variant="ghost" size="sm" onClick={() => setLineItems(rows => rows.filter((_, j) => j !== i))} disabled={lineItems.length === 1}><Trash2 size={13} /></Button>
+              <Button variant="ghost" size="sm" aria-label={t('clients.billing.removeLine')} onClick={() => setLineItems(rows => rows.filter((_, j) => j !== i))} disabled={lineItems.length === 1}><Trash2 size={13} /></Button>
             </div>
           ))}
           <Button size="sm" variant="ghost" onClick={() => setLineItems(rows => [...rows, { description: '', amount: 0, qty: 1 }])}><Plus size={13} /> {t('clients.billing.addLineBtn')}</Button>
