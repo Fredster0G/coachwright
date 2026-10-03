@@ -46,7 +46,7 @@ describe('flagReadinessToday', () => {
       [{ id: 'c1', status: 'active' }],
       new Map([['c1', checkIns]]),
     )
-    expect(flags).toEqual([{ clientId: 'c1', band: 'easy', recommendation: expect.any(String) }])
+    expect(flags).toEqual([{ clientId: 'c1', band: 'easy', recommendation: expect.any(String), recMsg: expect.objectContaining({ key: 'readiness.easy' }) }])
   })
 
   it('does not flag a paused or archived client even with the same low reading', () => {

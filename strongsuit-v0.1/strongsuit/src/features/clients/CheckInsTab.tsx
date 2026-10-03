@@ -7,7 +7,8 @@ import type { CheckIn } from '@/db/types'
 import { nowIso, newId, today as todayStr } from '@/lib/core'
 import { readinessV2, MIN_BASELINE_DAYS } from '@/lib/readiness'
 import { currentStreak } from '@/lib/habits'
-import { useTranslation } from '@/lib/i18n'
+import { useTranslation, type MessageKey } from '@/lib/i18n'
+import { renderMsg } from '@/lib/i18n/msg'
 
 /** Daily habit checklist with streaks (spec §4.26b). */
 function HabitsCard({ clientId }: { clientId: string }) {
@@ -80,9 +81,9 @@ function ReadinessCard({ checkIns }: { checkIns: CheckIn[] }) {
         <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted">
           <Gauge size={14} /> {t('clients.checkins.readinessTitle')}
         </div>
-        <p className="mt-2 text-xs text-ink">{r.recommendation}</p>
+        <p className="mt-2 text-xs text-ink">{renderMsg(r.recMsg, t)}</p>
         <p className="mt-1 text-2xs text-faint">
-          {t('clients.checkins.readinessEmptyBody', { min: MIN_BASELINE_DAYS, count: r.historyDays })}
+          {t('clients.checkins.readinessEmptyBody', { min: MIN_BASELINE_DAYS, count: checkIns.length })}
         </p>
       </Card>
     )
@@ -101,13 +102,13 @@ function ReadinessCard({ checkIns }: { checkIns: CheckIn[] }) {
       <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface2">
         <div className={`h-full rounded-full ${bar}`} style={{ width: `${r.score}%` }} />
       </div>
-      <p className="mt-2 text-xs text-ink">{r.recommendation}</p>
+      <p className="mt-2 text-xs text-ink">{renderMsg(r.recMsg, t)}</p>
       {/* Every domain against this client's own normal — the point of v2 is
           that the coach can see WHY, not just a number. */}
       <div className="mt-2 space-y-0.5">
         {r.domains.map(d => (
           <div key={d.domain} className="flex items-center justify-between text-2xs">
-            <span className="capitalize text-muted">{d.domain}</span>
+            <span className="capitalize text-muted">{t(`readiness.domain.${d.domain}` as MessageKey)}</span>
             <span className={`font-mono tabular-nums ${d.z <= -1 ? 'text-ember-600' : 'text-faint'}`}>
               {d.z > 0 ? '+' : ''}{t('clients.checkins.sd', { z: d.z })}
             </span>
