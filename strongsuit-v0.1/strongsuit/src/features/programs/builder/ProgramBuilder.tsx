@@ -9,15 +9,14 @@ import { Button, Dialog, Select, Field, toast, Input, Textarea, SegmentedControl
 import BuilderOutline from './BuilderOutline'
 import DayCanvas from './DayCanvas'
 import GridView from './GridView'
-
-const VIEW_OPTIONS = [
-  { value: 'day', label: 'Day' },
-  { value: 'grid', label: 'Grid' },
-]
+import { today } from '@/lib/core'
+import { useTranslation } from '@/lib/i18n'
 
 const MAX_HISTORY = 50
 
 export default function ProgramBuilder() {
+  const { t } = useTranslation()
+  const VIEW_OPTIONS = [{ value: 'day', label: t('builder.view.day') }, { value: 'grid', label: t('builder.view.grid') }]
   const { id } = useParams()
   const navigate = useNavigate()
 
@@ -133,7 +132,7 @@ export default function ProgramBuilder() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [undo, redo])
 
-  if (!draft) return <div className="p-8 text-faint animate-pulse">Loading builder…</div>
+  if (!draft) return <div className="p-8 text-faint animate-pulse">{t('builder.loading')}</div>
 
   const isSaving = lastSaved && JSON.stringify(draft) !== JSON.stringify(lastSaved)
   const activeWeekId = draft.weeks.find(w => w.days.some(d => d.id === activeDayId))?.id ?? draft.weeks[0]?.id ?? null
@@ -151,55 +150,60 @@ export default function ProgramBuilder() {
             value={draft.name} 
             onChange={(e) => commitChange({ ...draft, name: e.target.value })}
             className="text-lg font-bold text-ink bg-transparent border-none p-0 focus:ring-0 focus:outline-none placeholder:text-muted w-full max-w-[200px] md:max-w-none"
-            placeholder="Program Name"
+            placeholder={t('builder.namePlaceholder')} aria-label={t('builder.namePlaceholder')}
           />
         </div>
         <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs">
           {/* Status Indicator */}
           {isSaving ? (
-            <span className="text-muted flex items-center gap-1.5"><Save size={14} className="animate-pulse" /> Saving...</span>
+            <span className="text-muted flex items-center gap-1.5"><Save size={14} className="animate-pulse" /> {t('builder.saving')}</span>
           ) : (
-            <span className="text-verde-600 flex items-center gap-1.5"><Save size={14} /> Saved</span>
+            <span className="text-verde-600 flex items-center gap-1.5"><Save size={14} /> {t('builder.saved')}</span>
           )}
           <SegmentedControl options={VIEW_OPTIONS} value={view} onChange={v => setView(v as 'day' | 'grid')} />
           <Button variant="ghost" size="sm" onClick={() => setSettingsOpen(true)}>
-            <Settings size={14} className="me-1.5" /> Settings
+            <Settings size={14} className="me-1.5" /> {t('builder.settings')}
           </Button>
           <Button variant="secondary" size="sm" onClick={() => setAssignOpen(true)}>
-            Assign to client...
+            {t('builder.assign')}
           </Button>
           <Button variant="primary" size="sm" onClick={() => navigate('/programs')}>
-            Done
+            {t('builder.done')}
           </Button>
         </div>
       </div>
 
-      <Dialog open={assignOpen} onClose={() => setAssignOpen(false)} title="Assign to client" width={400}>
+      <Dialog open={assignOpen} onClose={() => setAssignOpen(false)} title={t('builder.assignTitle')} width={400}>
         <div className="space-y-4">
-          <Field label="Client">
+          <Field label={t('builder.client')}>
             <Select value={assignClientId} onChange={e => setAssignClientId(e.target.value)}>
-              <option value="">Select a client...</option>
+              <option value="">{t('builder.selectClient')}</option>
               {clients.map(c => (
                 <option key={c.id} value={c.id}>{c.firstName} {c.lastName}</option>
               ))}
             </Select>
           </Field>
           <div className="flex justify-end gap-2 mt-4">
-            <Button variant="ghost" onClick={() => setAssignOpen(false)}>Cancel</Button>
+            <Button variant="ghost" onClick={() => setAssignOpen(false)}>{t('builder.cancel')}</Button>
             <Button 
               variant="primary" 
               disabled={!assignClientId}
               onClick={async () => {
-                const assigned = { ...draft, clientId: assignClientId, status: 'active' as const }
-                commitChange(assigned)
-                await programsRepo.update(assigned.id, assigned)
-                setLastSaved(assigned)
+                // Save pending edits first, then assign through the repo: it
+                // copies a template instead of consuming it, sets the start
+                // date and the client's activeProgramId, and retires their
+                // previous active program. (This used to rewrite the program
+                // in place — a template vanished from the library and the
+                // client's activeProgramId was never set.)
+                await programsRepo.update(draft.id, draft)
+                setLastSaved(draft)
+                await programsRepo.assignToClient(draft.id, assignClientId, today())
                 setAssignOpen(false)
-                toast(`Program assigned to client.`)
+                toast(draft.status === 'template' ? t('builder.toast.assignedCopy') : t('builder.toast.assigned'))
                 navigate(`/clients/${assignClientId}`)
               }}
             >
-              Assign & View
+              {t('builder.assignView')}
             </Button>
           </div>
         </div>
@@ -241,7 +245,7 @@ export default function ProgramBuilder() {
             />
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-faint">
-              <p>Select a day to edit</p>
+              <p>{t('builder.selectDay')}</p>
             </div>
           )}
         </div>
@@ -251,6 +255,7 @@ export default function ProgramBuilder() {
 }
 
 function ProgramSettingsDialog({ draft, open, onClose, commitChange }: { draft: Program, open: boolean, onClose: () => void, commitChange: (d: Program) => void }) {
+  const { t } = useTranslation()
   const [desc, setDesc] = useState(draft.description || '')
   const [goalTag, setGoalTag] = useState(draft.goalTag || '')
   
@@ -279,30 +284,30 @@ function ProgramSettingsDialog({ draft, open, onClose, commitChange }: { draft: 
   }
 
   return (
-    <Dialog open={open} onClose={onClose} title="Program Settings" width={500}>
+    <Dialog open={open} onClose={onClose} title={t('builder.settingsTitle')} width={500}>
       <div className="space-y-4">
-        <Field label="Description">
+        <Field label={t('builder.description')}>
           <Textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3} />
         </Field>
         
-        <Field label="Goal / Tag" hint="e.g. Hypertrophy, Strength, Peak">
+        <Field label={t('builder.goalTag')} hint={t('builder.goalTagHint')}>
           <Input value={goalTag} onChange={e => setGoalTag(e.target.value)} />
         </Field>
         
         <div className="border-t border-line pt-4">
-          <h3 className="font-bold mb-3">Auto-Progression Engine</h3>
-          <Field label="Policy">
+          <h3 className="font-bold mb-3">{t('builder.progression')}</h3>
+          <Field label={t('builder.policy')}>
             <Select value={polKind} onChange={e => setPolKind(e.target.value as any)}>
-              <option value="none">None (Manual)</option>
-              <option value="linear-load">Linear Load (+%)</option>
-              <option value="double-progression">Double Progression</option>
-              <option value="rpe-target">RPE Target</option>
+              <option value="none">{t('builder.policy.none')}</option>
+              <option value="linear-load">{t('builder.policy.linear')}</option>
+              <option value="double-progression">{t('builder.policy.double')}</option>
+              <option value="rpe-target">{t('builder.policy.rpe')}</option>
             </Select>
           </Field>
           
           {polKind === 'linear-load' && (
             <div className="mt-2">
-              <Field label="Increase load by (%)">
+              <Field label={t('builder.increaseBy')}>
                 <Input type="number" step="0.5" value={llPercent} onChange={e => setLlPercent(Number(e.target.value))} />
               </Field>
             </div>
@@ -310,13 +315,13 @@ function ProgramSettingsDialog({ draft, open, onClose, commitChange }: { draft: 
           
           {polKind === 'double-progression' && (
             <div className="grid grid-cols-3 gap-2 mt-2">
-              <Field label="Min Reps">
+              <Field label={t('builder.minReps')}>
                 <Input type="number" value={dpRepMin} onChange={e => setDpRepMin(Number(e.target.value))} />
               </Field>
-              <Field label="Max Reps">
+              <Field label={t('builder.maxReps')}>
                 <Input type="number" value={dpRepMax} onChange={e => setDpRepMax(Number(e.target.value))} />
               </Field>
-              <Field label="Load jump">
+              <Field label={t('builder.loadJump')}>
                 <Input type="number" step="1.25" value={dpLoadInc} onChange={e => setDpLoadInc(Number(e.target.value))} />
               </Field>
             </div>
@@ -324,7 +329,7 @@ function ProgramSettingsDialog({ draft, open, onClose, commitChange }: { draft: 
 
           {polKind === 'rpe-target' && (
             <div className="mt-2">
-              <Field label="Target RPE (1-10)">
+              <Field label={t('builder.targetRpe')}>
                 <Input type="number" step="0.5" min="1" max="10" value={rpeTarget} onChange={e => setRpeTarget(Number(e.target.value))} />
               </Field>
             </div>
@@ -332,8 +337,8 @@ function ProgramSettingsDialog({ draft, open, onClose, commitChange }: { draft: 
         </div>
       </div>
       <div className="mt-6 flex justify-end gap-2">
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <Button variant="primary" onClick={save}>Save Settings</Button>
+        <Button variant="ghost" onClick={onClose}>{t('builder.cancel')}</Button>
+        <Button variant="primary" onClick={save}>{t('builder.saveSettings')}</Button>
       </div>
     </Dialog>
   )

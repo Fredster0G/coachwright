@@ -176,11 +176,25 @@ export const programsRepo = {
   async forClient(clientId: string) {
     return db.programs.where('clientId').equals(clientId).toArray()
   },
-  async assignToClient(programId: string, clientId: string, startDate: string) {
+  /** Make a program this client's active one. A TEMPLATE is copied (the
+   *  library keeps it); any other program is reassigned in place. The
+   *  client's previous active program is marked completed, so there's only
+   *  ever one, and `client.activeProgramId` (Quick Log, roster adherence)
+   *  points at it. Returns the program id that is now active. */
+  async assignToClient(programId: string, clientId: string, startDate: string): Promise<string> {
+    const src = await db.programs.get(programId)
+    if (!src) throw new Error('Program not found')
+    const targetId = src.status === 'template'
+      ? (await programsRepo.duplicate(programId, { clientId, status: 'active', startDate })).id
+      : programId
     await db.transaction('rw', [db.programs, db.clients], async () => {
-      await db.programs.update(programId, { clientId, status: 'active', startDate, updatedAt: nowIso() })
-      await db.clients.update(clientId, { activeProgramId: programId, updatedAt: nowIso() })
+      const t = nowIso()
+      const previous = await db.programs.where('clientId').equals(clientId).filter(p => p.status === 'active' && p.id !== targetId).toArray()
+      for (const p of previous) await db.programs.update(p.id, { status: 'completed', updatedAt: t })
+      if (targetId === programId) await db.programs.update(programId, { clientId, status: 'active', startDate, updatedAt: t })
+      await db.clients.update(clientId, { activeProgramId: targetId, updatedAt: t })
     })
+    return targetId
   },
   /** Deep-duplicate a program (template instantiation / duplicate week uses lib fns). */
   async duplicate(programId: string, overrides: Partial<Program> = {}) {
