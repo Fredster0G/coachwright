@@ -132,7 +132,7 @@ export default function NutritionTab({ client, units }: { client: Client; units:
               <p className="text-sm font-semibold text-ink">
                 {prescriptionWarning.severity === 'stop' ? t('nutr.stopTitle') : t('nutr.warnTitle')}
               </p>
-              <p className="mt-1 text-xs text-muted">{prescriptionWarning.message}</p>
+              <p className="mt-1 text-xs text-muted">{renderMsg(prescriptionWarning.msg, t)}</p>
               <p className="mt-1.5 text-2xs text-faint">{prescriptionWarning.source}</p>
             </div>
           </div>
@@ -153,9 +153,9 @@ export default function NutritionTab({ client, units }: { client: Client; units:
               </span>
             )}
           </div>
-          <p className="text-xs text-ink">{ea.summary}</p>
+          <p className="text-xs text-ink">{renderMsg(ea.summaryMsg, t)}</p>
           <p className="mt-1.5 text-2xs text-faint">
-            {ea.confidenceReason} {t('nutr.eaApprox')}
+            {renderMsg(ea.confidenceMsg, t)} {t('nutr.eaApprox')}
           </p>
           <p className="mt-1 text-2xs text-faint">{ea.source}</p>
         </Card>
@@ -170,7 +170,7 @@ export default function NutritionTab({ client, units }: { client: Client; units:
             <span className="font-mono tabular-nums">{bmrChoice.bmr}</span> {t('nutr.kcalDay')}
             <span className="text-2xs text-faint">{t('nutr.mifflinWas', { bmr: plan?.bmr ?? '' })}</span>
           </p>
-          <p className="mt-1 text-xs text-muted">{bmrChoice.rationale}</p>
+          <p className="mt-1 text-xs text-muted">{renderMsg(bmrChoice.rationaleMsg, t)}</p>
           <p className="mt-1 text-2xs text-faint">{bmrChoice.source}</p>
         </Card>
       )}
@@ -186,8 +186,8 @@ export default function NutritionTab({ client, units }: { client: Client; units:
           <p className="mt-1 text-2xs text-muted">
             {t('nutr.proteinFloor', { floor: protein.perMealFloorG })}
           </p>
-          {protein.notes.map((n, i) => (
-            <p key={i} className="mt-1.5 text-2xs text-muted">{n}</p>
+          {protein.noteMsgs.map((n, i) => (
+            <p key={i} className="mt-1.5 text-2xs text-muted">{renderMsg(n, t)}</p>
           ))}
           <p className="mt-1.5 text-2xs text-faint">{protein.source}</p>
         </Card>
@@ -205,12 +205,12 @@ export default function NutritionTab({ client, units }: { client: Client; units:
           </div>
           <p className="text-sm text-ink">
             <span className="font-mono tabular-nums">{carbs.gramsLow}–{carbs.gramsHigh} g</span>
-            <span className="text-2xs text-faint"> ({carbs.gPerKg.low}–{carbs.gPerKg.high} g/kg) · {carbs.label}</span>
+            <span className="text-2xs text-faint"> ({carbs.gPerKg.low}–{carbs.gPerKg.high} g/kg) · {renderMsg(carbs.labelMsg, t)}</span>
           </p>
           <p className="mt-1 text-2xs text-muted">
             {t('nutr.carbWhy')}
           </p>
-          {carbs.intraSession && <p className="mt-1.5 text-2xs text-muted">{carbs.intraSession}</p>}
+          {carbs.intraSessionMsg && <p className="mt-1.5 text-2xs text-muted">{renderMsg(carbs.intraSessionMsg, t)}</p>}
           <p className="mt-1.5 text-2xs text-faint">{carbs.source}</p>
         </Card>
       )}

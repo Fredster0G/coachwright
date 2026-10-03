@@ -63,10 +63,11 @@ the UTC day, fixed.
 **64 · i18n: about 13 components still hold hardcoded English** (re-measured S27 — the old "~53 of 57"
 was stale: 30 of 55 feature components already use `t()`). Calendar, Messages, Team, Leads, Leaderboard, Reports, Studio (hub + location), Library (+ video viewer) converted S27; Program Builder (incl. outline, grid, rows, exercise search), Onboarding wizard, sign-in/Account, Programs list,
 session logger, Quick log, rest timer, log-sheet scan S28. Biggest left: Settings
-Guide, Film Room, Nutrition tab, Assistant. Pattern for engine prose (S28): `lib/i18n/msg.ts` — an engine returns a `Msg`
+Guide, Film Room, Assistant. Pattern for engine prose (S28): `lib/i18n/msg.ts` — an engine returns a `Msg`
 (key + params, params may nest) beside its English string, both from one catalogue entry; UI calls
-`renderMsg(msg, t)`. Done: `progression.ts`, `readiness.ts` (+ Science page), `quickLog.ts` clarifications.
-Next: nutrition rationale, energy availability, `goals.ts`, `describePlan`. `lib/schedule.ts` `describeRule()` still returns English. **The science screens (Nutrition, Film Room
+`renderMsg(msg, t)`. Done: `progression.ts`, `readiness.ts`, `nutrition.ts`, `nutritionAdvanced.ts`,
+`energyAvailability.ts` (all of the Nutrition + Science tabs), `quickLog.ts` clarifications. Next: `goals.ts`,
+`trainingLoad.ts`, `parq.ts`, `describePlan`. Citations (`source`) stay untranslated on purpose. `lib/schedule.ts` `describeRule()` still returns English. **The science screens (Nutrition, Film Room
 summaries, readiness) are mostly engine-written prose from `lib/` (rationale, notes, warnings)** — translating
 only their component labels yields a half-English page; those engines need message keys + params first. Layer + RTL are done.
 `es.json`/`ar.json` are **seed translations** marked in their own `_meta` — must not ship to customers
