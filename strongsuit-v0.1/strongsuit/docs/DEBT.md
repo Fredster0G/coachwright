@@ -60,9 +60,12 @@ and the synced-table list + licence public key must match between app and server
 `core.ts` is deliberately different per app (Companion's is a small subset) — S24 found its `today()` was
 the UTC day, fixed.
 
-**64 · i18n: ~53 of 57 components still hold hardcoded English.** Layer + RTL are done and the pattern
-is proven. `es.json`/`ar.json` are **seed translations** marked in their own `_meta` — must not ship to
-customers as finished locales.
+**64 · i18n: about 24 components still hold hardcoded English** (re-measured S27 — the old "~53 of 57"
+was stale: 30 of 55 feature components already use `t()`). Calendar converted S27. Biggest left: Settings
+Guide, Film Room, Nutrition tab, Team, Library, Leads, Program Builder, Onboarding wizard, Leaderboard,
+Reports, Studio. `lib/schedule.ts` `describeRule()` still returns English. Layer + RTL are done.
+`es.json`/`ar.json` are **seed translations** marked in their own `_meta` — must not ship to customers
+as finished locales.
 
 **65 · `symptomReadinessContribution()` has zero callers.** Correct and tested, but the only device with
 cycle data is Companion, which has no readiness engine, and cycle rows are kept out of the sync payload

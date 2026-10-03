@@ -39,6 +39,8 @@ Standing instruction: "always continue" — work through everything that doesn't
 - **Live crawl after the S26–S27 changes:** every coach route + all 11 client tabs at 1280 and 375px,
   and every Companion route at 360px — zero console errors. Only finding: two printouts overflowed a
   phone (header didn't wrap; intake's blank-line underscores can't break) — fixed, re-measured clean.
+- **i18n (DEBT-64):** re-measured (≈24 components left, not 53); Calendar fully converted (55 keys;
+  weekday/month names and day headings now use the browser locale). Verified live: no raw keys.
 - Not doable here: the 4B/8B assistant tiers need a verified real download and Hugging Face is
   blocked by this environment's network policy (403 at the proxy).
 
