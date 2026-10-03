@@ -5,7 +5,8 @@ import type { Exercise, SessionLog } from '@/db/types'
 import { e1rm, fmtLoad } from '@/lib/core'
 import { suggestHeuristic, type Performance } from '@/lib/progression'
 import { warmupRamp } from '@/lib/nutrition'
-import { format, parseISO } from 'date-fns'
+import { parseISO } from 'date-fns'
+import { useTranslation } from '@/lib/i18n'
 
 interface ExerciseHistoryDrawerProps {
   clientId: string
@@ -49,6 +50,7 @@ export default function ExerciseHistoryDrawer({ clientId, exerciseId, open, onCl
   
   const [exercise, setExercise] = useState<Exercise | null>(null)
   const [history, setHistory] = useState<HistoryRecord[]>([])
+  const { t, locale } = useTranslation()
   
   useEffect(() => {
     if (open) {
@@ -100,8 +102,8 @@ export default function ExerciseHistoryDrawer({ clientId, exerciseId, open, onCl
     >
       <div className="flex h-full flex-col">
         <div className="flex items-center justify-between border-b border-line px-4 py-4">
-          <h2 className="text-lg font-bold text-ink">{exercise?.name || 'History'}</h2>
-          <button onClick={onClose} className="p-2 -me-2 text-faint hover:text-ink rounded-full hover:bg-surface2 transition-colors">
+          <h2 className="text-lg font-bold text-ink">{exercise?.name || t('history.title')}</h2>
+          <button onClick={onClose} aria-label={t('history.close')} className="p-2 -me-2 text-faint hover:text-ink rounded-full hover:bg-surface2 transition-colors">
             <X size={20} />
           </button>
         </div>
@@ -111,10 +113,11 @@ export default function ExerciseHistoryDrawer({ clientId, exerciseId, open, onCl
             <div className="flex items-center justify-between bg-verde-100/40 rounded-lg p-4 border border-verde-600/20">
               <div>
                 <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-verde-600 mb-1">
-                  <TrendingUp size={14} /> e1RM Trend
+                  <TrendingUp size={14} /> {t('history.trend')}
                 </div>
                 <div className="text-2xl font-bold text-ink">
-                  {fmtLoad(chartData[chartData.length - 1], clientUnits)}
+                  {/* Latest session WITH a loaded set — the last one may be bodyweight-only (0). */}
+                  {fmtLoad(chartData.filter(d => d > 0).at(-1) ?? 0, clientUnits)}
                 </div>
               </div>
               <Sparkline data={chartData.filter(d => d > 0)} />
@@ -124,16 +127,16 @@ export default function ExerciseHistoryDrawer({ clientId, exerciseId, open, onCl
           {suggestion && (
             <div className="rounded-card border border-line bg-surface2 p-4">
               <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-verde-600">
-                <Compass size={14} /> Suggested next
+                <Compass size={14} /> {t('history.suggested')}
               </div>
               <div className="font-mono tabular-nums text-xl font-semibold text-ink">
                 {suggestion.load != null ? fmtLoad(suggestion.load, clientUnits) : '—'}
-                {suggestion.reps ? <span className="text-sm font-normal text-muted"> × {suggestion.reps}+ reps</span> : null}
+                {suggestion.reps ? <span className="text-sm font-normal text-muted"> {t('history.repsPlus', { n: suggestion.reps })}</span> : null}
               </div>
               <p className="mt-1 text-xs text-muted">{suggestion.reason}</p>
               {suggestion.load != null && suggestion.load >= 40 && (
                 <div className="mt-3 border-t border-line pt-2">
-                  <p className="mb-1 text-2xs font-medium uppercase tracking-wide text-faint">Warm-up ramp</p>
+                  <p className="mb-1 text-2xs font-medium uppercase tracking-wide text-faint">{t('history.warmup')}</p>
                   <div className="flex flex-wrap gap-x-4 gap-y-1">
                     {warmupRamp(suggestion.load, clientUnits === 'kg' ? 1.25 : 2.5).map(s => (
                       <span key={s.pct} className="font-mono tabular-nums text-xs text-muted">
@@ -147,25 +150,25 @@ export default function ExerciseHistoryDrawer({ clientId, exerciseId, open, onCl
           )}
 
           <div className="space-y-6">
-            <h3 className="text-sm font-semibold text-ink">Last 5 Sessions</h3>
+            <h3 className="text-sm font-semibold text-ink">{t('history.last5')}</h3>
             {history.length === 0 ? (
-              <p className="text-faint text-sm">No history logged for this exercise yet.</p>
+              <p className="text-faint text-sm">{t('history.none')}</p>
             ) : (
               history.map((h, i) => (
                 <div key={i} className="relative ps-4 border-s-2 border-line">
-                  <div className="absolute -left-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-iron-200 dark:bg-iron-700" />
+                  <div className="absolute -start-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-iron-200 dark:bg-iron-700" />
                   <div className="text-xs font-medium text-faint mb-2">
-                    {format(parseISO(h.date), 'MMM d, yyyy')}
+                    {parseISO(h.date).toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' })}
                   </div>
                   <div className="space-y-1.5">
                     {h.sets.map((set, sIdx) => {
                       if (!set.done) return null
                       return (
                         <div key={sIdx} className="text-sm flex items-center justify-between py-1 border-b border-dashed border-line last:border-0">
-                          <span className="text-muted">Set {sIdx + 1}</span>
+                          <span className="text-muted">{t('history.set', { n: sIdx + 1 })}</span>
                           <span className="font-medium text-ink">
                             {set.actualLoad ? `${fmtLoad(set.actualLoad, clientUnits)} × ` : ''}
-                            {set.actualReps ?? set.targetReps ?? '-'} reps
+                            {t('history.reps', { n: set.actualReps ?? set.targetReps ?? '-' })}
                             {set.rpe ? ` @ ${set.rpe}` : ''}
                           </span>
                         </div>
