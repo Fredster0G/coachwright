@@ -45,6 +45,9 @@ Standing instruction: "always continue" — work through everything not blocked 
 - **Settings:** Membership bar counted sample clients; Licence card claimed "the key never leaves your
   computer" (false since S23 — trainer row syncs, server re-verifies) → copy corrected. Companion
   disconnect and Companion workout delete now confirm.
+- **Nutrition engine:** the cut note always claimed "inside the 0.5–1%/week range" (a typical client is
+  under it) → states slower/inside/faster, classified on the printed rounding. Engine prose keyed via
+  `lib/i18n/msg.ts` (also progression, readiness); Nutrition + Science tabs translated.
 - **i18n:** onboarding, Program Builder + sub-views, sign-in/reset, Account, Programs list, session
   logger, Quick log (questions keyed by `status`), rest timer, scan, history drawer, TV, Membership,
   Licence, Connect Companion, Food Log, barcode scanner.
@@ -54,6 +57,7 @@ Standing instruction: "always continue" — work through everything not blocked 
   comes from `lib/` engines (DEBT-64).
 
 ## New debt
+- **86** Nutrition tab's default cut trips its own red energy-availability warning — science call, logged.
 - **85** Companion deletions never reached the coach — opened and resolved this session (client may delete
   only rows it authored; soft-delete → upload → purge; verified live).
 

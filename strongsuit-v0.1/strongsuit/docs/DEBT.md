@@ -111,6 +111,14 @@ changes — about once a day as the 14-day window rolls, plus on every booking/c
 today's sizes; move slots to their own row if the logo grows or coaches have many locations. Same
 family: since S26 the logo (≤256px PNG) also rides in every Companion `/client/bundle` response.
 
+**86 · (S28, NEW) The Nutrition tab contradicts itself on an ordinary cut.** The default plan (15% deficit,
+`lib/nutrition.ts`) for an 80 kg, 18% body-fat, moderately active man is ~2270 kcal; the energy-availability
+screen (`lib/energyAvailability.ts`) puts that at ~25 kcal/kg FFM and shows a red "below the safe threshold —
+refer to a sports dietitian" card above the "moderate, sustainable deficit" rationale. Partly because training
+cost is approximated from the activity factor (TDEE − 1.2×BMR ≈ 600 kcal), and the EA thresholds come mostly
+from studies in women (the card says so). Needs a science decision, not a silent tweak: soften the male/
+approximated case to amber, size the default deficit by EA, or keep it as is. Not changed.
+
 **85 · (S28) Companion deletions never reached the coach — RESOLVED S28.** Server now stamps client-pushed
 rows `source: 'companion-import'` and accepts a client delete only for such a row of its own (anything
 else is dropped as stale); Companion soft-deletes, uploads the delete, then purges. Tests in

@@ -53,6 +53,9 @@ updates this file as items appear or get done. Details live in strongsuit-v0.1/s
     first page anyone can open without an account; worth deciding before it's built.
 [ ] Settings shows a "Licence" card to every coach (paste a one-time licence key). If no one-time
     licences were ever sold, it could be hidden unless a key is already on file. Your call.
+[ ] Nutrition tab: for an ordinary client on a "Lose fat" goal (e.g. 80 kg man, moderately active) the
+    app's own default plan triggers its red "below the safe threshold" energy-availability warning. Decide
+    whether the default deficit should be smaller or the warning softer for that case. (DEBT-86)
 [ ] Coach email alerts are built (Settings → Notifications → "Also email me"): when a client
     messages or asks for a session and your app is closed, you get one email (name only, no
     message text, max one per 30 min). Like password reset, it needs the Postmark account in
