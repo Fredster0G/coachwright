@@ -61,6 +61,11 @@ Standing instruction: "always continue" (and "Continue") — work through everyt
   server re-verifies the key for the cap exemption); copy corrected. Companion disconnect now confirms.
   Translated: Membership, Licence, Connect Companion, TV display, exercise history.
 
+- **Food Log** targets disagreed with the Nutrition tab (own goal shortcut: hypertrophy → "cut"); now
+  `goalPlan()` like Nutrition (verified both 2445 kcal). Totals rounded (0.7 × 151.3 kcal showed 15 digits),
+  "/ g" when no targets → "—", Remove was hover-only (unusable on touch). Barcode scanner: a camera granted
+  after the dialog closed stayed on; lookup errors are now translated messages.
+
 ## Didn't do / couldn't
 - Settings Guide, Film Room, Nutrition, Science, Assistant still hold English (DEBT-64).
 

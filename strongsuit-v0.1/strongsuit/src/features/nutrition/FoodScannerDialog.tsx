@@ -5,6 +5,7 @@ import { Camera, Search, Loader2, AlertCircle } from 'lucide-react'
 import { foodItemsRepo } from '@/db/repo'
 import { lookupBarcode } from '@/lib/food'
 import type { FoodItem } from '@/db/types'
+import { useTranslation } from '@/lib/i18n'
 
 // Support native BarcodeDetector if available in the browser (Chrome, Android, etc)
 declare global {
@@ -25,6 +26,7 @@ export function FoodScannerDialog({ open, onClose, onScan }: FoodScannerDialogPr
   const [mode, setMode] = useState<'scan' | 'manual'>('scan')
   const [error, setError] = useState<string | null>(null)
   const [lookupLoading, setLookupLoading] = useState(false)
+  const { t } = useTranslation()
 
   // Camera stream state
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -72,14 +74,18 @@ export function FoodScannerDialog({ open, onClose, onScan }: FoodScannerDialogPr
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' }
       })
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        setCameraActive(true)
-        scanLoop(videoRef.current)
+      // The dialog may have closed (or switched to manual) while the OS
+      // permission prompt was up — stop the stream, or the camera stays on.
+      if (scanCancelRef.current || !videoRef.current) {
+        stream.getTracks().forEach(tr => tr.stop())
+        return
       }
+      videoRef.current.srcObject = stream
+      setCameraActive(true)
+      scanLoop(videoRef.current)
     } catch (err) {
       console.warn('Camera access denied or unavailable', err)
-      setError('Camera unavailable. Please enter barcode manually.')
+      setError(t('food.scan.cameraUnavailable'))
       setMode('manual')
     }
   }
@@ -161,7 +167,7 @@ export function FoodScannerDialog({ open, onClose, onScan }: FoodScannerDialogPr
       // 2. Query Open Food Facts
       const remote = await lookupBarcode(barcode)
       if ('type' in remote) {
-        setError(remote.message)
+        setError(remote.type === 'not_found' ? t('food.scan.notFound') : t('food.scan.network'))
       } else {
         // Cache it for next time
         await foodItemsRepo.create(remote)
@@ -173,7 +179,7 @@ export function FoodScannerDialog({ open, onClose, onScan }: FoodScannerDialogPr
   }
 
   return (
-    <Dialog open={open} onClose={onClose} title="Log Food">
+    <Dialog open={open} onClose={onClose} title={t('food.scan.title')}>
       <div className="space-y-4 pt-4">
         {/* Mode Toggle */}
         <div className="flex rounded-md shadow-sm p-1 bg-surface2 border border-line mx-auto w-fit">
@@ -181,13 +187,13 @@ export function FoodScannerDialog({ open, onClose, onScan }: FoodScannerDialogPr
             onClick={() => { setMode('scan'); setError(null) }}
             className={`flex items-center gap-2 rounded px-3 py-1.5 text-sm font-medium transition-colors ${mode === 'scan' ? 'bg-surface shadow text-ink' : 'text-faint hover:text-muted'}`}
           >
-            <Camera size={16} /> Scan Barcode
+            <Camera size={16} /> {t('food.scan.scan')}
           </button>
           <button
             onClick={() => { setMode('manual'); stopCamera(); setError(null) }}
             className={`flex items-center gap-2 rounded px-3 py-1.5 text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-surface shadow text-ink' : 'text-faint hover:text-muted'}`}
           >
-            <Search size={16} /> Manual Entry
+            <Search size={16} /> {t('food.scan.manual')}
           </button>
         </div>
 
@@ -208,24 +214,26 @@ export function FoodScannerDialog({ open, onClose, onScan }: FoodScannerDialogPr
               {!cameraActive && (
                 <div className="text-faint flex flex-col items-center gap-2">
                   <Camera size={32} />
-                  <span>Starting camera...</span>
+                  <span>{t('food.scan.starting')}</span>
                 </div>
               )}
             </>
           ) : (
             <div className="w-full max-w-sm px-4">
-              <label className="block text-sm font-medium text-ink mb-1">Enter Barcode Manually</label>
+              <label htmlFor="food-barcode" className="block text-sm font-medium text-ink mb-1">{t('food.scan.enter')}</label>
               <div className="flex gap-2">
                 <input
+                  id="food-barcode"
                   type="text"
+                  inputMode="numeric"
                   value={manualBarcode}
                   onChange={e => setManualBarcode(e.target.value)}
                   className="flex-1 rounded-md border-line shadow-sm sm:text-sm"
-                  placeholder="e.g. 000000000000"
+                  placeholder={t('food.scan.placeholder')}
                   onKeyDown={e => e.key === 'Enter' && handleLookup(manualBarcode)}
                 />
                 <Button onClick={() => handleLookup(manualBarcode)} disabled={lookupLoading || !manualBarcode}>
-                  {lookupLoading ? <Loader2 size={16} className="animate-spin" /> : 'Search'}
+                  {lookupLoading ? <Loader2 size={16} className="animate-spin" /> : t('food.scan.search')}
                 </Button>
               </div>
               {error && (
@@ -235,7 +243,7 @@ export function FoodScannerDialog({ open, onClose, onScan }: FoodScannerDialogPr
                 </div>
               )}
               <p className="mt-4 text-xs text-faint text-center">
-                Lookups check products you've scanned before first, then Open Food Facts.
+                {t('food.scan.hint')}
               </p>
             </div>
           )}
