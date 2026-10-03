@@ -94,6 +94,19 @@ describe('Companion ↔ Coachwright Cloud', () => {
     expect(entries[1].sets).toEqual([{ actualLoad: 40.8, done: true }])
   })
 
+  it('measurements reach the coach as the coach app\'s metric types, bodyweight in the coach\'s units', async () => {
+    const c = await coach()
+    await c.push([c.row('clients', 'cl1', { firstName: 'Alex' }), c.row('trainer', 'trainer', { units: 'kg' })])
+    await api.connectWithCode(await c.invite('cl1'))
+    await repo.profileRepo.getOrCreate()                      // client in lb
+    await repo.metricsRepo.create({ type: 'bodyweight', value: 180, date: '2026-01-02' })
+    await repo.metricsRepo.create({ type: 'waist', value: 32, date: '2026-01-02' })
+    await api.syncNow((await repo.coachLinkRepo.get())!)
+    const rows = (await c.pull()).changes.filter(x => x.table === 'metrics').map(x => x.data)
+    expect(rows.find(r => r.key === 'bodyweight')).toMatchObject({ type: 'bodyweight', value: 81.6, unit: 'kg' })
+    expect(rows.find(r => r.key === 'waist')).toMatchObject({ type: 'measurement', value: 32, unit: 'in' })
+  })
+
   it('a workout deleted on the phone is deleted for the coach; coach-written rows cannot be deleted by the client', async () => {
     const c = await coach()
     await c.push([

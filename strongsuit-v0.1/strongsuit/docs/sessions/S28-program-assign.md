@@ -20,6 +20,8 @@ Standing instruction: "always continue" — work through everything not blocked 
   unmatched names kept as `exerciseName`. Companion pulls before pushing (units known on first sync) and
   labels prescriptions in the coach's units ("225 kg" for a 225 lb prescription before). E2E test via the
   real server; live: client "back squat 5×225 lb" → coach "Back Squat 102.1 × 5".
+  Measurements too: bodyweight went up as a unitless "measurement" (missing from the coach's chart, read as
+  lb by nutrition) → coach `bodyweight` type in coach units; tape measurements were shown as "32 lb" → in/cm.
 - **Quick log never opened** (palette returned `null` while closed; Quick log lives inside it).
 - **Dialogs never focused their input** — React `autoFocus` fires before `showModal()`, which then focuses
   Close: typing after ⌘K went nowhere, Enter closed the palette. `Dialog` focuses `[data-autofocus]`.

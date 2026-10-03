@@ -11,6 +11,9 @@ export function convertLoad(v: number, from: Units, to: Units): number {
   return Math.round((from === 'kg' ? v * LB_PER_KG : v / LB_PER_KG) * 10) / 10
 }
 
+/** Tape measurements follow the weight setting: lb → inches, kg → cm. */
+export const lengthUnit = (u: Units) => (u === 'kg' ? 'cm' : 'in')
+
 /** `units` is the COACH's: prescriptions are written in them. */
 export function fmtSet(s: SetPrescription, units: Units): string {
   if (s.timeSeconds) return `${s.timeSeconds}s`

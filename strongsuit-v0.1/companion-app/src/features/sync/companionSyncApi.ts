@@ -12,7 +12,7 @@ import {
   assignedProgramsRepo, coachExercisesRepo,
 } from '@/db/repo'
 import { nowIso } from '@/lib/core'
-import { convertLoad } from '@/lib/programFormat'
+import { convertLoad, lengthUnit } from '@/lib/programFormat'
 import { clientApi, CloudError } from '@/lib/cloud'
 import type { CoachLink, AssignedProgram, CoachExercise, PersonalWorkout, PersonalMetric, CoachMessage, BookingSlot, Units } from '@/db/types'
 
@@ -81,11 +81,18 @@ export function buildOutbound(
         })),
         source: 'companion-import',
       })),
+      // Bodyweight as the coach app's own 'bodyweight' type in the coach's
+      // units; tape measurements in the client's in/cm. It used to go up as a
+      // unitless "measurement": absent from the coach's bodyweight chart, and
+      // read as lb by the nutrition engine whatever the client logged in.
       metrics: metrics.filter(m => changed(m.updatedAt)).map(m => ({
         id: m.id, createdAt: m.createdAt, updatedAt: m.updatedAt,
         clientId, date: m.date,
-        type: m.type === 'bodyfat' ? 'bodyfat' : 'measurement',
-        key: m.type, value: m.value, unit: m.type === 'bodyfat' ? '%' : '',
+        ...(m.type === 'bodyweight'
+          ? { type: 'bodyweight', key: 'bodyweight', value: convertLoad(m.value, units.mine, units.coach), unit: units.coach }
+          : m.type === 'bodyfat'
+            ? { type: 'bodyfat', key: 'bodyfat', value: m.value, unit: '%' }
+            : { type: 'measurement', key: m.type, value: m.value, unit: lengthUnit(units.mine) }),
       })),
       // Only this side's own messages; the coach's come back in the bundle.
       messages: messages.filter(m => m.direction === 'to-coach' && changed(m.createdAt)).map(m => ({
