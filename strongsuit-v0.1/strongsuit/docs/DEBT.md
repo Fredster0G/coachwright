@@ -63,7 +63,9 @@ the UTC day, fixed.
 **64 · i18n: about 23 components still hold hardcoded English** (re-measured S27 — the old "~53 of 57"
 was stale: 30 of 55 feature components already use `t()`). Calendar and Messages converted S27. Biggest left: Settings
 Guide, Film Room, Nutrition tab, Team, Library, Leads, Program Builder, Onboarding wizard, Leaderboard,
-Reports, Studio. `lib/schedule.ts` `describeRule()` still returns English. Layer + RTL are done.
+Reports, Studio. `lib/schedule.ts` `describeRule()` still returns English. **The science screens (Nutrition, Film Room
+summaries, readiness) are mostly engine-written prose from `lib/` (rationale, notes, warnings)** — translating
+only their component labels yields a half-English page; those engines need message keys + params first. Layer + RTL are done.
 `es.json`/`ar.json` are **seed translations** marked in their own `_meta` — must not ship to customers
 as finished locales.
 
