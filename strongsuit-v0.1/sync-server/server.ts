@@ -797,9 +797,43 @@ app.get('/client/bundle', requireClient, (req, res) => {
     client: client && { id: client.id, firstName: client.firstName, lastName: client.lastName },
     programs, exercises, messages,
     brand: brandFor(req.accountId!),
+    units: unitsFor(req.accountId!),
     ...bookingFor(req.accountId!, req.clientId!, Date.now()),
   })
 })
+
+/** The coach's load units. Prescriptions are written in them, and Companion
+ *  converts its own logged loads into them before upload. */
+export function unitsFor(accountId: string): 'lb' | 'kg' {
+  const t = db.prepare(`SELECT data FROM records WHERE account_id = ? AND tbl = 'trainer' AND deleted = 0 LIMIT 1`).get(accountId) as { data: string } | undefined
+  return t && (JSON.parse(t.data) as { units?: unknown }).units === 'kg' ? 'kg' : 'lb'
+}
+
+/** Companion logs exercises by the name the client typed (it only knows the
+ *  exercises in its own program). Point each entry at the coach's library
+ *  exercise of that name, so the session shows up in the coach's history and
+ *  analytics instead of as "Unknown exercise". Unmatched entries keep their
+ *  `exerciseName` for display. */
+export function resolveExerciseNames(accountId: string, changes: Change[]): Change[] {
+  const logs = changes.filter(c => c.table === 'sessionLogs' && Array.isArray((c.data as { entries?: unknown } | undefined)?.entries))
+  if (!logs.length) return changes
+  const byName = new Map<string, string>()
+  for (const r of db.prepare(`SELECT id, data FROM records WHERE account_id = ? AND tbl = 'exercises' AND deleted = 0`).all(accountId) as { id: string; data: string }[]) {
+    const ex = JSON.parse(r.data) as { name?: unknown; aliases?: unknown }
+    for (const n of [ex.name, ...(Array.isArray(ex.aliases) ? ex.aliases : [])]) {
+      if (typeof n === 'string' && n.trim() && !byName.has(n.trim().toLowerCase())) byName.set(n.trim().toLowerCase(), r.id)
+    }
+  }
+  return changes.map(c => {
+    if (!logs.includes(c)) return c
+    const data = c.data as { entries: { exerciseId?: unknown; exerciseName?: unknown }[] }
+    const entries = data.entries.map(e => {
+      const id = typeof e.exerciseName === 'string' ? byName.get(e.exerciseName.trim().toLowerCase()) : undefined
+      return id ? { ...e, exerciseId: id } : e
+    })
+    return { ...c, data: { ...c.data, entries } }
+  })
+}
 
 /** The coach's own branding for Companion — same rule as the app's
  *  canUseCustomBranding (lib/membership.ts): paid access, or an account
@@ -876,7 +910,7 @@ app.post('/client/push', requireClient, (req, res) => {
   const bad = changes.findIndex(c => !validChange(c) || !CLIENT_WRITABLE.has(c.table) || c.deleted
     || (c.table === 'messages' && (c.data as { direction?: unknown } | undefined)?.direction !== 'inbound'))
   if (bad !== -1) return res.status(400).json({ error: `Invalid change at index ${bad}` })
-  const result = applyChanges(req.accountId!, changes.map(clientBookingOnly), req.clientId)
+  const result = applyChanges(req.accountId!, resolveExerciseNames(req.accountId!, changes.map(clientBookingOnly)), req.clientId)
   const applied = new Set(result.applied)
   const newMessages = (changes as Change[]).filter(c => c.table === 'messages' && applied.has(c.id))
   if (newMessages.length) {

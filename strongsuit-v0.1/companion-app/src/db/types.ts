@@ -50,6 +50,8 @@ export interface CoachLink {
   sessions?: { id: string; title: string; start: string; end: string; recurring: boolean }[]
   /** The coach's branding, when their plan includes it (server decides). */
   brand?: { name?: string; logo?: string; color?: string } | null
+  /** The coach's load units — prescriptions are in them, uploads convert to them. */
+  coachUnits?: Units
 }
 
 export interface BookingSlot { start: string; end: string }

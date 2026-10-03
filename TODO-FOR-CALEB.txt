@@ -1,5 +1,5 @@
 COACHWRIGHT — WHAT ONLY YOU CAN DO
-Last updated: 2026-10-03 (S28), by Claude Code. Claude keeps working on everything else and
+Last updated: 2026-10-03 (S28, later), by Claude Code. Claude keeps working on everything else and
 updates this file as items appear or get done. Details live in strongsuit-v0.1/strongsuit/docs/.
 
 =====================================================================
@@ -51,6 +51,8 @@ updates this file as items appear or get done. Details live in strongsuit-v0.1/s
 [ ] Client self-booking (new in S26) works for clients connected through Companion. Do you
     also want a public booking link for prospects who don't have the app? That would be the
     first page anyone can open without an account; worth deciding before it's built.
+[ ] Settings shows a "Licence" card to every coach (paste a one-time licence key). If no one-time
+    licences were ever sold, it could be hidden unless a key is already on file. Your call.
 [ ] Coach email alerts are built (Settings → Notifications → "Also email me"): when a client
     messages or asks for a session and your app is closed, you get one email (name only, no
     message text, max one per 30 min). Like password reset, it needs the Postmark account in
@@ -64,6 +66,8 @@ DONE RECENTLY (no action needed — for your information)
 - New-coach setup: the 3 sample clients now come with real history and can be removed in one click.
 - Assigning a program template to a client copies it (the template stays in your library).
 - Program builder: edits made right before clicking Done are no longer lost; "duplicate week +1 rep" no longer turns 5 reps into 51.
+- Workouts your clients log in Companion now show up properly on your side (exercise name, sets,
+  your units). Before, they arrived as "Unknown exercise" with nothing in them.
 - Session logger: ticking a set "done" now saves the load/reps shown (it used to save nothing).
 - Quick log (Ctrl/Cmd+L) and the Ctrl/Cmd+K search box work now (Quick log never opened; typing in search went nowhere).
 - Branding: upload your logo and pick a colour (Settings → Brand). Shows on printouts and in Companion.

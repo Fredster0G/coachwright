@@ -70,6 +70,30 @@ describe('Companion ↔ Coachwright Cloud', () => {
     expect(coachSide.find(x => x.table === 'messages' && x.data.content === 'Thanks coach')?.data.direction).toBe('inbound')
   })
 
+  it('logged workouts reach the coach in the coach app\'s shape: library ids, done sets, coach units', async () => {
+    const c = await coach()
+    await c.push([
+      c.row('clients', 'cl1', { firstName: 'Alex' }),
+      c.row('trainer', 'trainer', { units: 'kg' }),
+      c.row('exercises', 'ex-bs', { name: 'Back Squat', aliases: ['squat'] }),
+    ])
+    await api.connectWithCode(await c.invite('cl1'))
+    await repo.profileRepo.getOrCreate()                      // client logs in lb (the default)
+    await repo.workoutsRepo.create({ date: '2026-01-02', title: 'Legs', exercises: [
+      { name: ' back squat ', sets: [{ reps: 5, load: 225 }, { reps: 0 }] },
+      { name: 'Sled push', sets: [{ reps: 0, load: 90 }] },
+    ] })
+    await api.syncNow((await repo.coachLinkRepo.get())!)
+    expect((await repo.coachLinkRepo.get())!.coachUnits).toBe('kg')
+
+    const log = (await c.pull()).changes.find(x => x.table === 'sessionLogs')!
+    const entries = log.data.entries as { exerciseId: string; exerciseName: string; sets: unknown[] }[]
+    expect(entries[0].exerciseId).toBe('ex-bs')                // matched by name, case/space-insensitive
+    expect(entries[0].sets).toEqual([{ actualReps: 5, actualLoad: 102.1, done: true }]) // 225 lb → kg; empty set dropped
+    expect(entries[1].exerciseName).toBe('Sled push')           // no library match: name kept for display
+    expect(entries[1].sets).toEqual([{ actualLoad: 40.8, done: true }])
+  })
+
   it('only uploads what changed since the last sync', async () => {
     const c = await coach()
     await c.push([c.row('clients', 'cl1', { firstName: 'Alex' })])

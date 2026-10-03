@@ -109,6 +109,13 @@ changes — about once a day as the 14-day window rolls, plus on every booking/c
 today's sizes; move slots to their own row if the logo grows or coaches have many locations. Same
 family: since S26 the logo (≤256px PNG) also rides in every Companion `/client/bundle` response.
 
+**85 · (S28, NEW) Companion deletions never reach the coach.** `/client/push` rejects `deleted` changes
+(by design — a client can't remove coach-side rows), so a workout or metric the client deletes on their
+phone stays in the coach's history. Companion now warns on delete. Fix needs a rule: let a client delete
+rows it authored (`source: 'companion-import'` and its own `client_id`) and nothing else, plus a test.
+Also: logs pushed before S28 are in the old `{reps, load}` shape with no exercise id — none exist
+outside test accounts (nobody can sign in yet), so no migration was written.
+
 **84 · (S26; built S27) Coach notifications — code done, email never really sent.** While the app is
 open: opt-in system notifications (`lib/coachNotify.ts`). While it's closed: opt-in email
 (Settings → Notifications → "Also email me", server `notifyCoachByEmail`: client's first name only, never

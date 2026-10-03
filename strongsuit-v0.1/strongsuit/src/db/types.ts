@@ -326,6 +326,9 @@ export interface LoggedSet {
 
 export interface LogEntry {
   exerciseId: string
+  /** What a Companion client typed, when it matched no library exercise —
+   *  `exerciseId` is then not a real id. Shown in place of the name. */
+  exerciseName?: string
   sets: LoggedSet[]
   notes?: string
   restSeconds?: number   // carried from the prescription, or the trainer's default — drives the rest timer
