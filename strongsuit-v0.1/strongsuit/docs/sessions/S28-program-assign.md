@@ -29,6 +29,10 @@ Standing instruction: "always continue" — work through everything not blocked 
   made "5"→"51" (`bumpReps`, 5 tests); cleared load stored 0; delete week/day confirm.
 - **Stale dialog forms:** Edit client reverted changes made on another device; check-in / payment /
   appointment / PAR-Q dialogs kept the previous entry. All mount per open.
+- **"Log session" always opened Week 1 · Day 1** → `lib/programDay.ts` `nextProgramDay()` (day after the
+  last one logged; stays on the last day at the end; 4 tests). Client page prefers `activeProgramId`.
+- **Archived clients could never be restored** → "Restore client" (free-cap gated). **Lead → client
+  skipped the free cap** (server then refused the 4th client) → gated like New client. Verified live.
 - **TV display** showed only the first set (5/3/1 read "3×5") and any active program → every set + the
   client's current program.
 - **Food Log** targets disagreed with Nutrition (own goal shortcut) → `goalPlan()`; float totals rounded;

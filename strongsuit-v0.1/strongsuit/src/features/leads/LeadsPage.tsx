@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { UserPlus, Plus, ArrowRight, Trash2, CheckCircle2 } from 'lucide-react'
 import { Card, SectionHeader, Button, EmptyState, Dialog, Field, Input, Textarea, Select, toast } from '@/design'
-import { leadsRepo, clientsRepo, staffRepo, locationsRepo } from '@/db/repo'
+import { leadsRepo, clientsRepo, staffRepo, locationsRepo, trainerRepo } from '@/db/repo'
+import { canAddClient, hasPaidAccess } from '@/lib/membership'
+import { Link } from 'react-router-dom'
 import type { Lead, LeadStage, Staff, Location } from '@/db/types'
 import { today } from '@/lib/core'
 import { useTranslation, type MessageKey } from '@/lib/i18n'
@@ -72,8 +74,14 @@ function AddLeadDialog({ open, onClose, staff, locations }: { open: boolean; onC
 function ConvertDialog({ lead, onClose }: { lead: Lead | null; onClose: () => void }) {
   const { t } = useTranslation()
   const [rate, setRate] = useState('')
+  // Converting adds an active client, so it passes the free-tier gate like
+  // "New client" does — it used to skip it, and the server then refused the
+  // fourth client while the app showed it as active.
+  const trainer = useLiveQuery(() => trainerRepo.get())
+  const activeCount = useLiveQuery(async () => (await clientsRepo.active()).filter(c => !c.isDemo).length, [], 0)
+  const cap = canAddClient(activeCount, !!trainer && hasPaidAccess(trainer))
   async function convert() {
-    if (!lead) return
+    if (!lead || !cap.allowed) return
     const client = await clientsRepo.create({
       firstName: lead.name.split(' ')[0] || lead.name,
       lastName: lead.name.split(' ').slice(1).join(' ') || '',
@@ -94,10 +102,16 @@ function ConvertDialog({ lead, onClose }: { lead: Lead | null; onClose: () => vo
     <Dialog open={!!lead} onClose={onClose} title={t('leads.convertTitle')} width={380}>
       <div className="space-y-3">
         <p className="text-sm text-muted">{t('leads.convertBody', { name: lead?.name ?? '' })}</p>
+        {!cap.allowed && (
+          <Card className="border-signal-600/40 bg-signal-600/5 text-sm text-signal-600">
+            <p>{cap.reason}</p>
+            <Link to="/settings" onClick={onClose} className="mt-1 inline-block text-sm font-medium underline">{t('clients.new.upgradeLink')}</Link>
+          </Card>
+        )}
         <Field label={t('leads.form.rate')} hint={t('leads.form.rateHint')}><Input type="number" min="0" value={rate} onChange={e => setRate(e.target.value)} /></Field>
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose}>{t('leads.cancel')}</Button>
-          <Button variant="primary" onClick={convert}><CheckCircle2 size={14} /> {t('leads.convert')}</Button>
+          <Button variant="primary" onClick={convert} disabled={!cap.allowed}><CheckCircle2 size={14} /> {t('leads.convert')}</Button>
         </div>
       </div>
     </Dialog>
