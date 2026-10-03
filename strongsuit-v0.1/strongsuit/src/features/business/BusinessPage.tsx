@@ -10,7 +10,7 @@ import {
 import { paymentsRepo, clientsRepo, expensesRepo, trainerRepo, invoicesRepo, staffRepo, locationsRepo } from '@/db/repo'
 import type { Expense, ExpenseCategory, ExpenseRecurrence } from '@/db/types'
 import { fullName, today } from '@/lib/core'
-import { profitPlan, expenseAppliesTo, gymCutForMonth } from '@/lib/business'
+import { profitPlan, expenseAppliesTo, gymCutForMonth, incomeForMonth } from '@/lib/business'
 import { isInvoiceOverdue, outstandingTotal } from './invoiceStatus'
 import { useTranslation, type MessageKey } from '@/lib/i18n'
 
@@ -158,19 +158,14 @@ export default function BusinessPage() {
     .filter(e => expenseAppliesTo(e, thisMonth))
     .sort((a, b) => b.amount - a.amount)
 
-  // last-month comparison + monthly chart (income only)
+  // last-month comparison + monthly chart — net of refunds, the same rule as
+  // this month's figure (lib/business.ts). They skipped refunds, so last month
+  // read gross against this month's net.
   const lastMonthStr = format(subMonths(new Date(), 1), 'yyyy-MM')
-  const lastMonthIncome = payments
-    .filter(p => p.date.startsWith(lastMonthStr) && p.type !== 'refund')
-    .reduce((sum, p) => sum + p.amount, 0)
+  const lastMonthIncome = incomeForMonth(payments, lastMonthStr)
 
-  const monthlyMap = new Map<string, number>()
-  for (const p of payments) {
-    if (p.type === 'refund') continue
-    const month = p.date.substring(0, 7)
-    monthlyMap.set(month, (monthlyMap.get(month) || 0) + p.amount)
-  }
-  const months = Array.from(monthlyMap.entries()).sort(([a], [b]) => a.localeCompare(b)).slice(-6)
+  const monthKeys = [...new Set(payments.map(p => p.date.substring(0, 7)))].sort().slice(-6)
+  const months = monthKeys.map(m => [m, Math.max(0, incomeForMonth(payments, m))] as [string, number])
   const maxMonthly = Math.max(...months.map(([, v]) => v), 1)
 
   return (
