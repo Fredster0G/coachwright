@@ -47,6 +47,9 @@ jobs:
       - run: npm run lint
       - run: npm run lint:tailwind
       - run: npm run lint:imports
+      # The production bundle for the website. Typecheck passing doesn't mean
+      # the bundler does (lazy chunks, env-gated imports).
+      - run: npx cross-env VITE_TARGET=web vite build --outDir dist-web
 
   companion:
     runs-on: ubuntu-latest
@@ -65,3 +68,4 @@ jobs:
       - run: npm ci
       - run: npx tsc -b --force
       - run: npx vitest run
+      - run: npx vite build
