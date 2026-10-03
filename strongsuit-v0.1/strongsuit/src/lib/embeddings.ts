@@ -26,7 +26,9 @@
 // kind, embeddings included. See `installEmbeddingsModel`'s own comment for
 // the one honest gap that creates.
 
-import { pipeline, cos_sim, type FeatureExtractionPipeline } from '@huggingface/transformers'
+// Type-only at module level: the runtime (~500KB) is imported on first use,
+// so it stays out of the startup bundle (the exercise library imports this file).
+import type { FeatureExtractionPipeline } from '@huggingface/transformers'
 import { modelBlobsRepo } from '@/db/repo'
 
 const MODEL_REPO = 'Xenova/bge-small-en-v1.5'
@@ -48,14 +50,14 @@ let extractorPromise: Promise<FeatureExtractionPipeline> | null = null
  *  loaded-once runtime. */
 function getExtractor(onProgress?: (p: EmbeddingProgress) => void): Promise<FeatureExtractionPipeline> {
   if (!extractorPromise) {
-    extractorPromise = pipeline('feature-extraction', MODEL_REPO, {
+    extractorPromise = import('@huggingface/transformers').then(({ pipeline }) => pipeline('feature-extraction', MODEL_REPO, {
       progress_callback: (p: { status: string; loaded?: number; total?: number }) => {
         if (p.status === 'progress' && onProgress) {
           onProgress({ loaded: p.loaded ?? 0, total: p.total ?? 0 })
         }
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any).catch((err: unknown) => {
+    } as any)).catch((err: unknown) => {
       extractorPromise = null // let a failed attempt be retried, not stuck
       throw err
     })
@@ -75,7 +77,9 @@ export async function embedText(text: string): Promise<number[]> {
 }
 
 export function cosineSimilarity(a: number[], b: number[]): number {
-  return cos_sim(a, b)
+  let dot = 0, na = 0, nb = 0
+  for (let i = 0; i < a.length; i++) { dot += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i] }
+  return na && nb ? dot / (Math.sqrt(na) * Math.sqrt(nb)) : 0
 }
 
 /**

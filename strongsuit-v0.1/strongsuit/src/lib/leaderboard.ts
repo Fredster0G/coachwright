@@ -85,8 +85,3 @@ export function leaderboard(opts: {
   })
 }
 
-export const METRIC_LABELS: Record<ChallengeMetric, { label: string; unit: string }> = {
-  volume: { label: 'Total volume', unit: 'lb·reps' },
-  sessions: { label: 'Sessions logged', unit: 'sessions' },
-  'bodyweight-loss-pct': { label: 'Bodyweight lost', unit: '%' },
-}

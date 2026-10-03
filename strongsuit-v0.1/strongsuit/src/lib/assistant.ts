@@ -27,7 +27,9 @@
 // "start with one, most defensible" scope as the previous two AI features.
 // qwen3-4b/8b stay without a `url`.
 
-import { pipeline, TextStreamer, type TextGenerationPipeline } from '@huggingface/transformers'
+// Type-only at module level: the runtime (~500KB) is imported on first use,
+// so it stays out of the startup bundle (the Dashboard imports this file).
+import type { TextGenerationPipeline } from '@huggingface/transformers'
 import { modelBlobsRepo } from '@/db/repo'
 import { createThinkFilter } from './thinkFilter'
 
@@ -63,13 +65,13 @@ let generatorPromise: Promise<TextGenerationPipeline> | null = null
 
 function getGenerator(onProgress?: (p: AssistantProgress) => void): Promise<TextGenerationPipeline> {
   if (!generatorPromise) {
-    generatorPromise = pipeline('text-generation', MODEL_REPO, {
+    generatorPromise = import('@huggingface/transformers').then(({ pipeline }) => pipeline('text-generation', MODEL_REPO, {
       dtype: 'q4f16',
       progress_callback: (p: { status: string; loaded?: number; total?: number }) => {
         if (p.status === 'progress' && onProgress) onProgress({ loaded: p.loaded ?? 0, total: p.total ?? 0 })
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any).catch((err: unknown) => {
+    } as any)).catch((err: unknown) => {
       generatorPromise = null
       throw err
     })
@@ -108,6 +110,7 @@ export async function generateReply(
     out += text
     onToken(text)
   })
+  const { TextStreamer } = await import('@huggingface/transformers')
   const streamer = new TextStreamer(generator.tokenizer, {
     skip_prompt: true,
     skip_special_tokens: true,

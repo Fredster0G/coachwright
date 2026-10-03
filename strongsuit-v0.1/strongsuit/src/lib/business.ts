@@ -3,6 +3,7 @@
 // "month" everywhere is a 'yyyy-MM' string.
 
 import type { Client, Coupon, Expense, Invoice, InvoiceLineItem, Payment, Staff } from '@/db/types'
+import { today } from './core'
 
 /** Does a (possibly recurring) expense count against this month? */
 export function expenseAppliesTo(e: Expense, month: string): boolean {
@@ -67,7 +68,7 @@ export function totalCommissionsForMonth(staffList: Staff[], clients: Client[], 
 /** Discount amount a coupon takes off a subtotal (never more than the subtotal, never negative). */
 export function couponDiscount(subtotal: number, coupon?: Coupon | null): number {
   if (!coupon || !coupon.active || subtotal <= 0) return 0
-  if (coupon.expiresAt && coupon.expiresAt < new Date().toISOString().slice(0, 10)) return 0
+  if (coupon.expiresAt && coupon.expiresAt < today()) return 0
   const raw = coupon.kind === 'percent' ? subtotal * (coupon.value / 100) : coupon.value
   return Math.round(Math.min(Math.max(0, raw), subtotal) * 100) / 100
 }

@@ -2,6 +2,12 @@
 ### The Pay-Once Coaching Platform for Personal Trainers
 
 > **⚠️ PRODUCT RENAMED (2026-07-16): Strongsuit → Coachwright.** "Strongsuit" was trademarked by another company. Everywhere this document says "Strongsuit," read **Coachwright**. In code the name lives only in `src/lib/brand.ts`; data-level identifiers (IndexedDB name, backup `app` id) deliberately keep the legacy `strongsuit` value so existing data and pre-rename backups keep working. This spec's filename is unchanged to avoid churn.
+> **⚠️ PRICING SUPERSEDED (S15, 2026-08-14).** Wherever this spec says pay-once, one-time licence,
+> "no subscription", or a $59–99 price: the shipped model is a free tier (up to 3 clients) plus
+> **Coachwright Membership, $29/mo** (`PRODUCT_OVERVIEW.md` §8, `docs/MEMBERSHIP.md`). §0's "Zero backend"
+> doctrine is likewise historical — an optional sync relay and a membership server now exist. The
+> architecture (local-first, offline-always) is unchanged. This is a frozen v1.0 blueprint, not live
+> status; read `docs/STATUS.md` for what is true today.
 **Document type:** Direct AI code-generation blueprint. This document is written to be handed to an AI model (Claude Opus/Sonnet, Gemini, GPT) as the authoritative source of truth for a full production build. Every section is normative unless marked "optional."
 
 ---

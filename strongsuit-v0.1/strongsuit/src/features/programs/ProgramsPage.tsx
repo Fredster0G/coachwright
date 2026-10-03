@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ClipboardList, Plus, FileSignature } from 'lucide-react'
+import { ClipboardList, Plus, FileSignature, Copy } from 'lucide-react'
 import { programsRepo, clientsRepo, staffRepo } from '@/db/repo'
 import type { Program, ProgramStatus } from '@/db/types'
 import { stamp, fullName } from '@/lib/core'
@@ -10,6 +10,12 @@ import {
   Button, Select, Card, SectionHeader,
   EmptyState, Tag, Table
 } from '@/design'
+import { useTranslation, type MessageKey } from '@/lib/i18n'
+
+const STATUS_LABEL: Record<ProgramStatus, MessageKey> = {
+  draft: 'programs.status.draft', active: 'programs.status.active',
+  completed: 'programs.status.completed', template: 'programs.status.template',
+}
 
 const STATUS_TONE: Record<ProgramStatus, 'neutral' | 'verde' | 'ember' | 'ember'> = {
   draft: 'neutral',
@@ -24,6 +30,7 @@ export default function ProgramsPage() {
   const clients = useLiveQuery(() => clientsRepo.all(), [], undefined)
   const staff = useLiveQuery(() => staffRepo.all(), [], [])
   const [filter, setFilter] = useState<'all' | ProgramStatus>('all')
+  const { t } = useTranslation()
 
   const filtered = useMemo(() => {
     if (!programs) return []
@@ -31,14 +38,14 @@ export default function ProgramsPage() {
     if (filter !== 'all') {
       list = list.filter(p => p.status === filter)
     }
-    return list.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) // newest first
+    return [...list].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)) // newest first
   }, [programs, filter])
 
   const loading = programs === undefined || clients === undefined
 
   const createNewProgram = async () => {
     const fresh = stamp({
-      name: 'New Program',
+      name: t('programs.defaultName'),
       description: '',
       status: 'draft',
       weeks: [],
@@ -48,44 +55,52 @@ export default function ProgramsPage() {
     navigate(`/programs/${fresh.id}/edit`)
   }
 
+  // A client's program can't become a template in place — copy it out first.
+  const duplicate = async (p: Program) => {
+    const copy = await programsRepo.duplicate(p.id, {
+      name: t('programs.copyName', { name: p.name }), clientId: undefined, status: 'draft', startDate: undefined,
+    })
+    navigate(`/programs/${copy.id}/edit`)
+  }
+
   const getClientName = (clientId?: string) => {
-    if (!clientId) return 'Template'
+    if (!clientId) return t('programs.template')
     const c = clients?.find(c => c.id === clientId)
-    return c ? fullName(c) : 'Unknown Client'
+    return c ? fullName(c) : t('programs.unknownClient')
   }
 
   return (
     <div className="max-w-5xl mx-auto">
       <SectionHeader
-        title="Programs"
+        title={t('programs.title')}
         action={
           <Button variant="primary" size="sm" onClick={createNewProgram}>
-            <Plus size={14} /> New program
+            <Plus size={14} /> {t('programs.new')}
           </Button>
         }
       />
 
       <div className="mb-4">
-        <Select className="w-40" value={filter} onChange={e => setFilter(e.target.value as any)}>
-          <option value="all">All programs</option>
-          <option value="draft">Drafts</option>
-          <option value="active">Active</option>
-          <option value="completed">Completed</option>
-          <option value="template">Templates</option>
+        <Select className="w-40" value={filter} onChange={e => setFilter(e.target.value as 'all' | ProgramStatus)} aria-label={t('programs.filter')}>
+          <option value="all">{t('programs.filter.all')}</option>
+          <option value="draft">{t('programs.filter.draft')}</option>
+          <option value="active">{t('programs.filter.active')}</option>
+          <option value="completed">{t('programs.filter.completed')}</option>
+          <option value="template">{t('programs.filter.template')}</option>
         </Select>
       </div>
 
       {loading ? (
-        <Card className="animate-pulse text-sm text-faint">Loading programs…</Card>
+        <Card className="animate-pulse text-sm text-faint">{t('programs.loading')}</Card>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<ClipboardList size={28} strokeWidth={1.25} />}
-          title={filter === 'all' ? "No programs yet" : `No ${filter} programs`}
-          body={filter === 'all' ? "Build your first program from scratch, or create a reusable template." : "Try a different filter."}
-          action={filter === 'all' && <Button variant="primary" onClick={createNewProgram}><Plus size={14} /> Create your first program</Button>}
+          title={filter === 'all' ? t('programs.emptyTitle') : t('programs.emptyFilteredTitle')}
+          body={filter === 'all' ? t('programs.emptyBody') : t('programs.emptyFilteredBody')}
+          action={filter === 'all' && <Button variant="primary" onClick={createNewProgram}><Plus size={14} /> {t('programs.createFirst')}</Button>}
         />
       ) : (
-        <Table head={<><th>Program Name</th><th>Client / Type</th><th>Status</th><th className="w-32">Last Updated</th></>}>
+        <Table head={<><th>{t('programs.col.name')}</th><th>{t('programs.col.client')}</th><th>{t('programs.col.status')}</th><th className="w-32">{t('programs.col.updated')}</th><th className="w-10"><span className="sr-only">{t('programs.col.actions')}</span></th></>}>
           {filtered.map(p => (
             <tr key={p.id}>
               <td>
@@ -99,15 +114,20 @@ export default function ProgramsPage() {
               <td>
                 {p.status === 'template' ? (
                   <div className="flex items-center gap-1.5 text-sm text-muted">
-                    <FileSignature size={14} /> Template
+                    <FileSignature size={14} /> {t('programs.template')}
                   </div>
                 ) : (
                   <span className="text-sm text-ink">{getClientName(p.clientId)}</span>
                 )}
               </td>
-              <td><Tag tone={STATUS_TONE[p.status]}>{p.status}</Tag></td>
+              <td><Tag tone={STATUS_TONE[p.status]}>{t(STATUS_LABEL[p.status])}</Tag></td>
               <td className="font-mono tabular-nums text-xs text-muted">
                 {new Date(p.updatedAt).toLocaleDateString()}
+              </td>
+              <td>
+                <Button size="sm" variant="ghost" onClick={() => duplicate(p)} title={t('programs.duplicate')} aria-label={t('programs.duplicateNamed', { name: p.name })}>
+                  <Copy size={13} />
+                </Button>
               </td>
             </tr>
           ))}

@@ -107,6 +107,8 @@ What a trainer pays elsewhere, per year:
 ### 4.2 The v1 price was too low
 
 `$59–99` was set when this was a program builder with a logger. It now has a cited nutrition engine, an evidence-based readiness model, on-device movement analysis with VBT, a 3,000-exercise curated library, local AI, and a business ledger.
+*(S22 correction: the library is ~1,100 entries today, not 3,000 — 3,000 is the target in
+`05-EXERCISE-LIBRARY.md`. Don't quote the number in copy until it's true.)*
 
 **$60 actively hurts you.** It signals hobby software to exactly the professional buyer you want, and it leaves the "one year of TrueCoach costs 10× this" argument unused. There is no positioning where $60 is the right number for this product.
 

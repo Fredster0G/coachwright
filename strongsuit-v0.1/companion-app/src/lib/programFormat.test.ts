@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { fmtSet } from './programFormat'
+import { fmtSet, convertLoad } from './programFormat'
 
 describe('fmtSet', () => {
   it('formats absolute load with units', () => {
@@ -28,5 +28,13 @@ describe('fmtSet', () => {
   it('degrades to just reps (or a placeholder) when nothing else is set', () => {
     expect(fmtSet({ reps: '12' }, 'lb')).toBe('12')
     expect(fmtSet({}, 'lb')).toBe('?')
+  })
+})
+
+describe('convertLoad', () => {
+  it('converts between lb and kg to 0.1, and leaves same-unit loads alone', () => {
+    expect(convertLoad(225, 'lb', 'kg')).toBe(102.1)
+    expect(convertLoad(100, 'kg', 'lb')).toBe(220.5)
+    expect(convertLoad(135, 'lb', 'lb')).toBe(135)
   })
 })

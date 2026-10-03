@@ -3,10 +3,12 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Zap, AlertTriangle, Check } from 'lucide-react'
 import { Dialog, Button, Input, Avatar, Tag, toast, toastError } from '@/design'
 import { clientsRepo, exercisesRepo, logsRepo, programsRepo, trainerRepo, staffRepo } from '@/db/repo'
-import { buildQuickLogPlan, describePlan, type Clarification } from '@/lib/quickLog'
+import { buildQuickLogPlan, describePlanMsgs, type Clarification } from '@/lib/quickLog'
+import { renderMsg } from '@/lib/i18n/msg'
 import { fullName, daysSince, today } from '@/lib/core'
 import type { Client, LoggedSet } from '@/db/types'
 import { getActiveStaffId } from '@/lib/activeStaff'
+import { useTranslation, type MessageKey } from '@/lib/i18n'
 
 /**
  * Quick Log — type a set the way you'd say it out loud.
@@ -39,6 +41,7 @@ export function QuickLogDialog({ open, onClose, presetClientId }: {
   const [exerciseOverride, setExerciseOverride] = useState<string>()
   const [repsOverride, setRepsOverride] = useState<number>()
   const [busy, setBusy] = useState(false)
+  const { t } = useTranslation()
   const inputRef = useRef<HTMLInputElement>(null)
 
   const clients = useLiveQuery(() => clientsRepo.active(), [], [])
@@ -105,7 +108,7 @@ export function QuickLogDialog({ open, onClose, presetClientId }: {
         await logsRepo.create({
           clientId: client.id,
           date,
-          title: 'Quick log',
+          title: t('quicklog.sessionTitle'),
           entries: [{ exerciseId: exercise.id, sets, notes: plan.draft.notes }],
           // 'trainer', not 'manual' — DataSource distinguishes who authored the
           // row (the coach here) from a Companion import, not how it was typed.
@@ -114,17 +117,17 @@ export function QuickLogDialog({ open, onClose, presetClientId }: {
         })
       }
 
-      toast(`Logged ${exercise.name} for ${fullName(client)}.`)
+      toast(t('quicklog.logged', { exercise: exercise.name, client: fullName(client) }))
       onClose()
     } catch (e) {
-      toastError(e instanceof Error ? e.message : "Couldn't save that log.")
+      toastError(e instanceof Error ? e.message : t('quicklog.failed'))
     } finally {
       setBusy(false)
     }
   }
 
   return (
-    <Dialog open={open} onClose={onClose} title="Quick log" width={520}>
+    <Dialog open={open} onClose={onClose} title={t('quicklog.title')} width={520}>
       <div className="space-y-3">
         {/* ── The guarantee: who this is about, above the text, before anything
             is written. Rendered as a placeholder when unresolved so the space
@@ -144,11 +147,11 @@ export function QuickLogDialog({ open, onClose, presetClientId }: {
               setRepsOverride(undefined)
             }}
             onKeyDown={e => { if (e.key === 'Enter' && canLog && openQuestions.length === 0) commit() }}
-            placeholder="e.g. sam 3x5 225 back squat rpe 8"
-            aria-label="Describe the set"
+            placeholder={t('quicklog.placeholder')}
+            aria-label={t('quicklog.describe')}
           />
           <p className="mt-1 text-2xs text-faint">
-            Sets, reps, load, RPE, and “yesterday” are all understood. Put notes in quotes.
+            {t('quicklog.help')}
           </p>
         </div>
 
@@ -156,7 +159,7 @@ export function QuickLogDialog({ open, onClose, presetClientId }: {
           <div key={q.id} className="rounded-ctl border border-ember-500/40 bg-ember-500/5 px-3 py-2.5">
             <p className="flex items-start gap-1.5 text-xs font-medium text-ink">
               <AlertTriangle size={13} className="mt-px shrink-0 text-ember-600" />
-              {q.question}
+              {t(`quicklog.q.${q.id}.${q.status}` as MessageKey, { query: q.query ?? '' })}
             </p>
             {q.options ? (
               <div className="mt-2 flex flex-wrap gap-1.5">
@@ -178,12 +181,13 @@ export function QuickLogDialog({ open, onClose, presetClientId }: {
                 type="number"
                 inputMode="numeric"
                 min={1}
-                placeholder="reps"
+                placeholder={t('quicklog.repsPlaceholder')}
+                aria-label={t('quicklog.q.reps.none')}
                 className="mt-2 h-8 w-24 rounded-ctl border border-line bg-surface px-2 text-sm text-ink"
                 onChange={e => setRepsOverride(e.target.value ? +e.target.value : undefined)}
               />
             ) : (
-              <p className="mt-1 text-2xs text-muted">Add it to the line above.</p>
+              <p className="mt-1 text-2xs text-muted">{t('quicklog.addAbove')}</p>
             )}
           </div>
         ))}
@@ -192,25 +196,25 @@ export function QuickLogDialog({ open, onClose, presetClientId }: {
             not just the name on the card. */}
         {(exercise || reps != null) && (
           <div className="rounded-ctl border border-line bg-surface2 px-3 py-2.5">
-            <p className="text-2xs font-semibold uppercase tracking-wide text-faint">Will log</p>
+            <p className="text-2xs font-semibold uppercase tracking-wide text-faint">{t('quicklog.willLog')}</p>
             <p className="mt-1 text-sm text-ink">
-              {exercise?.name ?? <span className="text-faint">exercise?</span>}
+              {exercise?.name ?? <span className="text-faint">{t('quicklog.exerciseUnknown')}</span>}
               {' · '}
               <span className="font-mono tabular-nums">
-                {describePlan({ ...plan.draft.prescription, reps: reps ?? undefined }, units)}
+                {describePlanMsgs({ ...plan.draft.prescription, reps: reps ?? undefined }, units).map(m => renderMsg(m, t)).join(' · ')}
               </span>
             </p>
             <p className="mt-0.5 text-2xs text-muted">
-              {plan.draft.date && plan.draft.date !== today() ? plan.draft.date : 'Today'}
+              {plan.draft.date && plan.draft.date !== today() ? plan.draft.date : t('quicklog.today')}
               {plan.draft.notes ? ` · “${plan.draft.notes}”` : ''}
             </p>
           </div>
         )}
 
         <div className="flex justify-end gap-2 pt-1">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={onClose}>{t('quicklog.cancel')}</Button>
           <Button variant="primary" onClick={commit} disabled={!canLog || openQuestions.length > 0}>
-            <Check size={14} /> Log it
+            <Check size={14} /> {t('quicklog.logIt')}
           </Button>
         </div>
       </div>
@@ -231,12 +235,13 @@ function ClientCard({ client, pending }: { client?: Client; pending: boolean }) 
     [client?.id],
     undefined,
   )
+  const { t } = useTranslation()
 
   if (pending || !client) {
     return (
       <div className="flex items-center gap-3 rounded-card border border-dashed border-line px-3 py-3 text-xs text-faint">
         <div className="h-9 w-9 shrink-0 rounded-full border border-dashed border-line" />
-        <span>Start typing a client’s name — you’ll see who this is for before anything is saved.</span>
+        <span>{t('quicklog.pending')}</span>
       </div>
     )
   }
@@ -250,13 +255,13 @@ function ClientCard({ client, pending }: { client?: Client; pending: boolean }) 
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-ink">{fullName(client)}</p>
           <p className="truncate text-2xs text-muted">
-            {days === null ? 'No sessions logged yet'
-              : days === 0 ? 'Last session today'
-              : `Last session ${days}d ago`}
+            {days === null ? t('quicklog.noSessions')
+              : days === 0 ? t('quicklog.lastToday')
+              : t('quicklog.lastDaysAgo', { n: days })}
             {program ? ` · ${program.name}` : ''}
           </p>
         </div>
-        <Tag tone="verde">Logging to</Tag>
+        <Tag tone="verde">{t('quicklog.loggingTo')}</Tag>
       </div>
       {client.injuries?.trim() && (
         <p className="mt-2 flex items-start gap-1.5 border-t border-verde-600/20 pt-2 text-2xs text-ember-600">
@@ -271,10 +276,11 @@ function ClientCard({ client, pending }: { client?: Client; pending: boolean }) 
 /** Toolbar/keyboard entry point. */
 export function QuickLogButton({ clientId }: { clientId?: string }) {
   const [open, setOpen] = useState(false)
+  const { t } = useTranslation()
   return (
     <>
       <Button size="sm" variant="secondary" onClick={() => setOpen(true)}>
-        <Zap size={14} /> Quick log
+        <Zap size={14} /> {t('quicklog.button')}
       </Button>
       <QuickLogDialog open={open} onClose={() => setOpen(false)} presetClientId={clientId} />
     </>

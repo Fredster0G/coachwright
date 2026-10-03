@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Pause, Play, Plus, X } from 'lucide-react'
+import { useTranslation } from '@/lib/i18n'
 
 // ===== Rest timer (spec §4.5) =====
 // A sticky, gym-floor-friendly countdown. WebAudio beep at 3-2-1-0 so a
@@ -33,6 +34,7 @@ export function RestTimer({ seconds, onDone, onDismiss, sound = true }: {
 }) {
   const [remaining, setRemaining] = useState(seconds)
   const [paused, setPaused] = useState(false)
+  const { t } = useTranslation()
   const beepedRef = useRef(new Set<number>())
 
   useEffect(() => {
@@ -70,16 +72,16 @@ export function RestTimer({ seconds, onDone, onDismiss, sound = true }: {
           </span>
         </div>
         <div className="flex-1">
-          <p className="text-sm font-medium text-ink">Rest</p>
-          <p className="text-2xs text-faint">{remaining <= 0 ? 'Time — next set' : 'Tap pause to hold, or skip to go now'}</p>
+          <p className="text-sm font-medium text-ink">{t('rest.title')}</p>
+          <p className="text-2xs text-faint">{remaining <= 0 ? t('rest.done') : t('rest.hint')}</p>
         </div>
-        <button onClick={() => setRemaining(r => r + 15)} className="rounded-ctl border border-line px-2.5 py-1.5 text-xs font-medium text-muted hover:bg-surface2" aria-label="Add 15 seconds">
+        <button onClick={() => setRemaining(r => r + 15)} className="rounded-ctl border border-line px-2.5 py-1.5 text-xs font-medium text-muted hover:bg-surface2" aria-label={t('rest.add15')}>
           <Plus size={13} className="inline -mt-0.5" /> 15s
         </button>
-        <button onClick={() => setPaused(p => !p)} className="rounded-ctl border border-line px-2.5 py-1.5 text-muted hover:bg-surface2" aria-label={paused ? 'Resume' : 'Pause'}>
+        <button onClick={() => setPaused(p => !p)} className="rounded-ctl border border-line px-2.5 py-1.5 text-muted hover:bg-surface2" aria-label={paused ? t('rest.resume') : t('rest.pause')}>
           {paused ? <Play size={15} /> : <Pause size={15} />}
         </button>
-        <button onClick={onDismiss} className="rounded-ctl border border-line px-2.5 py-1.5 text-muted hover:bg-surface2" aria-label="Skip rest">
+        <button onClick={onDismiss} className="rounded-ctl border border-line px-2.5 py-1.5 text-muted hover:bg-surface2" aria-label={t('rest.skip')}>
           <X size={15} />
         </button>
       </div>

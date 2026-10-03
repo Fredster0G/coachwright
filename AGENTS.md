@@ -22,17 +22,20 @@ Grep it when you need the story behind a specific decision; never load it wholes
 ## 2. Where things live (one canonical copy — this was violated and caused a real bug)
 
 ```
-StrongSuit/                        ← repo root
+coachwright/                       ← repo root
   AGENTS.md   CLAUDE.md            ← this protocol
   PROGRESS.md  HANDOFF_SONNET.md   ← FROZEN ARCHIVES. Do not edit. Do not append.
   PRODUCT_OVERVIEW.md              ← marketing/positioning source of truth
+  BRANDING_PLAN.md                 ← brand source of truth (the app-dir file is a pointer)
   strongsuit-v0.1/strongsuit/      ← THE APP. All code + all live docs.
     docs/STATUS.md                 ← current state (read first)
     docs/ROADMAP.md                ← what's left, prioritized, with tool routing
     docs/DEBT.md                   ← open debts only, unique ids
+    docs/CLOUD.md                  ← backend architecture, sync model, API, operator runbook
     docs/sessions/S##-slug.md      ← append-only session logs, one small file each
-  strongsuit-v0.1/sync-server/     ← the relay + Stripe billing (separate npm project)
-  companion-app/                   ← the client-facing PWA (separate npm project)
+  strongsuit-v0.1/sync-server/     ← Coachwright Cloud: accounts, sync, Companion API, Stripe (`npm test`)
+  strongsuit-v0.1/companion-app/   ← the client-facing PWA (separate npm project)
+  client-pwa/                      ← empty stub (a bare package-lock.json) — not a project, ignore it
 ```
 
 **Rule:** live docs live in `strongsuit-v0.1/strongsuit/docs/` **only**. Root-level `PROGRESS.md` and
@@ -43,20 +46,30 @@ make it a pointer, not a copy.
 ## 3. Session protocol
 
 **On start**
+0. Install: `npm ci` in each project you'll touch. (Before S22 the app's `package.json` depended directly
+   on a Windows-only rolldown binary, so `npm ci` failed on Linux/macOS; and `companion-app`'s lockfile
+   was out of sync. Both fixed — if either comes back, a platform-specific package was added by hand.)
 1. Read `docs/STATUS.md`.
 2. Check its "Baton" section — what the previous tool left half-done, and what not to touch.
 3. Confirm the tree is clean-ish: `git status`, `npx tsc -b --force`, `npx vitest run`.
 
-**On finish (all four, every time — even a 20-minute session)**
+**On finish (all of these, every time — even a 20-minute session)**
 1. Write `docs/sessions/S##-slug.md` — a **new file**, never an edit to an existing one.
 2. Update `docs/STATUS.md` in place (it is the only file that gets rewritten).
 3. Add any new debt to `docs/DEBT.md` with the next free id. **Never reuse an id.**
-4. Re-run `npx tsc -b --force` + `npx vitest run` and put the real numbers in the session file.
+4. Re-run the per-project checks in §4 for every project you touched and put the real numbers in the
+   session file.
+5. If anything new needs Caleb (keys, money, hardware, a lawyer, a product decision), or you finished
+   something on it, update **`TODO-FOR-CALEB.txt`** at the repo root — plain language, no jargon. Caleb
+   asked for this so the work never stalls waiting on him: do everything you can, list the rest there.
 
 Session files are capped at **~60 lines**. If yours is longer, you are writing narrative — cut it. The
 format is in `docs/sessions/TEMPLATE.md`.
 
 ## 4. Verification bar (this project's actual standard — do not lower it)
+
+**CI (S25):** `.github/workflows/ci.yml` runs the per-project checks below on every push/PR. It is a floor,
+not a substitute — live browser verification is still on you.
 
 ### ⚠️ `npx tsc --noEmit` at the repo root checks ZERO files. Use `npx tsc -b --force`.
 
@@ -76,9 +89,19 @@ never defined. **None of this showed up in any session's reported "clean typeche
 used.** If a "clean typecheck" is ever claimed again from a bare `tsc --noEmit` at the app root, distrust
 it and re-run with `-b --force`.
 
-`sync-server/` and `companion-app/` are separate npm projects with their own plain (non-solution)
-`tsconfig.json` — `npx tsc --noEmit` from *inside* those directories is fine and always has been. This
-issue is specific to the app root's project-reference setup.
+**`companion-app/` has the exact same solution-file setup** — `npx tsc --noEmit` there also checks zero
+files (confirmed S22 with `--listFilesOnly`). Use `npx tsc -b --force` in `companion-app/` too. (Until S22
+this section said the opposite; it happened to be clean under `-b`, so nothing was hidden, but the
+instruction was wrong.) Only `sync-server/` has a plain `tsconfig.json` where `npx tsc --noEmit` is the
+right command — and it now includes `test/`.
+
+**Per-project checks, all three:**
+
+| Project | Typecheck | Tests |
+|---|---|---|
+| `strongsuit/` | `npx tsc -b --force` | `npx vitest run` (+ `npm run lint:tailwind`, `npx oxlint`) |
+| `companion-app/` | `npx tsc -b --force` | `npx vitest run` |
+| `sync-server/` | `npx tsc --noEmit` | `npm test` (needs `npm rebuild better-sqlite3` if installed with `--ignore-scripts`) |
 
 This codebase has a consistent, unusually high bar otherwise. Match it:
 
@@ -98,9 +121,10 @@ This codebase has a consistent, unusually high bar otherwise. Match it:
 
 | Area | Why it bites |
 |---|---|
-| `lib/licence.ts`, `lib/membership.ts`, `sync-server/membershipTokens.ts` | Token signing is **byte-exact across two independent implementations**. Change the claim order or encoding in one and every issued token silently fails to verify. There are tests, but the app-side and server-side agreement is only proven by cross-checking a real minted token. |
-| `features/sync/` + `lib/sync/` | E2EE. Keying is asymmetric and subtle (messages key by one id, reminders by another — see DEBT-56). "Harmonising" them breaks real pairings. |
-| `electron/` | Packaging has burned two sessions. Orphaned `node.exe` processes hold file locks and produce `EPERM` failures that look like antivirus. Always `Get-Process node,electron` before a build. |
+| `lib/licence.ts` | Pre-2026-08 one-time licence keys, verified offline, **never expire**. Don't change the claim shape or canonicalization — already-issued keys would stop verifying; the server re-implements the check for the free cap (`verifiedLicenceEdition` in `server.ts`). (Membership no longer uses signed tokens since S23; it's an account lookup.) |
+| Dates (`yyyy-MM-dd`) | Never `toISOString().slice(0, 10)` for a calendar day — that's the UTC day (tomorrow on a US evening, yesterday at local midnight east of UTC). Use `today()` / `isoDay()` from `lib/core.ts`. S24 fixed seven of these; `lib/localDates.test.ts` runs in Asia/Tokyo to catch more. |
+| `lib/cloud/` + `sync-server/server.ts` | `SYNCED_TABLES` (app) and `SYNC_TABLES` (server) must match — a table missing on either side silently never syncs. `Table.clear()` skips the Dexie hooks, so its deletions never reach the cloud; use `toCollection().delete()`. `linkDevice()`'s rules are what stop two accounts' data mixing on one machine — read `docs/CLOUD.md` §2 before touching them. Companion's writes are forced onto its own client server-side (`/client/push`); keep it that way. |
+| `electron/` | Packaging has burned two sessions. Orphaned `node.exe` processes hold file locks and produce `EPERM` failures that look like antivirus. Always `Get-Process node,electron` before a build. To test the packaged renderer path without an installer: `vite build`, `tsc -p electron/tsconfig.json`, then `CW_SERVE_DIST=1 electron .`. Security-relevant decisions live in `electron/policy.ts` (unit-tested); `dist-electron/` is build output and untracked. |
 | Tailwind classes | **Systemic recurring bug (DEBT-20).** Undefined classes silently no-op instead of erroring. Every model writing classes from memory reintroduces them. Grep `tailwind.config.js` before using any color/shadow/animation class you did not just look up. |
 | `trainerRepo.getOrCreate()` | First-boot race, fixed twice, observed live again once. Single-flighted now. Don't "simplify" it. |
 
@@ -115,8 +139,9 @@ This codebase has a consistent, unusually high bar otherwise. Match it:
 
 ## 7. Do not do these without asking Caleb
 
-- Spend real money, use real Stripe keys, or deploy anything.
+- Spend real money, use real Stripe keys, or deploy anything (including Coachwright Cloud).
 - Delete data, force-push, or rewrite git history.
 - Change the pricing model, the brand promise, or anything in `PRODUCT_OVERVIEW.md` §8.
-- Add a dependency over ~10MB, or any dependency that phones home at runtime.
+- Add a dependency over ~10MB, or any **third-party** service the app calls at runtime (Coachwright Cloud
+  itself and Open Food Facts are the only ones today; Stripe is server-side).
 - Mark a roadmap item done that you could not verify.

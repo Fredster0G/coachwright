@@ -7,6 +7,7 @@
 
 import type { Appointment, RecurrenceRule } from '@/db/types'
 import { addDays, addMonths } from 'date-fns'
+import { isoDay } from './core'
 
 export interface Occurrence {
   appointment: Appointment  // the master (or one-off) this occurrence comes from
@@ -16,7 +17,12 @@ export interface Occurrence {
   isRecurring: boolean
 }
 
-const dateOf = (iso: string) => iso.slice(0, 10)
+// The coach's LOCAL calendar day of an instant. Until S26 this sliced the ISO
+// string — the UTC day — so in the Americas every appointment after ~5pm sat on
+// tomorrow's calendar cell, the first occurrence of an evening weekly series
+// was dropped as "before the series start", and in Asia/Oceania mornings
+// landed on yesterday. Occurrence dates and `exceptions` are both local days.
+const dateOf = (iso: string) => isoDay(new Date(iso))
 const MS_DAY = 86_400_000
 
 /** Shift an ISO datetime to a new calendar date, preserving the time of day. */

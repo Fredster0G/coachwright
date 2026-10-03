@@ -54,19 +54,21 @@ export default function EulaScreen({ trainer }: { trainer: Trainer }) {
             from your clients.
           </p>
 
-          <h2 className="mb-2 font-semibold">3. Data Integrity & Loss</h2>
+          <h2 className="mb-2 font-semibold">3. Data Storage & Loss</h2>
           <p className="mb-4 text-faint">
-            As a local-first application, your data resides entirely on your devices. We do not maintain 
-            cloud backups of your client database unless explicitly configured by you on your own servers. 
-            You are responsible for regularly exporting and securing backups. Coachwright shall not be 
-            held liable for any data loss, hardware failure, or synchronization conflicts.
+            Your client database is stored in your Coachwright account on our servers and cached on the
+            devices you sign in on. We keep regular backups of our servers, but you remain responsible for
+            keeping your own exports. Coachwright shall not be held liable for any data loss, hardware
+            failure, or synchronization conflicts.
           </p>
 
-          <h2 className="mb-2 font-semibold">4. Privacy & End-to-End Encryption</h2>
+          <h2 className="mb-2 font-semibold">4. Privacy & Security</h2>
           <p className="mb-4 text-faint">
-            Coachwright's sync features utilize End-to-End Encryption (E2EE). The cryptographic keys are 
-            generated locally and remain strictly on the device. While we strive to employ modern security 
-            practices, we do not guarantee absolute protection against targeted attacks or device compromise.
+            Data is encrypted in transit (HTTPS) and access to your account is protected by your password.
+            Data on our servers is not end-to-end encrypted, so that it can reach every device you sign in on
+            and the clients you connect. We do not sell your data or use it for advertising. While we strive to
+            employ modern security practices, we do not guarantee absolute protection against targeted
+            attacks or device compromise.
           </p>
           
           <p className="mt-8 text-center text-muted italic">

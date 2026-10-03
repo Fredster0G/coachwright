@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { LOCAL_AI_ENABLED } from '@/lib/cloud/config'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Check, ChevronLeft, Plus, Trash2, PlayCircle, Mic, Square, ScanLine } from 'lucide-react'
 import { Button, Card, SectionHeader, LogoSpinner } from '@/design'
@@ -7,7 +8,7 @@ import { today, stamp } from '@/lib/core'
 import { clientsRepo, programsRepo, exercisesRepo, logsRepo, trainerRepo, staffRepo } from '@/db/repo'
 import type { SessionLog, Client, Exercise, LogEntry, LoggedSet, Trainer, Staff } from '@/db/types'
 import { getActiveStaffId } from '@/lib/activeStaff'
-import { createSessionLogTemplate } from './api'
+import { createSessionLogTemplate, completeSet, shownLoad } from './api'
 import { Stepper } from './Stepper'
 import { RestTimer } from './RestTimer'
 import { VideoViewerDialog } from '../library/VideoViewer'
@@ -20,11 +21,13 @@ import { parseSetLog, isEmpty as parsedIsEmpty } from '@/lib/setLogParser'
 import { isOcrModelInstalled } from '@/lib/ocr'
 import { LogSheetScanDialog } from './LogSheetScanDialog'
 import type { ParsedLogSheet } from '@/lib/logSheetParser'
+import { useTranslation } from '@/lib/i18n'
 
 export default function SessionLoggerPage() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
-  
+  const { t } = useTranslation()
+
   const clientId = searchParams.get('clientId')
   const programId = searchParams.get('programId')
   const dayId = searchParams.get('dayId')
@@ -52,7 +55,7 @@ export default function SessionLoggerPage() {
   const recorderRef = useRef<VoiceRecorder | null>(null)
 
   useEffect(() => {
-    isSpeechModelInstalled().then(setSpeechReady)
+    if (LOCAL_AI_ENABLED) isSpeechModelInstalled().then(setSpeechReady)
   }, [])
 
   // ---- Log-sheet scanning (opt-in, on-device — lib/ocr.ts) ----
@@ -60,7 +63,7 @@ export default function SessionLoggerPage() {
   const [scanForEntry, setScanForEntry] = useState<number | null>(null)
 
   useEffect(() => {
-    isOcrModelInstalled().then(setOcrReady)
+    if (LOCAL_AI_ENABLED) isOcrModelInstalled().then(setOcrReady)
   }, [])
 
   /** Fills the entry's sets sequentially starting from the first one —
@@ -83,7 +86,7 @@ export default function SessionLoggerPage() {
       }
     })
     updateEntry(eIdx, { sets: newSets })
-    toast(`Applied ${sets.length} set${sets.length === 1 ? '' : 's'} from the scan.`)
+    toast(t('logger.scanApplied', { count: sets.length }))
   }
 
   async function toggleVoiceSet(key: string, updateSet: (updates: Partial<LoggedSet>) => void) {
@@ -96,7 +99,7 @@ export default function SessionLoggerPage() {
         const text = await transcribeAudio(audio)
         const parsed = parseSetLog(text)
         if (parsedIsEmpty(parsed)) {
-          toast(`Heard "${text || '(nothing)'}" — couldn't make out a load/reps/RPE. Try again, or enter it by hand.`)
+          toast(t('logger.heardNothing', { text: text || t('logger.nothing') }))
         } else {
           const updates: Partial<LoggedSet> = {}
           if (parsed.load != null) updates.actualLoad = parsed.load
@@ -108,10 +111,10 @@ export default function SessionLoggerPage() {
             parsed.reps != null ? `× ${parsed.reps}` : null,
             parsed.rpe != null ? `RPE ${parsed.rpe}` : null,
           ].filter(Boolean).join(' ')
-          toast(`Heard "${parsed.raw}" → ${heard}`)
+          toast(t('logger.heard', { text: parsed.raw, parsed: heard }))
         }
       } catch (e) {
-        toastError(e instanceof Error ? e.message : "Couldn't transcribe that.")
+        toastError(e instanceof Error ? e.message : t('logger.transcribeFailed'))
       } finally {
         setTranscribingKey(null)
       }
@@ -123,7 +126,7 @@ export default function SessionLoggerPage() {
       await recorderRef.current.start()
       setRecordingKey(key)
     } catch {
-      toastError('Could not access the microphone — check the permission and try again.')
+      toastError(t('logger.micFailed'))
     }
   }
 
@@ -136,19 +139,19 @@ export default function SessionLoggerPage() {
 
     async function init() {
       try {
-        const [c, t, s] = await Promise.all([
+        const [c, tr, s] = await Promise.all([
           clientsRepo.get(clientId!),
           trainerRepo.getOrCreate(),
           staffRepo.all(),
         ])
         setStaff(s)
         if (!c) {
-          toastError('Client not found')
+          toastError(t('logger.clientNotFound'))
           navigate('/')
           return
         }
         setClient(c)
-        setTrainer(t)
+        setTrainer(tr)
 
         const allEx = await exercisesRepo.all()
         const exMap: Record<string, Exercise> = {}
@@ -178,7 +181,7 @@ export default function SessionLoggerPage() {
                     date: h.date,
                     sets: h.sets.map(s => ({ load: s.actualLoad, reps: s.actualReps, rpe: s.rpe, done: s.done }))
                   }))
-                  const s = suggestNext(policy, history, t.units)
+                  const s = suggestNext(policy, history, tr.units)
                   if (s) sugs[entry.exerciseId] = s
                 }
                 setSuggestions(sugs)
@@ -191,13 +194,13 @@ export default function SessionLoggerPage() {
         setLog(prev => prev ?? (stamp({
           clientId: c.id,
           date: today(),
-          title: 'Freestyle Session',
+          title: t('logger.freestyle'),
           entries: [],
           source: 'trainer' as const
         } as Partial<SessionLog>) as SessionLog))
       } catch (e) {
         console.error(e)
-        toastError('Failed to load session logger')
+        toastError(t('logger.loadFailed'))
       } finally {
         setLoading(false)
       }
@@ -211,11 +214,11 @@ export default function SessionLoggerPage() {
     try {
       const activeStaffId = getActiveStaffId(staff)
       await logsRepo.create(activeStaffId ? { ...log, staffId: activeStaffId } : log)
-      toast('Session saved')
+      toast(t('logger.saved'))
       navigate(`/clients/${log.clientId}?tab=logs`)
     } catch (e) {
       console.error(e)
-      toastError('Failed to save session')
+      toastError(t('logger.saveFailed'))
       setSaving(false)
     }
   }
@@ -255,27 +258,27 @@ export default function SessionLoggerPage() {
   return (
     <div className="mx-auto max-w-2xl h-full pb-32 pt-6 px-4">
       <SectionHeader 
-        title={log.title || 'Session'}
+        title={log.title || t('logger.session')}
         action={
           <div className="flex items-center gap-3">
-            <Button variant="ghost" onClick={() => navigate(-1)}><ChevronLeft size={16}/> Cancel</Button>
+            <Button variant="ghost" onClick={() => navigate(-1)}><ChevronLeft size={16}/> {t('logger.cancel')}</Button>
             <Button variant="primary" onClick={handleSave} disabled={saving}>
-              {saving ? <LogoSpinner size={16} className="me-1.5" /> : <Check size={16} className="me-1.5" />} 
-              Save Log
+              {saving ? <LogoSpinner size={16} className="me-1.5" /> : <Check size={16} className="me-1.5" />}
+              {t('logger.save')}
             </Button>
           </div>
         }
       />
       <div className="mb-6 -mt-2 text-sm text-faint font-medium">
-        Logging for {client.firstName} {client.lastName} • {log.date}
+        {t('logger.loggingFor', { name: `${client.firstName} ${client.lastName}`, date: log.date })}
       </div>
 
       <div className="space-y-6 mt-6">
         {log.entries.length === 0 ? (
           <div className="text-center py-12 border border-dashed border-line rounded-lg">
-            <p className="text-faint mb-4">No exercises added yet.</p>
+            <p className="text-faint mb-4">{t('logger.noExercises')}</p>
             <Button variant="secondary" onClick={() => setSearchOpen(true)}>
-              <Plus size={16} className="me-1.5" /> Add Exercise
+              <Plus size={16} className="me-1.5" /> {t('logger.addExercise')}
             </Button>
           </div>
         ) : (
@@ -285,9 +288,9 @@ export default function SessionLoggerPage() {
               <Card key={eIdx} className="overflow-hidden">
                 <div className="flex items-center justify-between mb-4 border-b border-line pb-3">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-bold text-ink">{ex?.name || 'Unknown Exercise'}</h3>
+                    <h3 className="font-bold text-ink">{ex?.name || t('logger.unknownExercise')}</h3>
                     {ex && exerciseVideos(ex).length > 0 && (
-                      <button onClick={() => setVideoFor(ex)} className="text-verde-600 hover:text-verde-700" title="Watch video" aria-label="Watch video">
+                      <button onClick={() => setVideoFor(ex)} className="text-verde-600 hover:text-verde-700" title={t('logger.watchVideo')} aria-label={t('logger.watchVideo')}>
                         <PlayCircle size={16} />
                       </button>
                     )}
@@ -298,12 +301,12 @@ export default function SessionLoggerPage() {
                         variant="ghost" size="sm"
                         onClick={() => setScanForEntry(eIdx)}
                         className="text-faint hover:text-ink"
-                        title="Scan a printed log sheet for this exercise"
+                        title={t('logger.scanSheet')} aria-label={t('logger.scanSheet')}
                       >
                         <ScanLine size={14} />
                       </Button>
                     )}
-                    <Button variant="ghost" size="sm" onClick={() => removeEntry(eIdx)} className="text-faint hover:text-signal-600">
+                    <Button variant="ghost" size="sm" onClick={() => removeEntry(eIdx)} aria-label={t('logger.removeExercise', { name: ex?.name ?? t('logger.unknownExercise') })} className="text-faint hover:text-signal-600">
                       <Trash2 size={14} />
                     </Button>
                   </div>
@@ -312,11 +315,11 @@ export default function SessionLoggerPage() {
                 {suggestions[entry.exerciseId] && (
                   <div className="mb-4 px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-md text-sm">
                     <div className="flex items-center gap-2 text-indigo-900 font-medium mb-1">
-                      <span className="bg-indigo-200 text-indigo-900 px-1.5 py-0.5 rounded text-xs">AI Suggestion</span>
+                      <span className="bg-indigo-200 text-indigo-900 px-1.5 py-0.5 rounded text-xs">{t('logger.suggestion')}</span>
                       {suggestions[entry.exerciseId].load && <span>{suggestions[entry.exerciseId].load} {trainer?.units}</span>}
                       {suggestions[entry.exerciseId].reps && <span>× {suggestions[entry.exerciseId].reps}</span>}
                     </div>
-                    <p className="text-indigo-700/80 text-xs italic">{suggestions[entry.exerciseId].reason}</p>
+                    <p className="text-indigo-700/80 text-xs italic">{t(suggestions[entry.exerciseId].msg.key, suggestions[entry.exerciseId].msg.params)}</p>
                   </div>
                 )}
 
@@ -337,12 +340,14 @@ export default function SessionLoggerPage() {
                         <button
                           onClick={() => {
                             const nowDone = !set.done
-                            updateSet({ done: nowDone })
+                            updateSet(nowDone ? completeSet(set) : { done: false })
                             if (nowDone) {
                               setRestSeconds(entry.restSeconds ?? trainer?.defaultRestSeconds ?? 90)
                               setRestKey(k => k + 1)
                             }
                           }}
+                          aria-label={set.done ? t('logger.markNotDone', { n: sIdx + 1 }) : t('logger.markDone', { n: sIdx + 1 })}
+                          aria-pressed={set.done}
                           className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors ${set.done ? 'bg-verde-600 text-white' : 'bg-surface2 text-faint hover:bg-line'}`}
                         >
                           <Check size={20} strokeWidth={set.done ? 3 : 2} />
@@ -352,11 +357,11 @@ export default function SessionLoggerPage() {
                           {/* Load Input */}
                           <div>
                             <div className="flex justify-between items-center mb-1">
-                              <label className="text-xs font-medium text-faint">Load {trainer?.units === 'kg' ? '(kg)' : '(lb)'}</label>
-                              {set.targetLoad != null && <span className="text-[10px] text-muted">Target: {set.targetLoad} {set.targetLoadMode === 'rpe' ? 'RPE' : ''}</span>}
+                              <label className="text-xs font-medium text-faint">{t('logger.load', { units: trainer?.units === 'kg' ? 'kg' : 'lb' })}</label>
+                              {set.targetLoad != null && <span className="text-[10px] text-muted">{t('logger.target', { value: `${set.targetLoad}${set.targetLoadMode === 'rpe' ? ' RPE' : set.targetLoadMode === 'percent1rm' ? '%' : ''}` })}</span>}
                             </div>
                             <Stepper 
-                              value={set.actualLoad ?? set.targetLoad} 
+                              value={shownLoad(set)}
                               onChange={(v) => updateSet({ actualLoad: v })}
                               step={2.5}
                               min={0}
@@ -367,8 +372,8 @@ export default function SessionLoggerPage() {
                           {/* Reps Input */}
                           <div>
                             <div className="flex justify-between items-center mb-1">
-                              <label className="text-xs font-medium text-faint">Reps</label>
-                              {set.targetReps != null && <span className="text-[10px] text-muted">Target: {set.targetReps}</span>}
+                              <label className="text-xs font-medium text-faint">{t('logger.reps')}</label>
+                              {set.targetReps != null && <span className="text-[10px] text-muted">{t('logger.target', { value: set.targetReps })}</span>}
                             </div>
                             <Stepper 
                               value={set.actualReps} 
@@ -383,7 +388,7 @@ export default function SessionLoggerPage() {
 
                         {/* RPE (Optional, fits on same row on wide screens, wraps on small) */}
                         <div className="sm:w-24">
-                           <label className="text-xs font-medium text-faint mb-1 block">RPE</label>
+                           <label className="text-xs font-medium text-faint mb-1 block">{t('logger.rpe')}</label>
                            <Stepper 
                              value={set.rpe} 
                              onChange={(v) => updateSet({ rpe: v })}
@@ -404,7 +409,8 @@ export default function SessionLoggerPage() {
                             type="button"
                             onClick={() => toggleVoiceSet(voiceKey, updateSet)}
                             disabled={voiceBusyElsewhere || isTranscribing}
-                            title={isRecording ? 'Stop and log what you said' : 'Log this set by voice'}
+                            title={isRecording ? t('logger.voiceStop') : t('logger.voiceStart')}
+                            aria-label={isRecording ? t('logger.voiceStop') : t('logger.voiceStart')}
                             className={`flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
                               isRecording ? 'bg-signal-600 text-white animate-pulse' : 'bg-surface2 text-muted hover:bg-line'
                             }`}
@@ -422,12 +428,13 @@ export default function SessionLoggerPage() {
                     const newSets = [...entry.sets, { done: false }]
                     updateEntry(eIdx, { sets: newSets })
                   }}>
-                    <Plus size={14} className="me-1.5" /> Add Set
+                    <Plus size={14} className="me-1.5" /> {t('logger.addSet')}
                   </Button>
 
                   <input
                     type="text"
-                    placeholder="Note for this exercise..."
+                    placeholder={t('logger.notePlaceholder')}
+                    aria-label={t('logger.notePlaceholder')}
                     className="flex-1 ms-4 bg-transparent border-b border-dashed border-line text-sm focus:outline-none focus:border-verde-600"
                     value={entry.notes || ''}
                     onChange={e => updateEntry(eIdx, { notes: e.target.value })}
@@ -441,7 +448,7 @@ export default function SessionLoggerPage() {
         {log.entries.length > 0 && (
           <div className="flex justify-center pt-4">
             <Button variant="secondary" onClick={() => setSearchOpen(true)}>
-              <Plus size={16} className="me-1.5" /> Add Another Exercise
+              <Plus size={16} className="me-1.5" /> {t('logger.addAnother')}
             </Button>
           </div>
         )}
@@ -458,7 +465,7 @@ export default function SessionLoggerPage() {
       )}
 
       <VideoViewerDialog
-        title={videoFor?.name ?? 'Video'}
+        title={videoFor?.name ?? t('logger.video')}
         links={videoFor ? exerciseVideos(videoFor) : []}
         open={!!videoFor}
         onClose={() => setVideoFor(null)}

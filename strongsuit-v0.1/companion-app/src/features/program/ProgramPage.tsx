@@ -2,22 +2,26 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronDown, ClipboardList } from 'lucide-react'
 import { Card, EmptyState } from '@/design'
-import { assignedProgramsRepo, coachExercisesRepo } from '@/db/repo'
+import { assignedProgramsRepo, coachExercisesRepo, coachLinkRepo } from '@/db/repo'
 import { fmtSet } from '@/lib/programFormat'
 import type { AssignedProgram, Block, CoachExercise, Units, Week } from '@/db/types'
 
 /** Read-only viewer for programs the coach assigned — rendered exactly from
  *  the synced rows, no client-side editing (a client logs against a program;
- *  they don't rewrite it). Arrives via any transport: relay sync, WiFi sync,
- *  or an imported packet file. */
-export function ProgramPage({ units }: { units: Units }) {
+ *  they don't rewrite it). Arrives with each sync from Coachwright Cloud. */
+export function ProgramPage({ units: myUnits }: { units: Units }) {
   const [programs, setPrograms] = useState<AssignedProgram[] | undefined>()
   const [exercises, setExercises] = useState<Map<string, CoachExercise>>(new Map())
+  // Loads are labelled in the coach's units — they wrote them. Labelling a
+  // 225 lb prescription with the client's "kg" setting made it "225 kg".
+  const [coachUnits, setCoachUnits] = useState<Units | undefined>()
 
   useEffect(() => {
     assignedProgramsRepo.display().then(setPrograms)
     coachExercisesRepo.byId().then(setExercises)
+    coachLinkRepo.get().then(l => setCoachUnits(l?.coachUnits))
   }, [])
+  const units = coachUnits ?? myUnits
 
   if (!programs) return null
 
@@ -28,10 +32,10 @@ export function ProgramPage({ units }: { units: Units }) {
         <EmptyState
           icon={<ClipboardList size={28} strokeWidth={1.5} />}
           title="No program yet"
-          body="When your coach assigns you a program, it shows up here after your next sync — over their server, WiFi, or a packet file they send you."
+          body="When your coach assigns you a program, it shows up here the next time Companion syncs — open the app while online, or tap Sync now on the Coach tab."
         />
         <p className="text-center text-2xs text-faint">
-          Paired already? Pull the latest from the <Link to="/coach" className="text-verde-600 hover:underline">Coach</Link> tab.
+          Connected already? Pull the latest from the <Link to="/coach" className="text-verde-600 hover:underline">Coach</Link> tab.
         </p>
       </div>
     )

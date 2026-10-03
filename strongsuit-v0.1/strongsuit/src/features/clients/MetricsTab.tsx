@@ -5,16 +5,20 @@ import { metricsRepo, progressPhotosRepo } from '@/db/repo'
 import { Card, SectionHeader, Button, Field, Input, Select, Dialog, Textarea, toast, toastError } from '@/design'
 import { today } from '@/lib/core'
 import { resizeImageToDataUrl } from '@/lib/media'
-import { presetsForGoal, type MetricPresetItem } from '@/lib/metricPresets'
+import { suggestedItems, type MetricPresetItem } from '@/lib/metricPresets'
+import { daysApart, nearestReading } from '@/lib/photoCompare'
 import type { MetricType, TrainingGoal } from '@/db/types'
 import { useTranslation } from '@/lib/i18n'
 
-function ProgressPhotosCard({ clientId }: { clientId: string }) {
+function ProgressPhotosCard({ clientId, units }: { clientId: string; units: 'kg' | 'lb' }) {
   const photos = useLiveQuery(() => progressPhotosRepo.forClient(clientId), [clientId], [])
+  const metrics = useLiveQuery(() => metricsRepo.forClient(clientId), [clientId], [])
   const fileRef = useRef<HTMLInputElement>(null)
   const [viewing, setViewing] = useState<(typeof photos)[number] | null>(null)
   const [noteDraft, setNoteDraft] = useState('')
   const [comparing, setComparing] = useState(false)
+  // Ids of the two photos in the compare dialog; null = first / latest.
+  const [pick, setPick] = useState<[string | null, string | null]>([null, null])
   const { t } = useTranslation()
 
   async function onFile(file: File) {
@@ -35,12 +39,12 @@ function ProgressPhotosCard({ clientId }: { clientId: string }) {
 
   return (
     <Card>
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1.5 text-sm font-semibold text-ink"><Camera size={16} className="text-verde-600" /> {t('clients.metrics.photosTitle')}</div>
         <div className="flex items-center gap-2">
-          {photos.length >= 2 && <Button size="sm" variant="secondary" onClick={() => setComparing(true)}>{t('clients.metrics.compareFirstLatest')}</Button>}
+          {photos.length >= 2 && <Button size="sm" variant="secondary" className="whitespace-nowrap" onClick={() => { setPick([null, null]); setComparing(true) }}>{t('clients.metrics.comparePhotos')}</Button>}
           <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = '' }} />
-          <Button size="sm" onClick={() => fileRef.current?.click()}>{t('clients.metrics.addPhoto')}</Button>
+          <Button size="sm" className="whitespace-nowrap" onClick={() => fileRef.current?.click()}>{t('clients.metrics.addPhoto')}</Button>
         </div>
       </div>
       {photos.length === 0 ? (
@@ -77,17 +81,47 @@ function ProgressPhotosCard({ clientId }: { clientId: string }) {
         )}
       </Dialog>
 
-      <Dialog open={comparing} onClose={() => setComparing(false)} title={t('clients.metrics.compareDialogTitle')} width={560}>
-        {photos.length >= 2 && (
-          <div className="grid grid-cols-2 gap-3">
-            {[photos[0], photos.at(-1)!].map((p, i) => (
-              <div key={p.id}>
-                <img src={p.dataUrl} alt={p.date} className="aspect-[3/4] w-full rounded-card border border-line object-cover" />
-                <p className="mt-1 text-center font-mono tabular-nums text-2xs text-faint">{i === 0 ? t('clients.metrics.first') : t('clients.metrics.latest')}{p.date}</p>
+      <Dialog open={comparing} onClose={() => setComparing(false)} title={t('clients.metrics.compareDialogTitle')} width={600}>
+        {photos.length >= 2 && (() => {
+          const before = photos.find(p => p.id === pick[0]) ?? photos[0]
+          const after = photos.find(p => p.id === pick[1]) ?? photos.at(-1)!
+          const days = daysApart(before.date, after.date)
+          const bw = metrics.filter(m => m.type === 'bodyweight')
+          const w0 = nearestReading(bw, before.date)
+          const w1 = nearestReading(bw, after.date)
+          // No delta across a kg/lb mix — a unit change isn't weight change.
+          const delta = w0 && w1 && (w0.unit || units) === (w1.unit || units) ? Math.round((w1.value - w0.value) * 10) / 10 : null
+          return (
+            <div className="space-y-3">
+              <p className="text-center text-sm text-muted">
+                {t('clients.metrics.daysApart', { count: Math.abs(days) })}
+                {delta !== null && <> · <span className="font-mono tabular-nums text-ink">{delta > 0 ? '+' : ''}{delta} {w1!.unit || units}</span></>}
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                {([before, after] as const).map((p, i) => {
+                  const w = i === 0 ? w0 : w1
+                  return (
+                    <div key={i} className="min-w-0 space-y-1">
+                      <Select
+                        aria-label={i === 0 ? t('clients.metrics.beforeLabel') : t('clients.metrics.afterLabel')}
+                        value={p.id}
+                        onChange={e => setPick(cur => i === 0 ? [e.target.value, cur[1]] : [cur[0], e.target.value])}
+                        className="w-full font-mono text-xs"
+                      >
+                        {photos.map(o => <option key={o.id} value={o.id}>{o.date}</option>)}
+                      </Select>
+                      <img src={p.dataUrl} alt={p.date} className="aspect-[3/4] w-full rounded-card border border-line object-cover" />
+                      <p className="text-center font-mono tabular-nums text-2xs text-faint">
+                        {w ? t('clients.metrics.weightNear', { value: w.value, unit: w.unit || units, date: w.date }) : t('clients.metrics.noWeightNear')}
+                      </p>
+                      {p.note && <p className="text-center text-2xs text-muted">{p.note}</p>}
+                    </div>
+                  )
+                })}
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          )
+        })()}
       </Dialog>
     </Card>
   )
@@ -99,7 +133,7 @@ export default function MetricsTab({ clientId, units, trainingGoal }: { clientId
   const { t } = useTranslation()
 
   const bwMetrics = metrics?.filter(m => m.type === 'bodyweight') || []
-  const presets = presetsForGoal(trainingGoal)
+  const presets = suggestedItems(trainingGoal)
 
   function applyPreset(item: MetricPresetItem) {
     setForm(f => ({ ...f, type: item.type, key: item.key, unit: item.unit }))
@@ -134,7 +168,7 @@ export default function MetricsTab({ clientId, units, trainingGoal }: { clientId
               <div className="mb-3">
                 <p className="mb-1.5 text-2xs font-medium uppercase tracking-wide text-faint">{t('clients.metrics.suggestedForGoal')}</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {presets.flatMap(p => p.items).map(item => (
+                  {presets.map(item => (
                     <button
                       key={item.key} onClick={() => applyPreset(item)}
                       title={`${item.why} (${item.source})`}
@@ -225,7 +259,7 @@ export default function MetricsTab({ clientId, units, trainingGoal }: { clientId
             </Card>
           )}
 
-          <ProgressPhotosCard clientId={clientId} />
+          <ProgressPhotosCard clientId={clientId} units={units} />
         </div>
       </div>
     </div>

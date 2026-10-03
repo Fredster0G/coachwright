@@ -3,6 +3,7 @@ import { ExternalLink, PlayCircle } from 'lucide-react'
 import { Dialog, Button, Tag } from '@/design'
 import { classifyVideoUrl } from '@/lib/videoEmbed'
 import type { ExerciseVideoLink } from '@/db/types'
+import { useTranslation } from '@/lib/i18n'
 
 /** In-app player for a trainer's own exercise video links (spec §4.3b) —
  *  YouTube/Vimeo embed inline, direct video files play natively, anything
@@ -13,6 +14,7 @@ export function VideoViewerDialog({ title, links, open, onClose }: {
   open: boolean
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   const [active, setActive] = useState(0)
   const link = links[active]
   const target = link ? classifyVideoUrl(link.url) : null
@@ -32,7 +34,7 @@ export function VideoViewerDialog({ title, links, open, onClose }: {
         </div>
       )}
       {!target ? (
-        <p className="py-8 text-center text-sm text-muted">No video linked for this exercise yet.</p>
+        <p className="py-8 text-center text-sm text-muted">{t('library.video.none')}</p>
       ) : target.kind === 'youtube' || target.kind === 'vimeo' ? (
         <div className="aspect-video w-full overflow-hidden rounded-card bg-iron-950">
           <iframe
@@ -49,9 +51,9 @@ export function VideoViewerDialog({ title, links, open, onClose }: {
       ) : (
         <div className="flex flex-col items-center gap-3 rounded-card border border-dashed border-line py-10 text-center">
           <PlayCircle size={28} className="text-faint" />
-          <p className="text-sm text-muted">This link can't be played inline — open it instead.</p>
+          <p className="text-sm text-muted">{t('library.video.notInline')}</p>
           <Button variant="secondary" onClick={() => window.open(target.original, '_blank', 'noopener,noreferrer')}>
-            <ExternalLink size={14} /> Open {link.label}
+            <ExternalLink size={14} /> {t('library.video.open', { label: link.label })}
           </Button>
         </div>
       )}
@@ -59,7 +61,7 @@ export function VideoViewerDialog({ title, links, open, onClose }: {
         <div className="mt-2 flex items-center justify-between">
           <Tag>{target.kind}</Tag>
           <a href={target.original} target="_blank" rel="noopener noreferrer" className="text-2xs text-faint hover:text-ink">
-            Open original <ExternalLink size={11} className="inline -mt-0.5" />
+            {t('library.video.openOriginal')} <ExternalLink size={11} className="inline -mt-0.5" />
           </a>
         </div>
       )}

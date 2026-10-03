@@ -80,7 +80,9 @@ function evalOne(rule: AutomationRule, client: Client, facts: ClientFacts, today
       const days = daysBetween(facts.lastSessionDate, today)
       const threshold = rule.thresholdDays ?? 7
       if (days === null) {
-        return { clientId: client.id, ruleId: rule.id, severity: 'warning', message: msg(rule.message.replace('{days}', 'ever')) }
+        // Never logged: the rule's "{days}" template has no number to fill
+        // (it used to render "No session logged in ever days").
+        return { clientId: client.id, ruleId: rule.id, severity: 'warning', message: msg('No session logged yet') }
       }
       if (days >= threshold) {
         return { clientId: client.id, ruleId: rule.id, severity: 'warning', message: msg(rule.message.replace('{days}', String(days))) }

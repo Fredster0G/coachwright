@@ -7,12 +7,22 @@ import { today } from '@/lib/core'
 import { nutritionPlan, ageFromBirthDate, toKg } from '@/lib/nutrition'
 import { FoodScannerDialog } from '../nutrition/FoodScannerDialog'
 import type { Client, FoodItem, FoodEntry, MealType } from '@/db/types'
+import { goalPlan } from '@/lib/goals'
+import { useTranslation, type MessageKey } from '@/lib/i18n'
+
+const MEAL_KEY: Record<MealType, MessageKey> = {
+  breakfast: 'food.meal.breakfast', lunch: 'food.meal.lunch', dinner: 'food.meal.dinner', snack: 'food.meal.snack',
+}
+// Servings can be fractional and food values carry decimals — 0.5 × 12.3 is
+// not a number anyone wants to read with fifteen digits.
+const r0 = (v: number) => Math.round(v)
 
 const MEALS: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack']
 
 export default function FoodLogTab({ client }: { client: Client }) {
   const [date, setDate] = useState(today())
   const [scanMeal, setScanMeal] = useState<MealType | null>(null)
+  const { t } = useTranslation()
 
   // Targets calc
   const latestBw = useLiveQuery(async () => {
@@ -21,7 +31,9 @@ export default function FoodLogTab({ client }: { client: Client }) {
   }, [client.id])
 
   const age = client.birthDate ? ageFromBirthDate(client.birthDate) : null
-  const effectiveGoal = client.nutritionGoal ?? (client.trainingGoal ? (client.trainingGoal === 'strength' || client.trainingGoal === 'power' ? 'maintain' : 'cut') : undefined) // simplification of goalPlan
+  // Same rule as the Nutrition tab — this used its own shortcut (anything but
+  // strength/power → "cut"), so the two tabs showed different targets.
+  const effectiveGoal = client.nutritionGoal ?? (client.trainingGoal ? goalPlan(client.trainingGoal).nutritionGoal : undefined)
   
   const plan = (latestBw && client.heightCm && client.sex && age !== null && client.activityLevel && effectiveGoal)
     ? nutritionPlan({
@@ -30,7 +42,7 @@ export default function FoodLogTab({ client }: { client: Client }) {
         age,
         sex: client.sex,
         activity: client.activityLevel,
-        goal: effectiveGoal as 'cut' | 'maintain' | 'gain',
+        goal: effectiveGoal,
       })
     : null
 
@@ -89,30 +101,30 @@ export default function FoodLogTab({ client }: { client: Client }) {
     <div className="max-w-3xl space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={() => handleDayChange(-1)}><ChevronLeft size={16} /></Button>
-          <span className="font-medium text-ink w-24 text-center">{date === today() ? 'Today' : date}</span>
-          <Button variant="ghost" onClick={() => handleDayChange(1)} disabled={date === today()}><ChevronRight size={16} /></Button>
+          <Button variant="ghost" onClick={() => handleDayChange(-1)} aria-label={t('food.prevDay')}><ChevronLeft size={16} className="rtl:rotate-180" /></Button>
+          <span className="font-medium text-ink w-24 text-center">{date === today() ? t('food.today') : date}</span>
+          <Button variant="ghost" onClick={() => handleDayChange(1)} disabled={date === today()} aria-label={t('food.nextDay')}><ChevronRight size={16} className="rtl:rotate-180" /></Button>
         </div>
       </div>
 
       <Card>
         <div className="flex justify-between items-end mb-4">
           <div>
-            <p className="text-xs font-medium text-faint uppercase tracking-wide">Calories</p>
-            <p className="text-2xl font-bold text-ink">{totals.cals} <span className="text-sm font-normal text-muted">/ {plan ? plan.calories : '—'}</span></p>
+            <p className="text-xs font-medium text-faint uppercase tracking-wide">{t('food.calories')}</p>
+            <p className="text-2xl font-bold text-ink">{r0(totals.cals)} <span className="text-sm font-normal text-muted">/ {plan ? plan.calories : '—'}</span></p>
           </div>
-          <div className="flex gap-4 text-right">
+          <div className="flex gap-4 text-end">
             <div>
-              <p className="text-2xs text-faint uppercase">Protein</p>
-              <p className="font-mono text-sm">{totals.p}g <span className="text-muted">/ {plan?.proteinG}g</span></p>
+              <p className="text-2xs text-faint uppercase">{t('food.protein')}</p>
+              <p className="font-mono text-sm">{r0(totals.p)}g <span className="text-muted">/ {plan ? `${plan.proteinG}g` : '—'}</span></p>
             </div>
             <div>
-              <p className="text-2xs text-faint uppercase">Carbs</p>
-              <p className="font-mono text-sm">{totals.c}g <span className="text-muted">/ {plan?.carbsG}g</span></p>
+              <p className="text-2xs text-faint uppercase">{t('food.carbs')}</p>
+              <p className="font-mono text-sm">{r0(totals.c)}g <span className="text-muted">/ {plan ? `${plan.carbsG}g` : '—'}</span></p>
             </div>
             <div>
-              <p className="text-2xs text-faint uppercase">Fat</p>
-              <p className="font-mono text-sm">{totals.f}g <span className="text-muted">/ {plan?.fatG}g</span></p>
+              <p className="text-2xs text-faint uppercase">{t('food.fat')}</p>
+              <p className="font-mono text-sm">{r0(totals.f)}g <span className="text-muted">/ {plan ? `${plan.fatG}g` : '—'}</span></p>
             </div>
           </div>
         </div>
@@ -128,29 +140,31 @@ export default function FoodLogTab({ client }: { client: Client }) {
       <div className="space-y-4">
         {MEALS.map(meal => (
           <Card key={meal} className="p-0 overflow-hidden">
-            <div className="bg-wash px-4 py-2 border-b border-line flex justify-between items-center">
-              <h3 className="font-medium text-ink capitalize">{meal}</h3>
-              <Button variant="ghost" className="h-7 px-2 text-xs" onClick={() => setScanMeal(meal)}>
-                <Plus size={14} className="mr-1" /> Add
+            <div className="bg-surface2 px-4 py-2 border-b border-line flex justify-between items-center">
+              <h3 className="font-medium text-ink">{t(MEAL_KEY[meal])}</h3>
+              <Button variant="ghost" className="h-7 px-2 text-xs" onClick={() => setScanMeal(meal)} aria-label={t('food.addTo', { meal: t(MEAL_KEY[meal]) })}>
+                <Plus size={14} className="me-1" /> {t('food.add')}
               </Button>
             </div>
             <div className="divide-y divide-line">
               {entries[meal].length === 0 ? (
-                <div className="p-4 text-sm text-faint text-center">No entries</div>
+                <div className="p-4 text-sm text-faint text-center">{t('food.noEntries')}</div>
               ) : entries[meal].map(({ entry, item }) => (
                 <div key={entry.id} className="p-4 flex justify-between items-center group">
                   <div>
-                    <p className="font-medium text-sm text-ink">{item?.name || 'Unknown'}</p>
-                    <p className="text-xs text-muted">{item?.brand} • {entry.servings} × {item?.servingSize}</p>
+                    <p className="font-medium text-sm text-ink">{item?.name || t('food.unknown')}</p>
+                    <p className="text-xs text-muted">{[item?.brand, `${entry.servings} × ${item?.servingSize ?? ''}`].filter(Boolean).join(' • ')}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-mono text-sm">{item ? item.calories * entry.servings : 0} kcal</p>
-                    <p className="text-xs text-faint group-hover:hidden">{item ? `${item.protein * entry.servings}P ${item.carbs * entry.servings}C ${item.fat * entry.servings}F` : ''}</p>
-                    <button 
+                  <div className="text-end">
+                    <p className="font-mono text-sm">{t('food.kcal', { n: item ? r0(item.calories * entry.servings) : 0 })}</p>
+                    <p className="text-xs text-faint">{item ? `${r0(item.protein * entry.servings)}P ${r0(item.carbs * entry.servings)}C ${r0(item.fat * entry.servings)}F` : ''}</p>
+                    {/* Always visible: hover-only left touch screens with no way to remove. */}
+                    <button
                       onClick={() => handleDelete(entry.id)}
-                      className="text-xs text-ember-600 hidden group-hover:inline-block"
+                      aria-label={t('food.removeItem', { name: item?.name ?? t('food.unknown') })}
+                      className="text-xs text-ember-600 hover:underline"
                     >
-                      Remove
+                      {t('food.remove')}
                     </button>
                   </div>
                 </div>

@@ -52,10 +52,10 @@ export default function Guide() {
       <div>
         <Section icon={<Rocket size={16} />} title="The big idea (read this first)" defaultOpen>
           <p>
-            {APP_NAME} is a local-first coaching workstation. There is no required account and no forced login — free covers up to 3 clients, genuinely, no trial clock. Coachwright Membership ($29/mo) removes that cap. Whichever tier you're on, every client, program, and session lives in this browser on this device by default, which is why your data stays private either way.
+            {APP_NAME} is a coaching workstation that lives in your account: sign in on your computer, another computer, or the web app and it’s all there. Free covers up to 3 clients, genuinely, no trial clock. Coachwright Membership ($29/mo) removes that cap.
           </p>
           <p>
-            The one trade-off of staying fully local: <B>you are responsible for backups</B>, and there’s no real-time link to a client’s phone. That’s one click for backups (see “Back up &amp; move machines”) — do it weekly and you’re safe. If you want live sync or messaging instead, that’s an optional add-on, never a requirement — see “Cloud sync” below.
+            It keeps working through a flaky gym connection — changes wait on this device and upload when you’re back online. Clients get their programs and message you through the free Companion app — see “Your account &amp; sync” below.
           </p>
         </Section>
 
@@ -73,15 +73,15 @@ export default function Guide() {
           <Steps items={[
             <>Go to <B>Programs → New</B>. A program is weeks → days → blocks → exercises.</>,
             <>Press <Kbd>/</Kbd> to focus the exercise search. Type gym slang — “rdl”, “ohp”, “bss” — and aliases resolve it instantly.</>,
-            <>Edit sets, reps, and load like a spreadsheet; arrow keys move between cells. Drag rows to reorder, or drag one onto another to make a superset.</>,
+            <>Edit sets, reps, and load like a spreadsheet; arrow keys move between cells. Drag rows to reorder. The <B>link</B> button on an exercise makes it a superset with the one above (the same button splits it out again).</>,
             <><B>Duplicate week</B> is the fastest way to progress — it can auto-add load or reps. Undo/redo (<Kbd>⌘Z</Kbd>) covers everything.</>,
-            <>Save any program as a <B>template</B>, then start new clients from it. <B>Assign to client</B> makes it active and drives their logger and Companion file.</>,
+            <>In the builder’s <B>Settings</B>, tick <B>Reusable template</B> to keep a program in your library. <B>Assign to client</B> gives that client their own copy and makes it their active program. To reuse a client’s program, <B>Duplicate</B> it from the Programs list first.</>,
           ]} />
         </Section>
 
         <Section icon={<PenLine size={16} />} title="Log sessions & read progress">
           <p>
-            From a client or the dashboard, <B>Log session</B> opens the prescribed day pre-filled with targets. Tap in actuals, check off sets, add RPE. Big touch targets — it works on the gym floor on a phone.
+            From a client’s page, <B>Log session</B> opens the next day of their program (the one after the last day logged), pre-filled with targets. Ticking a set done records the target as performed unless you change it. Big touch targets — it works on the gym floor on a phone. For a one-off set, <Kbd>⌘L</Kbd> opens <B>Quick log</B>: type it the way you’d say it.
           </p>
           <p>
             Tap any exercise to open its <B>history drawer</B>: last five performances, an e1RM trend, a <B>Suggested next</B> load with the reasoning behind it, and a percent-based warm-up ramp.
@@ -94,6 +94,9 @@ export default function Guide() {
         <Section icon={<CalendarDays size={16} />} title="Calendar & scheduling">
           <p>
             <B>Calendar</B> shows a real month grid — click a day to see and add appointments, or switch to <B>List</B> view for a scrollable agenda. Sessions link back to the client they’re for.
+          </p>
+          <p>
+            Set your <B>booking hours</B> in Settings and clients connected through Companion can request a free slot; requests wait on the Calendar and Dashboard for you to accept or decline.
           </p>
         </Section>
 
@@ -145,44 +148,46 @@ export default function Guide() {
             <>Record client payments on their <B>Billing</B> tab. They aggregate on the <B>Business</B> page.</>,
             <><B>Profit planner:</B> set the profit you need this month. {APP_NAME} subtracts expenses and shows the gap, a month-end projection, and roughly how many more sessions it takes to hit your goal.</>,
             <><B>Expenses:</B> add rent, insurance, software, and the like. Monthly ones carry forward automatically.</>,
+            <><B>Invoices:</B> create them from a client’s Billing tab — drafts, sent, paid, optional monthly repeat, and discount codes you set up in <B>Settings → Coupons</B>.</>,
             <><B>The gym’s cut:</B> on a client’s Billing tab, set what the facility takes — a <B>percent</B> of their income or a <B>flat monthly fee</B>. It’s subtracted from your real profit on the Business page, so the number you see is what you actually keep.</>,
           ]} />
         </Section>
 
         <Section icon={<Smartphone size={16} />} title="Companion files (send programs to clients)">
           <p>
-            From a client with an active program, <B>Export Companion</B> builds a single HTML file — your brand, their workout — that they open in any browser with no app and no account. They tick off sets and answer check-ins; a <B>Send to coach</B> button hands back a small data file you import from Settings. It merges in as logged sessions and check-ins, de-duplicated automatically.
+            From a client with an active program, <B>Export Companion</B> builds a single HTML file — your brand, their workout — that they open in any browser with no app and no account. They tick off sets and answer check-ins; a <B>Send my work to my coach</B> button hands back a small data file you import from the client’s <B>Logs</B> tab. It merges in as logged sessions and check-ins, de-duplicated automatically.
           </p>
         </Section>
 
-        <Section icon={<Cloud size={16} />} title="Cloud sync — optional, in three flavors">
+        <Section icon={<Cloud size={16} />} title="Your account & sync">
           <p>
-            {APP_NAME} works completely offline by default. If you want more than the file-based Companion workflow — live sync between your own devices, or live messaging with clients over the internet — <B>Settings → Cloud</B> offers three honest tiers, and every feature that needs one explains exactly why it’s unavailable if you haven’t turned it on:
-          </p>
-          <Steps items={[
-            <><B>Fully local</B> (the default, free forever) — nothing leaves this device. Move data between your own machines with a backup file or a paired WiFi/LAN transfer.</>,
-            <><B>Self-hosted relay</B> (free — you run the server) — run the small open-source Coachwright relay yourself, then set its URL on the <B>Studio Link</B> page, for always-on sync and messaging from anywhere.</>,
-            <><B>Managed by us</B> ($15/mo) — we run the relay for you, zero setup. Same end-to-end encryption as self-hosting; we can’t read your data either way. Cancel any time and everything keeps working fully offline.</>,
-          ]} />
-          <p>
-            Either relay tier unlocks the <B>Live</B> panel on a client’s Messages tab (once that client is paired as a device via Studio Link) and server-side reminders. A saved server URL is ignored while the tier selector is set back to fully local — switching tiers is always the source of truth, not just having a URL saved.
+            Everything is saved to your {APP_NAME} account and syncs automatically to every device you sign in on,
+            including the web app. It keeps working if the internet drops — changes wait on this device and upload
+            when you’re back online. <B>Account &amp; sync</B> in the sidebar shows what’s pending.
           </p>
           <p>
-            <B>Scheduled reminders.</B> On a paired client’s <B>Messages</B> tab you can queue a reminder for a date and time — “bring your lifting shoes Thursday”, “your block ends this week”. It’s encrypted with that client’s pairing key before it leaves, so the relay is holding something it can’t read on a timer. One honest limitation: it reaches them the next time they <em>open</em> Companion after that time, not at that exact minute — it’s a nudge, not a locked-phone alarm. Anything not yet delivered is listed underneath and can be cancelled.
+            <B>Companion.</B> On a client’s page, <B>Connect Companion</B> gives you a one-time code for them to enter
+            in the Companion app. They see their program, messages and reminders; their logged sessions come back to you.
+          </p>
+          <p>
+            <B>Scheduled reminders.</B> On a client’s <B>Messages</B> tab you can queue a reminder for a date and time.
+            It reaches them the next time they open Companion after that time — a nudge, not a locked-phone alarm.
+            Anything not yet delivered is listed underneath and can be cancelled.
           </p>
         </Section>
 
         <Section icon={<ShieldCheck size={16} />} title="Back up & move machines">
           <Steps items={[
             <><B>Back up now</B> (below) saves one file with everything in it. Add a passphrase to encrypt it — but there’s no recovery, so store the passphrase safely.</>,
-            <>The shield in the sidebar tracks days since your last backup and turns amber at seven. Keep it green.</>,
-            <>Moving to a new computer? Install {APP_NAME} there, then <B>Restore → Replace everything</B> from your backup. To combine two devices’ data, use <B>Merge</B> — the newest version of each record wins.</>,
+            <>The shield in the sidebar tracks days since your last backup and turns amber after 30 days — your account is the main copy; a backup is an extra one.</>,
+            <>Moving to a new computer? Just sign in there — your account brings everything with it. A backup file is your own extra copy, independent of the cloud.</>,
           ]} />
         </Section>
 
         <Section icon={<Keyboard size={16} />} title="Keyboard shortcuts">
           <ul className="space-y-1.5">
             <li><Kbd>⌘K</Kbd> / <Kbd>Ctrl K</Kbd> — command palette: jump anywhere, do anything</li>
+            <li><Kbd>⌘L</Kbd> / <Kbd>Ctrl L</Kbd> — Quick log a set</li>
             <li><Kbd>/</Kbd> — focus exercise search in the program builder</li>
             <li><Kbd>⌘Z</Kbd> / <Kbd>⇧⌘Z</Kbd> — undo / redo in the builder</li>
             <li><Kbd>Space</Kbd> — play/pause in the Film Room</li>
@@ -192,13 +197,13 @@ export default function Guide() {
 
         <Section icon={<Lock size={16} />} title="Privacy & how it works">
           <p>
-            By default there is no server to breach because there is no server. The app is static files; your data sits in this browser’s storage. The movement-tracking AI is an open-source model bundled inside the app — it runs on your device with <B>no API keys and no network calls</B>. The only time anything leaves is when <B>you</B> choose to: downloading a backup, exporting a Companion file, opening an exercise video link you added, or turning on optional cloud sync.
+            Your data is stored in your {APP_NAME} account, sent only over HTTPS, and cached on the devices you sign in on. We don’t sell it or use it for ads. The movement-tracking AI is an open-source model bundled inside the app — it runs on your device with <B>no API keys and no network calls</B>, and your videos never leave your device.
           </p>
           <p>
-            If you do turn on self-hosted or managed sync (see “Cloud sync” above), everything sent through it is end-to-end encrypted on this device before it ever leaves — the relay, ours or yours, only ever handles ciphertext it can’t read.
+            The desktop app also runs the on-device assistant, voice logging, log-sheet scanning and meaning-based search. The web app leaves those out — they need large model downloads that don’t belong in a browser tab.
           </p>
           <p>
-            {APP_NAME} also installs as an offline app: after the first load it keeps working with no connection at all, including the movement tracking. For the full ownership picture — where the data physically lives, how to get all of it out, and exactly what keeps working if we disappear — see <B>HOW-TO-OWN-IT.md</B>, included with the app.
+            For the full picture — where the data lives, how to get all of it out, and what happens if you stop paying — see <B>HOW-TO-OWN-IT.md</B>, included with the app.
           </p>
         </Section>
       </div>

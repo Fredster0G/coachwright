@@ -90,6 +90,7 @@ export function LogPage() {
   useEffect(() => { refresh() }, [])
 
   async function remove(id: string) {
+    if (!window.confirm('Delete this workout? If you’re connected to a coach, it’s removed from their copy at the next sync.')) return
     await workoutsRepo.remove(id)
     refresh()
   }

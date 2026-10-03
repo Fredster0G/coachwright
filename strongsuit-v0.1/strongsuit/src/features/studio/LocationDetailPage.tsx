@@ -8,8 +8,13 @@ import { fullName } from '@/lib/core'
 import { editionCapabilities, EDITION_NAMES } from '@/lib/edition'
 import { expandAll } from '@/lib/schedule'
 import { format, addDays } from 'date-fns'
+import { useTranslation, type MessageKey } from '@/lib/i18n'
+import type { StaffRole } from '@/db/types'
+
+const ROLE_KEY: Record<StaffRole, MessageKey> = { owner: 'team.role.owner', coach: 'team.role.coach', 'front-desk': 'team.role.frontDesk' }
 
 export default function LocationDetailPage() {
+  const { t } = useTranslation()
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const trainer = useLiveQuery(() => trainerRepo.get())
@@ -25,8 +30,8 @@ export default function LocationDetailPage() {
   if (trainer === undefined || location === undefined) {
     return (
       <div className="mx-auto max-w-3xl">
-        <SectionHeader title="Location" />
-        <Card className="animate-pulse text-sm text-faint">Loading…</Card>
+        <SectionHeader title={t('studio.loc.title')} />
+        <Card className="animate-pulse text-sm text-faint">{t('studio.loading')}</Card>
       </div>
     )
   }
@@ -34,11 +39,11 @@ export default function LocationDetailPage() {
   if (!cap.multiSeat) {
     return (
       <div className="mx-auto max-w-3xl">
-        <SectionHeader title="Location" />
+        <SectionHeader title={t('studio.loc.title')} />
         <Card className="flex flex-col items-center gap-3 py-10 text-center">
           <Lock size={28} className="text-faint" strokeWidth={1.5} />
           <p className="max-w-md text-sm text-muted">{cap.upgradeReason}</p>
-          <p className="text-2xs text-faint">Currently on {EDITION_NAMES[cap.edition]}.</p>
+          <p className="text-2xs text-faint">{t('team.currentEdition', { edition: EDITION_NAMES[cap.edition] })}</p>
         </Card>
       </div>
     )
@@ -47,9 +52,9 @@ export default function LocationDetailPage() {
   if (!location) {
     return (
       <EmptyState
-        title="Location not found"
-        body="This location may have been removed."
-        action={<Link to="/team"><Button>Back to Team</Button></Link>}
+        title={t('studio.loc.notFound')}
+        body={t('studio.loc.notFoundBody')}
+        action={<Link to="/team"><Button>{t('studio.loc.backToTeam')}</Button></Link>}
       />
     )
   }
@@ -71,24 +76,24 @@ export default function LocationDetailPage() {
   async function saveEdit() {
     if (!draft.name.trim()) return
     await locationsRepo.update(id, { name: draft.name.trim(), address: draft.address.trim() || undefined })
-    toast('Location updated.')
+    toast(t('studio.loc.updated'))
     setEditing(false)
   }
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <Link to="/team" className="mb-1 inline-flex items-center gap-1.5 text-xs font-medium text-muted hover:text-ink">
-        <ArrowLeft size={13} /> Team & locations
+        <ArrowLeft size={13} /> {t('team.title')}
       </Link>
 
       <Card>
         {editing ? (
           <div className="space-y-3">
-            <Field label="Name"><Input autoFocus value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} /></Field>
-            <Field label="Address" hint="optional"><Input value={draft.address} onChange={e => setDraft(d => ({ ...d, address: e.target.value }))} /></Field>
+            <Field label={t('team.form.name')}><Input autoFocus value={draft.name} onChange={e => setDraft(d => ({ ...d, name: e.target.value }))} /></Field>
+            <Field label={t('team.form.address')} hint={t('team.form.optional')}><Input value={draft.address} onChange={e => setDraft(d => ({ ...d, address: e.target.value }))} /></Field>
             <div className="flex justify-end gap-2">
-              <Button variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
-              <Button variant="primary" onClick={saveEdit} disabled={!draft.name.trim()}>Save</Button>
+              <Button variant="ghost" onClick={() => setEditing(false)}>{t('team.cancel')}</Button>
+              <Button variant="primary" onClick={saveEdit} disabled={!draft.name.trim()}>{t('studio.loc.save')}</Button>
             </div>
           </div>
         ) : (
@@ -97,30 +102,30 @@ export default function LocationDetailPage() {
               <div className="flex h-11 w-11 items-center justify-center rounded-ctl bg-verde-100 text-verde-700"><MapPin size={20} strokeWidth={1.5} /></div>
               <div>
                 <h1 className="font-display text-xl font-bold text-ink">{location.name}</h1>
-                <p className="text-xs text-faint">{location.address || 'No address on file'}</p>
+                <p className="text-xs text-faint">{location.address || t('team.noAddress')}</p>
               </div>
             </div>
-            <Button variant="ghost" size="sm" onClick={startEdit}>Edit</Button>
+            <Button variant="ghost" size="sm" onClick={startEdit}>{t('studio.loc.edit')}</Button>
           </div>
         )}
       </Card>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <Card className="text-center"><div className="text-2xl font-semibold tabular-nums text-ink">{locStaff.length}</div><div className="text-2xs text-faint">Staff</div></Card>
-        <Card className="text-center"><div className="text-2xl font-semibold tabular-nums text-ink">{locClients.length}</div><div className="text-2xs text-faint">Clients</div></Card>
-        <Card className="text-center"><div className="text-2xl font-semibold tabular-nums text-ink">{upcoming.length}</div><div className="text-2xs text-faint">Upcoming (14d)</div></Card>
+        <Card className="text-center"><div className="text-2xl font-semibold tabular-nums text-ink">{locStaff.length}</div><div className="text-2xs text-faint">{t('studio.loc.staff')}</div></Card>
+        <Card className="text-center"><div className="text-2xl font-semibold tabular-nums text-ink">{locClients.length}</div><div className="text-2xs text-faint">{t('studio.loc.clients')}</div></Card>
+        <Card className="text-center"><div className="text-2xl font-semibold tabular-nums text-ink">{upcoming.length}</div><div className="text-2xs text-faint">{t('studio.loc.upcoming14')}</div></Card>
       </div>
 
       <div>
-        <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-muted"><UserCog size={14} /> Staff at this location</p>
+        <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-muted"><UserCog size={14} /> {t('studio.loc.staffHere')}</p>
         {locStaff.length === 0 ? (
-          <p className="text-xs text-faint">No staff assigned here yet — set a staff member's location from Team.</p>
+          <p className="text-xs text-faint">{t('studio.loc.noStaff')}</p>
         ) : (
           <div className="space-y-2">
             {locStaff.map(s => (
               <Card key={s.id} pad={false} className="flex items-center justify-between px-4 py-2.5">
                 <span className="text-sm font-medium text-ink">{s.name}</span>
-                <span className="text-2xs text-faint capitalize">{s.role}</span>
+                <span className="text-2xs text-faint">{t(ROLE_KEY[s.role])}</span>
               </Card>
             ))}
           </div>
@@ -128,9 +133,9 @@ export default function LocationDetailPage() {
       </div>
 
       <div>
-        <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-muted"><Users size={14} /> Clients at this location</p>
+        <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-muted"><Users size={14} /> {t('studio.loc.clientsHere')}</p>
         {locClients.length === 0 ? (
-          <p className="text-xs text-faint">No clients assigned here yet.</p>
+          <p className="text-xs text-faint">{t('studio.loc.noClients')}</p>
         ) : (
           <div className="grid gap-2 sm:grid-cols-2">
             {locClients.map(c => (
@@ -146,9 +151,9 @@ export default function LocationDetailPage() {
       </div>
 
       <div>
-        <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-muted"><CalendarClock size={14} /> Upcoming (next 14 days)</p>
+        <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-muted"><CalendarClock size={14} /> {t('studio.loc.upcomingHeading')}</p>
         {upcoming.length === 0 ? (
-          <p className="text-xs text-faint">Nothing scheduled at this location in the next two weeks.</p>
+          <p className="text-xs text-faint">{t('studio.loc.nothingScheduled')}</p>
         ) : (
           <div className="space-y-2">
             {upcoming.map((o, i) => {
@@ -159,7 +164,7 @@ export default function LocationDetailPage() {
                     <span className="text-sm font-medium text-ink">{o.appointment.title}</span>
                     {c && <span className="ms-2 text-2xs text-faint">{fullName(c)}</span>}
                   </div>
-                  <span className="font-mono tabular-nums text-2xs text-faint">{format(new Date(o.start), 'MMM d, h:mm a')}</span>
+                  <span className="font-mono tabular-nums text-2xs text-faint">{new Date(o.start).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
                 </Card>
               )
             })}
@@ -169,10 +174,12 @@ export default function LocationDetailPage() {
 
       <div className="pt-2">
         <Button variant="ghost" className="text-ember-600" onClick={async () => {
+          // It used to delete on the first click, with clients and staff still pointing at it.
+          if (!window.confirm(t('studio.loc.confirmDelete', { name: location.name }))) return
           await locationsRepo.remove(id)
-          toast(`${location.name} removed.`)
+          toast(t('team.toast.removed', { name: location.name }))
           navigate('/team')
-        }}>Delete location</Button>
+        }}>{t('studio.loc.delete')}</Button>
       </div>
     </div>
   )

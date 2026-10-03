@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react'
 import { Button, Card, EmptyState, Input, Label, PageHeader, Sparkline } from '@/design'
 import { metricsRepo } from '@/db/repo'
 import { fmtLoad, today } from '@/lib/core'
+import { lengthUnit } from '@/lib/programFormat'
 import type { MetricType, PersonalMetric, Units } from '@/db/types'
 
 const METRIC_LABELS: Record<MetricType, string> = {
@@ -31,6 +32,9 @@ export function ProgressPage({ units }: { units: Units }) {
   }
 
   const selected = metrics.filter(m => m.type === type)
+  // Waist/chest/hips are lengths — they were labelled and shown in lb/kg.
+  const unitFor = (t: MetricType) => t === 'bodyfat' ? '%' : t === 'bodyweight' ? units : lengthUnit(units)
+  const fmt = (m: PersonalMetric) => m.type === 'bodyweight' ? fmtLoad(m.value, units) : m.type === 'bodyfat' ? `${m.value}%` : `${m.value} ${lengthUnit(units)}`
 
   return (
     <div className="space-y-4">
@@ -46,7 +50,7 @@ export function ProgressPage({ units }: { units: Units }) {
             </select>
           </div>
           <div>
-            <Label>Value ({type === 'bodyfat' ? '%' : units})</Label>
+            <Label>Value ({unitFor(type)})</Label>
             <Input type="number" value={value} onChange={e => setValue(e.target.value)} placeholder="0" />
           </div>
         </div>
@@ -62,7 +66,7 @@ export function ProgressPage({ units }: { units: Units }) {
           <div className="mb-1 flex items-baseline justify-between">
             <p className="text-xs font-semibold uppercase tracking-wide text-faint">{METRIC_LABELS[type]} trend</p>
             <p className="font-mono tnum text-sm font-semibold text-ink">
-              {type === 'bodyfat' ? `${selected[0].value}%` : fmtLoad(selected[0].value, units)}
+              {fmt(selected[0])}
             </p>
           </div>
           <Sparkline points={selected.map(m => ({ date: m.date, value: m.value }))} />
@@ -79,7 +83,7 @@ export function ProgressPage({ units }: { units: Units }) {
               <Card key={m.id} className="flex items-center justify-between py-2.5">
                 <span className="text-sm text-ink">{METRIC_LABELS[m.type]}</span>
                 <span className="font-mono tnum text-sm text-muted">
-                  {m.type === 'bodyfat' ? `${m.value}%` : fmtLoad(m.value, units)} · {m.date}
+                  {fmt(m)} · {m.date}
                 </span>
               </Card>
             ))}

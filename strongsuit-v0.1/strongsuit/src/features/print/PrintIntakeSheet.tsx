@@ -5,7 +5,7 @@ import { clientsRepo, trainerRepo } from '@/db/repo'
 import { fullName } from '@/lib/core'
 import { PARQ_QUESTIONS, PARQ_SOURCE, assumptionOfRiskText, informedConsentText } from '@/lib/parq'
 import { APP_NAME } from '@/lib/brand'
-import { canUseCustomBranding } from '@/lib/membership'
+import { artifactBrand } from '@/lib/branding'
 import { useTranslation } from '@/lib/i18n'
 
 export default function PrintIntakeSheet() {
@@ -24,17 +24,20 @@ export default function PrintIntakeSheet() {
 
   if (!client || !trainer) return <div className="p-8">{t('print.intake.loading')}</div>
 
-  const canBrand = canUseCustomBranding(trainer)
-  const business = (canBrand.allowed && trainer.businessName) ? trainer.businessName : APP_NAME
+  const brand = artifactBrand(trainer)
+  const business = brand.name
   const name = fullName(client)
   const hasScreening = !!client.screening
 
   return (
     <div className="bg-white text-black min-h-screen p-8 max-w-4xl mx-auto font-sans text-sm leading-relaxed">
       {/* Header */}
-      <div className="mb-6 pb-4 border-b-2 border-black flex justify-between items-end">
+      <div className="mb-6 pb-4 border-b-2 border-black flex flex-wrap justify-between items-end gap-x-4 gap-y-2">
         <div>
-          <h1 className="text-2xl font-bold uppercase tracking-tight">{business}</h1>
+          <div className="flex items-center gap-3">
+            {brand.logo && <img src={brand.logo} alt="" className="h-10 w-auto max-w-[120px] object-contain" />}
+            <h1 className="text-2xl font-bold uppercase tracking-tight">{business}</h1>
+          </div>
           <h2 className="text-lg text-gray-600 mt-1">{t('print.intake.title', { name })}</h2>
         </div>
         <div className="text-end text-xs text-gray-500">
@@ -48,27 +51,27 @@ export default function PrintIntakeSheet() {
         <div className="grid grid-cols-2 gap-4">
           <div className="border-b border-gray-300 pb-2">
             <span className="text-xs text-gray-500 block">{t('print.intake.fullName')}</span>
-            <span className="font-medium">{name || '________________________________'}</span>
+            <span className="font-medium [overflow-wrap:anywhere]">{name || '________________________________'}</span>
           </div>
           <div className="border-b border-gray-300 pb-2">
             <span className="text-xs text-gray-500 block">{t('print.intake.email')}</span>
-            <span className="font-medium">{client.email || '________________________________'}</span>
+            <span className="font-medium [overflow-wrap:anywhere]">{client.email || '________________________________'}</span>
           </div>
           <div className="border-b border-gray-300 pb-2">
             <span className="text-xs text-gray-500 block">{t('print.intake.phone')}</span>
-            <span className="font-medium">{client.phone || '________________________________'}</span>
+            <span className="font-medium [overflow-wrap:anywhere]">{client.phone || '________________________________'}</span>
           </div>
           <div className="border-b border-gray-300 pb-2">
             <span className="text-xs text-gray-500 block">{t('print.intake.startDate')}</span>
-            <span className="font-medium">{client.startDate || '________________________________'}</span>
+            <span className="font-medium [overflow-wrap:anywhere]">{client.startDate || '________________________________'}</span>
           </div>
           <div className="border-b border-gray-300 pb-2 col-span-2">
             <span className="text-xs text-gray-500 block">{t('print.intake.goals')}</span>
-            <span className="font-medium">{client.goals || '________________________________________________________________'}</span>
+            <span className="font-medium [overflow-wrap:anywhere]">{client.goals || '________________________________________________________________'}</span>
           </div>
           <div className="border-b border-gray-300 pb-2 col-span-2">
             <span className="text-xs text-gray-500 block">{t('print.intake.injuries')}</span>
-            <span className="font-medium">{client.injuries || '________________________________________________________________'}</span>
+            <span className="font-medium [overflow-wrap:anywhere]">{client.injuries || '________________________________________________________________'}</span>
           </div>
         </div>
       </div>

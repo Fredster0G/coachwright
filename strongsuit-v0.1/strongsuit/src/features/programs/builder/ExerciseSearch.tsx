@@ -5,6 +5,7 @@ import { exercisesRepo } from '@/db/repo'
 import type { Exercise } from '@/db/types'
 import { createFuzzyIndex } from '@/lib/fuzzy'
 import { Dialog, Tag } from '@/design'
+import { useTranslation } from '@/lib/i18n'
 
 interface ExerciseSearchProps {
   open: boolean
@@ -14,6 +15,7 @@ interface ExerciseSearchProps {
 
 export default function ExerciseSearch({ open, onClose, onSelect }: ExerciseSearchProps) {
   const [query, setQuery] = useState('')
+  const { t } = useTranslation()
   const exercises = useLiveQuery(() => exercisesRepo.all(), [], undefined)
   const [selectedIndex, setSelectedIndex] = useState(0)
 
@@ -57,29 +59,38 @@ export default function ExerciseSearch({ open, onClose, onSelect }: ExerciseSear
   }, [results.length])
 
   return (
-    <Dialog open={open} onClose={onClose} title="Add Exercise" width={480}>
+    <Dialog open={open} onClose={onClose} title={t('builder.addExercise')} width={480}>
       <div className="relative border-b border-line">
         <Search size={16} className="absolute start-3 top-1/2 -translate-y-1/2 text-faint" />
         <input
           autoFocus
+          data-autofocus
           value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
+          role="combobox"
+          aria-expanded={results.length > 0}
+          aria-controls="exercise-search-results"
+          aria-activedescendant={results[selectedIndex] ? `exercise-option-${results[selectedIndex].id}` : undefined}
+          aria-label={t('builder.search.label')}
           className="w-full bg-transparent py-3 ps-9 pe-3 text-sm text-ink outline-none placeholder:text-muted"
-          placeholder="Search 350+ exercises (e.g. 'rdl')..."
+          placeholder={t('builder.search.placeholder')}
         />
       </div>
 
       <div className="max-h-[60vh] overflow-y-auto py-2">
         {results.length === 0 ? (
           <div className="py-8 text-center text-sm text-faint">
-            No exercises found.
+            {t('builder.search.none')}
           </div>
         ) : (
-          <div className="px-1">
+          <div className="px-1" role="listbox" id="exercise-search-results" aria-label={t('builder.search.list')}>
             {results.map((ex, idx) => (
               <div
                 key={ex.id}
+                id={`exercise-option-${ex.id}`}
+                role="option"
+                aria-selected={idx === selectedIndex}
                 onClick={() => onSelect(ex)}
                 onMouseEnter={() => setSelectedIndex(idx)}
                 className={`flex items-center justify-between px-3 py-2 rounded-md cursor-pointer transition-colors ${
@@ -89,7 +100,7 @@ export default function ExerciseSearch({ open, onClose, onSelect }: ExerciseSear
                 <div className="flex flex-col">
                   <span className="font-medium text-sm">{ex.name}</span>
                   {ex.aliases.length > 0 && (
-                    <span className="text-xs opacity-60">aka: {ex.aliases.join(', ')}</span>
+                    <span className="text-xs opacity-60">{t('builder.search.aka', { names: ex.aliases.join(', ') })}</span>
                   )}
                 </div>
                 <Tag tone={idx === selectedIndex ? 'verde' : 'neutral'}>{ex.category}</Tag>

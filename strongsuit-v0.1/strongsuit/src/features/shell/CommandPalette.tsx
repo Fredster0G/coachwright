@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { LOCAL_AI_ENABLED } from '@/lib/cloud/config'
 import { useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import {
   Search, User, Settings, Plus, LayoutDashboard, Users, ClipboardList, Dumbbell,
-  Clapperboard, CalendarDays, Wallet, BarChart3, UserCog, UserPlus, Trophy, RadioTower, Download, Zap,
-  Calculator, MessageCircleQuestion, Building2,
+  Clapperboard, CalendarDays, Wallet, BarChart3, UserCog, UserPlus, Trophy, Cloud, Download, Zap,
+  Calculator, MessageCircleQuestion, Building2, Bot,
 } from 'lucide-react'
 import { Dialog, toast } from '@/design'
 import { QuickLogDialog } from '@/features/logging/QuickLogDialog'
@@ -30,8 +31,9 @@ const NAV_ACTIONS: { to: string; labelKey: MessageKey; icon: React.ReactNode; mo
   { to: '/team', labelKey: 'nav.team', icon: <UserCog size={18} className="text-muted" />, module: 'team', requiresMultiSeat: true },
   { to: '/leads', labelKey: 'nav.leads', icon: <UserPlus size={18} className="text-muted" />, module: 'leads' },
   { to: '/leaderboard', labelKey: 'nav.leaderboard', icon: <Trophy size={18} className="text-muted" />, module: 'leaderboard' },
-  { to: '/sync', labelKey: 'nav.sync', icon: <RadioTower size={18} className="text-muted" />, module: 'sync' },
+  { to: '/sync', labelKey: 'nav.sync', icon: <Cloud size={18} className="text-muted" /> },
   { to: '/reports', labelKey: 'nav.reports', icon: <BarChart3 size={18} className="text-muted" />, module: 'reports' },
+  ...(LOCAL_AI_ENABLED ? [{ to: '/assistant', labelKey: 'nav.assistant' as MessageKey, icon: <Bot size={18} className="text-muted" /> }] : []),
 ]
 
 interface Action {
@@ -223,11 +225,12 @@ export default function CommandPalette() {
     setQuery('')
   }
 
-  if (!open) return null
-
+  // Quick Log renders whether or not the palette is open — it's opened by
+  // Ctrl/⌘+L or by the palette closing itself first. An early `return null`
+  // here used to take Quick Log down with it: neither way ever showed it.
   return (
     <>
-    <Dialog open={open} onClose={handleClose} title="">
+    {open && <Dialog open={open} onClose={handleClose} title="">
       <div className="-mt-4 -mx-4 -mb-4">
         <div className="flex items-center px-4 py-3 border-b border-line">
           <Search size={20} className="text-muted me-3" />
@@ -240,6 +243,7 @@ export default function CommandPalette() {
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleInputKeyDown}
             autoFocus
+            data-autofocus
           />
           <kbd className="hidden sm:inline-flex items-center gap-1 bg-surface border border-line rounded px-2 py-1 text-xs text-faint font-mono">
             ESC
@@ -273,7 +277,7 @@ export default function CommandPalette() {
           )}
         </div>
       </div>
-    </Dialog>
+    </Dialog>}
     <QuickLogDialog open={quickLogOpen} onClose={() => setQuickLogOpen(false)} />
     </>
   )

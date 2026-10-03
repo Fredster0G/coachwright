@@ -122,7 +122,9 @@ export async function importBackup(text: string, mode: ImportMode, passphrase?: 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const table = (db as any)[name]
       if (mode === 'replace') {
-        await table.clear()
+        // Not clear(): that skips Dexie's delete hooks, so the cloud would
+        // never hear the old rows are gone (lib/cloud/syncEngine.ts).
+        await table.toCollection().delete()
         if (rows.length) await table.bulkAdd(rows)
         report.perTable[name] = { applied: rows.length, skipped: 0 }
       } else {

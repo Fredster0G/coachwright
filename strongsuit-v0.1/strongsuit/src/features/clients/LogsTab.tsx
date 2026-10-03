@@ -132,9 +132,9 @@ export default function LogsTab({ clientId, clientUnits }: LogsTabProps) {
                       <div key={idx} className="flex flex-col sm:flex-row sm:items-baseline gap-2 sm:gap-4">
                         <button 
                           className="font-semibold text-verde-600 hover:text-verde-700 text-start flex items-center gap-2"
-                          onClick={() => setDrawerEx(ex.id)}
+                          onClick={() => ex && setDrawerEx(ex.id)}
                         >
-                          {ex?.name || t('clients.overview.unknownExercise')}
+                          {ex?.name || entry.exerciseName || t('clients.overview.unknownExercise')}
                           <Activity size={14} />
                         </button>
                         

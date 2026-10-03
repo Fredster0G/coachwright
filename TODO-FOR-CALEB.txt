@@ -1,0 +1,86 @@
+COACHWRIGHT — WHAT ONLY YOU CAN DO
+Last updated: 2026-10-03 (S28, later), by Claude Code. Claude keeps working on everything else and
+updates this file as items appear or get done. Details live in strongsuit-v0.1/strongsuit/docs/.
+
+=====================================================================
+1. GET IT RUNNING (nobody can sign in until this is done)
+=====================================================================
+[ ] Rent a small server + a domain for Coachwright Cloud (~$5-8/month).
+    Step-by-step runbook: docs/CLOUD.md section 4 (VPS, Caddy for HTTPS, Litestream backups).
+[ ] Stripe: create the $29/month product and put the real keys on the server
+    (STRIPE_SECRET_KEY, STRIPE_PRICE_ID, STRIPE_WEBHOOK_SECRET, success/cancel URLs).
+    Steps: docs/MEMBERSHIP.md section 5. Try it in Stripe TEST mode first.
+[ ] Postmark account + a verified sender address, so "forgot password" emails actually send
+    (POSTMARK_SERVER_TOKEN, MAIL_FROM). Then do one real password reset. (DEBT-80)
+[ ] Review and merge PR #1: https://github.com/Fredster0G/coachwright/pull/1
+    (CI is green; it's a draft only so you can look before it goes to main.)
+
+=====================================================================
+2. LEGAL (blocker before real customers)
+=====================================================================
+[ ] Have a lawyer read the EULA and write a privacy policy. Since the move to cloud
+    accounts, client health data (check-ins, PAR-Q, food logs, photos) is readable on our
+    server. Also mention account deletion, and that deleted data survives in backups
+    for the backup retention window. (DEBT-75)
+[ ] If you turn on paid client payments later (1% fee, ROADMAP 2.5): you personally have to
+    accept the Stripe Connect platform agreement.
+
+=====================================================================
+3. REAL HARDWARE (can't be done in a cloud sandbox)
+=====================================================================
+[ ] Run the Windows installer on a real PC; open the app, sign in, sync.
+[ ] Build/run on a Mac (never attempted).
+[ ] Android: install the Android SDK and compile the Companion app once. (DEBT-17)
+[ ] Film Room: record a few real sets on a real phone. The rep counter has only seen
+    synthetic data and will need a tuning pass. (DEBT-7/10/61)
+[ ] Web Push: one real phone, allow notifications, check a coach message arrives. (DEBT-57)
+[ ] Run Lighthouse and open the app in Firefox and Safari. (DEBT-58)
+[ ] Turn on Settings → Notifications in the desktop app on Windows (and a Mac) and have a
+    client send a Companion message: check the system notification shows. (DEBT-84)
+
+=====================================================================
+4. DECISIONS ONLY YOU CAN MAKE
+=====================================================================
+[ ] Pitch deck and positioning still say "$60 once / own it forever". Rewrite or retire.
+    Same for PRODUCT_OVERVIEW.md section 8's Membership row, which makes Free sound like it
+    lacks features it actually has. (DEBT-72; section 8 is yours by the repo rules.)
+[ ] Free tier is 3 clients; QuickCoach's is 20. Raise ours, or don't invite the comparison.
+    Also decide whether free accounts get a cloud storage limit. (ROADMAP 2.4, DEBT-79)
+[ ] Cycle-tracking readiness score (DEBT-65): build readiness inside Companion, or let a
+    client opt in to share just that one number? Code is ready either way; needs your call.
+[ ] Client self-booking (new in S26) works for clients connected through Companion. Do you
+    also want a public booking link for prospects who don't have the app? That would be the
+    first page anyone can open without an account; worth deciding before it's built.
+[ ] Settings shows a "Licence" card to every coach (paste a one-time licence key). If no one-time
+    licences were ever sold, it could be hidden unless a key is already on file. Your call.
+[ ] Nutrition tab: for an ordinary client on a "Lose fat" goal (e.g. 80 kg man, moderately active) the
+    app's own default plan triggers its red "below the safe threshold" energy-availability warning. Decide
+    whether the default deficit should be smaller or the warning softer for that case. (DEBT-86)
+[ ] Coach email alerts are built (Settings → Notifications → "Also email me"): when a client
+    messages or asks for a session and your app is closed, you get one email (name only, no
+    message text, max one per 30 min). Like password reset, it needs the Postmark account in
+    section 1 before any email actually sends. Then try it once. (DEBT-84)
+
+=====================================================================
+DONE RECENTLY (no action needed — for your information)
+=====================================================================
+- Clients can request sessions in your open hours from Companion; you accept/decline.
+- Welcome sequence: write your new-client messages once (Settings), start them per client.
+- New-coach setup: the 3 sample clients now come with real history and can be removed in one click.
+- Assigning a program template to a client copies it (the template stays in your library).
+- Program builder: edits made right before clicking Done are no longer lost; "duplicate week +1 rep" no longer turns 5 reps into 51.
+- Workouts your clients log in Companion now show up properly on your side (exercise name, sets,
+  your units), and a workout they delete on their phone is removed on your side too. Before, they
+  arrived as "Unknown exercise" with nothing in them.
+- "Log session" now opens the next day of the program (it always opened week 1, day 1). Archived
+  clients can be restored (there was no way back).
+- Program templates (builder Settings → "Reusable template"), Duplicate on the Programs list, and supersets
+  (link button on an exercise) now exist — the Guide described them but there was no way to do any of it.
+- Coupons: create them in Settings → Coupons, then use them on invoices (nothing could create one before).
+- Session logger: ticking a set "done" now saves the load/reps shown (it used to save nothing).
+- Quick log (Ctrl/Cmd+L) and the Ctrl/Cmd+K search box work now (Quick log never opened; typing in search went nowhere).
+- Branding: upload your logo and pick a colour (Settings → Brand). Shows on printouts and in Companion.
+- Recurring monthly invoices (drafts you review and send).
+- Calendar was putting evening appointments on the next day (US time zones). Fixed.
+- Progress photos: compare any two, with days apart and weight change.
+- Local AI is now offered to every plan, gated only by the computer's hardware.

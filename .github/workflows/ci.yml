@@ -1,0 +1,71 @@
+# The same checks AGENTS.md §4 asks every session to run by hand.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ELECTRON_SKIP_BINARY_DOWNLOAD: '1'   # typecheck only; no Electron binary needed
+
+jobs:
+  sync-server:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: strongsuit-v0.1/sync-server } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: strongsuit-v0.1/sync-server/package-lock.json }
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+
+  app:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: strongsuit-v0.1/strongsuit } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            strongsuit-v0.1/strongsuit/package-lock.json
+            strongsuit-v0.1/sync-server/package-lock.json
+      # The sync-engine integration tests start the real server in-process.
+      - run: npm ci
+        working-directory: strongsuit-v0.1/sync-server
+      - run: npm ci
+      - run: npx tsc -b --force      # NOT `tsc --noEmit` — see AGENTS.md §4
+      - run: npx tsc -p electron/tsconfig.json --noEmit
+      - run: npx vitest run
+      - run: npm run lint
+      - run: npm run lint:tailwind
+      - run: npm run lint:imports
+      # The production bundle for the website. Typecheck passing doesn't mean
+      # the bundler does (lazy chunks, env-gated imports).
+      - run: npx cross-env VITE_TARGET=web vite build --outDir dist-web
+
+  companion:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: strongsuit-v0.1/companion-app } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            strongsuit-v0.1/companion-app/package-lock.json
+            strongsuit-v0.1/sync-server/package-lock.json
+      - run: npm ci
+        working-directory: strongsuit-v0.1/sync-server
+      - run: npm ci
+      - run: npx tsc -b --force
+      - run: npx vitest run
+      - run: npx vite build

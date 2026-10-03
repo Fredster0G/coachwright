@@ -1,4 +1,10 @@
 # ANDROID — STATUS & FINISHING GUIDE
+
+> **⚠️ SUPERSEDED IN PART (S23, 2026-09-27).** Coachwright moved to cloud accounts: coach data lives on
+> Coachwright Cloud (readable by the operator, not end-to-end encrypted), the self-hosted and $15/mo
+> managed relay tiers no longer exist, and Companion connects with a coach-issued code instead of E2EE
+> pairing / WiFi / file sync. Anything below that says otherwise is history. Current design:
+> `strongsuit-v0.1/strongsuit/docs/CLOUD.md`.
 Written 2026-07-17 (S10). Companion to `docs/SERVER_STRATEGY.md`.
 
 ## Why Capacitor (the decision, so no one re-litigates it)

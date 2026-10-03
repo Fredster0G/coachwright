@@ -1,65 +1,12 @@
-import { Dumbbell, CalendarDays, Wallet, BarChart3 } from 'lucide-react'
 import {
-  SectionHeader, EmptyState, Card, Button, Stat, Tag, PRTag, Kbd, Input, Field, Tabs, Avatar,
+  SectionHeader, Card, Button, Stat, Tag, PRTag, Kbd, Input, Field, Tabs, Avatar,
   Toggle, Checkbox, SegmentedControl, Progress, NumericStepper, Combobox, type ComboboxOption, FileDropzone,
 } from '@/design'
 import { useState } from 'react'
 
-// Every placeholder is a *designed* empty state (spec §0.5), not a blank div.
-// Each names the phase that replaces it so any AI continuing the build knows the wiring point.
-
-
-export function ExercisesPage() {
-  return (
-    <div>
-      <SectionHeader title="Exercises" />
-      <EmptyState
-        icon={<Dumbbell size={28} strokeWidth={1.25} />}
-        title="Your exercise library"
-        body="Ships seeded with 350+ movements, each with cues and your own video links. Build order: Phase 3."
-      />
-    </div>
-  )
-}
-
-export function CalendarPage() {
-  return (
-    <div>
-      <SectionHeader title="Calendar" />
-      <EmptyState
-        icon={<CalendarDays size={28} strokeWidth={1.25} />}
-        title="Schedule"
-        body="Week and day views with drag-to-reschedule. Build order: Phase 8."
-      />
-    </div>
-  )
-}
-
-export function BusinessPage() {
-  return (
-    <div>
-      <SectionHeader title="Business" />
-      <EmptyState
-        icon={<Wallet size={28} strokeWidth={1.25} />}
-        title="Your ledger"
-        body="Payments, session packs, and monthly income — a ledger you own, not a processor. Build order: Phase 8."
-      />
-    </div>
-  )
-}
-
-export function ReportsPage() {
-  return (
-    <div>
-      <SectionHeader title="Reports" />
-      <EmptyState
-        icon={<BarChart3 size={28} strokeWidth={1.25} />}
-        title="Cross-client analytics"
-        body="Adherence, volume, and PR feeds across your whole roster. Build order: Phase 6 per client, Phase 8+ here."
-      />
-    </div>
-  )
-}
+// Only the design-QA kitchen sink lives here now. The Phase-0 placeholder
+// pages (Exercises/Calendar/Business/Reports) were replaced by real pages
+// long ago and nothing imported them; removed S25.
 
 const CLIENT_OPTIONS: ComboboxOption[] = [
   { value: 'jordan', label: 'Jordan Fields' },
