@@ -2,11 +2,14 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { BarChart3, Users, Zap } from 'lucide-react'
 import { Card, SectionHeader, Stat, EmptyState, Tag, PRTag, Avatar, Select, Field } from '@/design'
-import { clientsRepo, logsRepo, checkInsRepo, staffRepo, locationsRepo } from '@/db/repo'
+import { clientsRepo, logsRepo, checkInsRepo, staffRepo, locationsRepo, trainerRepo } from '@/db/repo'
 import { fullName, e1rm } from '@/lib/core'
 import { differenceInDays, parseISO } from 'date-fns'
+import { useTranslation } from '@/lib/i18n'
 
 export default function ReportsPage() {
+  const { t } = useTranslation()
+  const units = useLiveQuery(() => trainerRepo.get(), [])?.units ?? 'lb'
   const allActiveClients = useLiveQuery(() => clientsRepo.active(), [], [])
   const staff = useLiveQuery(() => staffRepo.all(), [], [])
   const locations = useLiveQuery(() => locationsRepo.all(), [], [])
@@ -98,22 +101,22 @@ export default function ReportsPage() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <SectionHeader title="Reports" />
+      <SectionHeader title={t('reports.title')} />
 
       {showScope && (
         <div className="mb-4 flex flex-wrap items-end gap-3">
           {staff.length > 0 && (
-            <Field label="Coach">
+            <Field label={t('reports.filter.coach')}>
               <Select className="!h-8 w-44" value={staffFilter} onChange={e => setStaffFilter(e.target.value)}>
-                <option value="">All coaches</option>
+                <option value="">{t('reports.filter.allCoaches')}</option>
                 {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </Select>
             </Field>
           )}
           {locations.length > 0 && (
-            <Field label="Location">
+            <Field label={t('reports.filter.location')}>
               <Select className="!h-8 w-44" value={locationFilter} onChange={e => setLocationFilter(e.target.value)}>
-                <option value="">All locations</option>
+                <option value="">{t('reports.filter.allLocations')}</option>
                 {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
               </Select>
             </Field>
@@ -124,30 +127,30 @@ export default function ReportsPage() {
       {allActiveClients.length === 0 ? (
         <EmptyState
           icon={<BarChart3 size={32} strokeWidth={1.5} />}
-          title="No data to report yet"
-          body="Once you start logging sessions, cross-client analytics will appear here."
+          title={t('reports.emptyTitle')}
+          body={t('reports.emptyBody')}
         />
       ) : clients.length === 0 ? (
         <EmptyState
           icon={<Users size={32} strokeWidth={1.5} />}
-          title="No clients match this scope"
-          body="Try a different coach or location."
+          title={t('reports.noMatchTitle')}
+          body={t('reports.noMatchBody')}
         />
       ) : (
         <div className="space-y-8">
           {/* Summary stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <Card>
-              <Stat label="Active clients" value={clients.length} />
+              <Stat label={t('reports.activeClients')} value={clients.length} />
             </Card>
             <Card>
-              <Stat label="Total sessions" value={totalSessions} tone="verde" />
+              <Stat label={t('reports.totalSessions')} value={totalSessions} tone="verde" />
             </Card>
             <Card>
-              <Stat label="Total sets" value={totalSets.toLocaleString()} />
+              <Stat label={t('reports.totalSets')} value={totalSets.toLocaleString()} />
             </Card>
             <Card>
-              <Stat label="Volume" value={totalVolume.toLocaleString()} unit="lb" />
+              <Stat label={t('reports.volume')} value={totalVolume.toLocaleString()} unit={units} />
             </Card>
           </div>
 
@@ -155,7 +158,7 @@ export default function ReportsPage() {
           {recentPRs.length > 0 && (
             <div>
               <h3 className="text-sm font-semibold text-muted mb-3 flex items-center gap-2">
-                <Zap size={14} className="text-ember-600" /> Recent PRs
+                <Zap size={14} className="text-ember-600" /> {t('reports.recentPRs')}
               </h3>
               <div className="space-y-2">
                 {recentPRs.map((pr, i) => {
@@ -167,14 +170,14 @@ export default function ReportsPage() {
                           {c && <Avatar person={c} size={28} />}
                           <div>
                             <div className="text-sm font-medium text-ink">
-                              {c ? fullName(c) : 'Unknown'}
+                              {c ? fullName(c) : t('reports.unknown')}
                             </div>
                             <div className="text-2xs text-faint">
                               {pr.date} · {pr.load}×{pr.reps}
                             </div>
                           </div>
                         </div>
-                        <PRTag>PR e1RM {pr.e1rm.toFixed(1)}</PRTag>
+                        <PRTag>{t('reports.prE1rm', { value: pr.e1rm.toFixed(1) })}</PRTag>
                       </div>
                     </Card>
                   )
@@ -186,17 +189,17 @@ export default function ReportsPage() {
           {/* Client roster overview */}
           <div>
             <h3 className="text-sm font-semibold text-muted mb-3 flex items-center gap-2">
-              <Users size={14} /> Client Overview
+              <Users size={14} /> {t('reports.overview')}
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-line text-start text-2xs font-medium uppercase text-faint">
-                    <th className="pb-2 pe-4">Client</th>
-                    <th className="pb-2 pe-4">Sessions</th>
-                    <th className="pb-2 pe-4">Check-ins</th>
-                    <th className="pb-2 pe-4">Last Session</th>
-                    <th className="pb-2">Status</th>
+                    <th className="pb-2 pe-4">{t('reports.col.client')}</th>
+                    <th className="pb-2 pe-4">{t('reports.col.sessions')}</th>
+                    <th className="pb-2 pe-4">{t('reports.col.checkins')}</th>
+                    <th className="pb-2 pe-4">{t('reports.col.lastSession')}</th>
+                    <th className="pb-2">{t('reports.col.status')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -215,11 +218,11 @@ export default function ReportsPage() {
                       </td>
                       <td className="py-2.5">
                         {cs.daysSinceLast === null ? (
-                          <Tag tone="neutral">No sessions</Tag>
+                          <Tag tone="neutral">{t('reports.noSessions')}</Tag>
                         ) : cs.daysSinceLast <= 7 ? (
-                          <Tag tone="verde">Active</Tag>
+                          <Tag tone="verde">{t('reports.active')}</Tag>
                         ) : (
-                          <Tag tone="ember">{cs.daysSinceLast}d stale</Tag>
+                          <Tag tone="ember">{t('reports.stale', { days: cs.daysSinceLast })}</Tag>
                         )}
                       </td>
                     </tr>
