@@ -492,7 +492,8 @@ export default function CalendarPage() {
         </div>
       )}
 
-      <NewAppointmentDialog open={dialogOpen} onClose={() => setDialogOpen(false)} staff={staff} locations={locations} />
+      {/* Per-open mount: a fresh form each time, not the last appointment's. */}
+      {dialogOpen && <NewAppointmentDialog open onClose={() => setDialogOpen(false)} staff={staff} locations={locations} />}
       <RescheduleDialog occ={reschedule} onClose={() => setReschedule(null)} />
     </div>
   )

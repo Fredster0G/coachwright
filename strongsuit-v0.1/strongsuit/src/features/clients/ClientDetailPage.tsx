@@ -409,7 +409,9 @@ export default function ClientDetailPage() {
         )}
       </div>
 
-      <EditClientDialog client={client} open={showEdit} onClose={() => setShowEdit(false)} />
+      {/* Mounted per open: the form seeds from `client` once, so an always-mounted
+          dialog reopened later showed stale values and saving reverted newer edits. */}
+      {showEdit && <EditClientDialog client={client} open onClose={() => setShowEdit(false)} />}
       <PrintOptionsDialog client={client} activeProgramId={activeProgram?.id} open={showPrint} onClose={() => setShowPrint(false)} />
       {client && (
         <ConnectCompanionDialog clientId={client.id} clientName={client.firstName} open={showSync} onClose={() => setShowSync(false)} />

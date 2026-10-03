@@ -379,7 +379,8 @@ export default function BillingTab({ clientId, client }: BillingTabProps) {
         </div>
       )}
 
-      <RecordPaymentDialog clientId={clientId} open={dialogOpen} onClose={() => setDialogOpen(false)} />
+      {/* Per-open mount: a fresh form (and today's date) each time. */}
+      {dialogOpen && <RecordPaymentDialog clientId={clientId} open onClose={() => setDialogOpen(false)} />}
     </div>
   )
 }

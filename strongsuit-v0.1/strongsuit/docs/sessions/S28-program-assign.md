@@ -66,6 +66,11 @@ Standing instruction: "always continue" (and "Continue") — work through everyt
   "/ g" when no targets → "—", Remove was hover-only (unusable on touch). Barcode scanner: a camera granted
   after the dialog closed stayed on; lookup errors are now translated messages.
 
+- **Stale dialog forms:** Edit client seeded its form once and stayed mounted — reopening after a change
+  from another device showed old values and Save reverted them. Log check-in / Record payment / New
+  appointment kept the previous entry's values; PAR-Q re-screen kept old ticks. All now mount per open.
+  Verified live (edit shows the newer phone; reopened check-in is blank).
+
 ## Didn't do / couldn't
 - Settings Guide, Film Room, Nutrition, Science, Assistant still hold English (DEBT-64).
 

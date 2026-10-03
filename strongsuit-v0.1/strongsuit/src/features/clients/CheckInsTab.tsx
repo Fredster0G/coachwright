@@ -284,7 +284,8 @@ export default function CheckInsTab({ clientId }: CheckInsTabProps) {
         </div>
       )}
 
-      <LogCheckInDialog clientId={clientId} open={dialogOpen} onClose={() => setDialogOpen(false)} />
+      {/* Per-open mount: a fresh form each time, not the last check-in's values. */}
+      {dialogOpen && <LogCheckInDialog clientId={clientId} open onClose={() => setDialogOpen(false)} />}
     </div>
   )
 }
