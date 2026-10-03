@@ -319,7 +319,7 @@ export default function SessionLoggerPage() {
                       {suggestions[entry.exerciseId].load && <span>{suggestions[entry.exerciseId].load} {trainer?.units}</span>}
                       {suggestions[entry.exerciseId].reps && <span>× {suggestions[entry.exerciseId].reps}</span>}
                     </div>
-                    <p className="text-indigo-700/80 text-xs italic">{suggestions[entry.exerciseId].reason}</p>
+                    <p className="text-indigo-700/80 text-xs italic">{t(suggestions[entry.exerciseId].msg.key, suggestions[entry.exerciseId].msg.params)}</p>
                   </div>
                 )}
 

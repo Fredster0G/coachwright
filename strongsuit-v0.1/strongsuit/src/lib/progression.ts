@@ -4,6 +4,8 @@
 // every suggestion can be reproduced and defended to a client.
 
 import type { ProgressionPolicy, Units } from '@/db/types'
+import en, { type MessageKey } from './i18n/locales/en'
+import { translate } from './i18n/core'
 
 /** One past performance of an exercise (a session's sets, done sets only matter). */
 export interface PerformedSet {
@@ -20,8 +22,16 @@ export interface Performance {
 export interface Suggestion {
   load?: number
   reps?: string           // display string, e.g. "8" | "8-12"
-  reason: string          // human reasoning line, always present
+  reason: string          // human reasoning line, always present (English)
+  /** The same line as a message key + params, for the UI to translate. */
+  msg: { key: MessageKey; params: Record<string, string | number> }
   direction: 'up' | 'hold' | 'down'
+}
+
+/** `reason` and `msg` from one catalogue entry, so the English and the
+ *  translatable line can never drift apart. */
+function say(key: MessageKey, params: Record<string, string | number>): Pick<Suggestion, 'reason' | 'msg'> {
+  return { reason: translate(key, en, en, 'en', params), msg: { key, params } }
 }
 
 /** Smallest sensible jump the trainer can actually load on a bar. */
@@ -67,7 +77,7 @@ export function suggestNext(
       return {
         load: bumped,
         direction: 'up',
-        reason: `Linear +${policy.percent}% on last top set ${load} ${units} → ${bumped} ${units} (rounded to ${plateStep(units)} ${units} steps).`,
+        ...say('progression.linear', { percent: policy.percent, load, next: bumped, units, step: plateStep(units) }),
       }
     }
 
@@ -80,7 +90,7 @@ export function suggestNext(
           load: next,
           reps: `${lo}`,
           direction: 'up',
-          reason: `Every set hit the top of the ${lo}–${hi} range at ${load} ${units} — add ${policy.loadIncrement} ${units} and reset to ${lo} reps.`,
+          ...say('progression.doubleTop', { lo, hi, load, units, inc: policy.loadIncrement }),
         }
       }
       const minReps = Math.min(...sets.map(s => s.reps ?? 0))
@@ -89,7 +99,7 @@ export function suggestNext(
         load,
         reps: `${nextReps}`,
         direction: 'hold',
-        reason: `Still inside the ${lo}–${hi} range (lowest set: ${minReps} reps). Hold ${load} ${units}, aim for ${nextReps}+ on every set.`,
+        ...say('progression.doubleHold', { lo, hi, minReps, load, units, nextReps }),
       }
     }
 
@@ -99,7 +109,7 @@ export function suggestNext(
         return {
           load,
           direction: 'hold',
-          reason: `No RPE logged last session — hold ${load} ${units} and record RPE to drive progression.`,
+          ...say('progression.rpeMissing', { load, units }),
         }
       }
       const r = Math.round(rpe * 10) / 10
@@ -108,21 +118,21 @@ export function suggestNext(
         return {
           load: next,
           direction: 'up',
-          reason: `Last session averaged RPE ${r}, target is ${policy.target} — room to add. ${load} → ${next} ${units} (~2.5%).`,
+          ...say('progression.rpeUp', { rpe: r, target: policy.target, load, next, units }),
         }
       }
       if (rpe >= policy.target + 1) {
-        const next = Math.min(roundToPlate(load * 0.96, units), roundToPlate(load - plateStep(units), units))
+        const next = Math.max(Math.min(roundToPlate(load * 0.96, units), roundToPlate(load - plateStep(units), units)), plateStep(units))
         return {
-          load: Math.max(next, plateStep(units)),
+          load: next,
           direction: 'down',
-          reason: `Last session averaged RPE ${r}, over the ${policy.target} target — back off ~4%. ${load} → ${Math.max(next, plateStep(units))} ${units}.`,
+          ...say('progression.rpeDown', { rpe: r, target: policy.target, load, next, units }),
         }
       }
       return {
         load,
         direction: 'hold',
-        reason: `Last session averaged RPE ${r} — right on the ${policy.target} target. Hold ${load} ${units}.`,
+        ...say('progression.rpeHold', { rpe: r, target: policy.target, load, units }),
       }
     }
   }
@@ -144,16 +154,18 @@ export function suggestHeuristic(history: Performance[], units: Units): Suggesti
     return {
       load,
       direction: 'hold',
-      reason: `Last session averaged RPE ${Math.round(rpe * 10) / 10} — near max. Repeat ${load} ${units} before adding.`,
+      ...say('progression.nearMax', { rpe: Math.round(rpe * 10) / 10, load, units }),
     }
   }
   if (minReps >= 12) {
-    const next = roundToPlate(load * 1.05, units)
+    const raw = roundToPlate(load * 1.05, units)
+    // The line used to quote `raw` even when the load fell back to one plate step.
+    const next = raw > load ? raw : roundToPlate(load + plateStep(units), units)
     return {
-      load: next > load ? next : roundToPlate(load + plateStep(units), units),
+      load: next,
       reps: '8',
       direction: 'up',
-      reason: `All sets at ${minReps}+ reps — load is light. Add ~5% (${load} → ${next} ${units}) and rebuild from 8.`,
+      ...say('progression.light', { minReps, load, next, units }),
     }
   }
   if (minReps >= 8) {
@@ -161,13 +173,13 @@ export function suggestHeuristic(history: Performance[], units: Units): Suggesti
     return {
       load: next,
       direction: 'up',
-      reason: `Every set at ${minReps}+ reps at ${load} ${units} — take the smallest jump to ${next} ${units}.`,
+      ...say('progression.smallJump', { minReps, load, next, units }),
     }
   }
   return {
     load,
     reps: `${minReps + 1}`,
     direction: 'hold',
-    reason: `Lowest set was ${minReps} reps at ${load} ${units} — hold the load, chase ${minReps + 1}+ on every set.`,
+    ...say('progression.chase', { minReps, load, units, nextReps: minReps + 1 }),
   }
 }

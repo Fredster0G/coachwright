@@ -133,7 +133,7 @@ export default function ExerciseHistoryDrawer({ clientId, exerciseId, open, onCl
                 {suggestion.load != null ? fmtLoad(suggestion.load, clientUnits) : '—'}
                 {suggestion.reps ? <span className="text-sm font-normal text-muted"> {t('history.repsPlus', { n: suggestion.reps })}</span> : null}
               </div>
-              <p className="mt-1 text-xs text-muted">{suggestion.reason}</p>
+              <p className="mt-1 text-xs text-muted">{t(suggestion.msg.key, suggestion.msg.params)}</p>
               {suggestion.load != null && suggestion.load >= 40 && (
                 <div className="mt-3 border-t border-line pt-2">
                   <p className="mb-1 text-2xs font-medium uppercase tracking-wide text-faint">{t('history.warmup')}</p>
