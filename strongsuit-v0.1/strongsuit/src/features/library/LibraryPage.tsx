@@ -7,7 +7,7 @@ import type { Exercise, ExerciseCategory, ExerciseVideoLink } from '@/db/types'
 import { createFuzzyIndex } from '@/lib/fuzzy'
 import { isEmbeddingsModelInstalled } from '@/lib/embeddings'
 import { ensureExercisesIndexed, semanticSearch, type IndexProgress } from '@/lib/exerciseSemanticIndex'
-import { stamp } from '@/lib/core'
+import { useTranslation, type MessageKey } from '@/lib/i18n'
 import { exerciseVideos } from '@/lib/videoEmbed'
 import { VideoViewerDialog } from './VideoViewer'
 import {
@@ -15,6 +15,7 @@ import {
 } from '@/design'
 
 const CATEGORIES: ExerciseCategory[] = ['squat', 'hinge', 'push', 'pull', 'lunge', 'carry', 'core', 'conditioning', 'mobility']
+const catKey = (c: ExerciseCategory) => `library.cat.${c}` as MessageKey
 
 function ExerciseDetailDialog({
   exercise,
@@ -25,6 +26,7 @@ function ExerciseDetailDialog({
   open: boolean,
   onClose: () => void
 }) {
+  const { t } = useTranslation()
   const isNew = exercise && !exercise.id
   const isCustom = isNew || exercise?.isCustom
 
@@ -68,59 +70,59 @@ function ExerciseDetailDialog({
     if (isNew) {
       payload.isCustom = true
       await exercisesRepo.create(payload as Omit<Exercise, 'id' | 'createdAt' | 'updatedAt'>)
-      toast(`Created custom exercise: ${payload.name}`)
+      toast(t('library.toast.created', { name: payload.name }))
     } else if (exercise) {
       await exercisesRepo.update(exercise.id, payload)
-      toast(`Updated ${payload.name}`)
+      toast(t('library.toast.updated', { name: payload.name }))
     }
     onClose()
   }
 
   return (
-    <Dialog open={open} onClose={onClose} title={isNew ? "New exercise" : "Edit exercise"} width={480}>
+    <Dialog open={open} onClose={onClose} title={isNew ? t('library.newExercise') : t('library.editExercise')} width={480}>
       <div className="grid grid-cols-2 gap-3">
         {isCustom ? (
           <>
-            <Field label="Name"><Input autoFocus value={form.name || ''} onChange={set('name')} /></Field>
-            <Field label="Category">
+            <Field label={t('library.form.name')}><Input autoFocus value={form.name || ''} onChange={set('name')} /></Field>
+            <Field label={t('library.form.category')}>
               <Select value={form.category || 'squat'} onChange={set('category')}>
-                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                {CATEGORIES.map(c => <option key={c} value={c}>{t(catKey(c))}</option>)}
               </Select>
             </Field>
-            <Field label="Aliases" hint="comma separated">
+            <Field label={t('library.form.aliases')} hint={t('library.form.commaSeparated')}>
               <Input value={(form.aliases || []).join(', ')} onChange={setArray('aliases')} />
             </Field>
-            <Field label="Primary Muscles" hint="comma separated">
+            <Field label={t('library.form.muscles')} hint={t('library.form.commaSeparated')}>
               <Input value={(form.primaryMuscles || []).join(', ')} onChange={setArray('primaryMuscles')} />
             </Field>
           </>
         ) : (
           <div className="col-span-2 mb-2 p-3 bg-surface2 rounded-md border border-line text-sm text-muted">
             <p className="font-semibold text-ink mb-1">{form.name}</p>
-            <p>Seed library exercises have locked core metadata to ensure program builder reliability. You can still customize cues, equipment, and video links.</p>
+            <p>{t('library.lockedNote')}</p>
           </div>
         )}
 
-        <Field label="Equipment" hint="comma separated">
+        <Field label={t('library.form.equipment')} hint={t('library.form.commaSeparated')}>
           <Input value={(form.equipment || []).join(', ')} onChange={setArray('equipment')} />
         </Field>
-        <Field label="Default Tracking">
+        <Field label={t('library.form.tracking')}>
           <Select value={form.defaultTracking || 'weight_reps'} onChange={set('defaultTracking')}>
-            <option value="weight_reps">Weight & Reps</option>
-            <option value="reps">Reps only</option>
-            <option value="time">Time</option>
-            <option value="distance">Distance</option>
-            <option value="rpe_only">RPE only</option>
+            <option value="weight_reps">{t('library.track.weightReps')}</option>
+            <option value="reps">{t('library.track.reps')}</option>
+            <option value="time">{t('library.track.time')}</option>
+            <option value="distance">{t('library.track.distance')}</option>
+            <option value="rpe_only">{t('library.track.rpe')}</option>
           </Select>
         </Field>
 
         <div className="col-span-2">
-          <Field label="Video links" hint="YouTube/Vimeo play in-app; anything else opens in a new tab">
+          <Field label={t('library.form.videos')} hint={t('library.form.videosHint')}>
             <div className="space-y-2">
               {videoLinks.map((link, i) => (
                 <div key={i} className="flex gap-2">
                   <Input
-                    className="w-28 shrink-0" placeholder="Label" value={link.label}
+                    className="w-28 shrink-0" placeholder={t('library.form.videoLabel')} value={link.label}
                     onChange={e => setVideoLinks(videoLinks.map((l, j) => j === i ? { ...l, label: e.target.value } : l))}
                   />
                   <Input
@@ -138,21 +140,22 @@ function ExerciseDetailDialog({
         </div>
 
         <div className="col-span-2">
-          <Field label="Coaching Cues" hint="one per line. imperative voice (e.g. 'Chest up')">
+          <Field label={t('library.form.cues')} hint={t('library.form.cuesHint')}>
             <Textarea value={(form.cues || []).join('\n')} onChange={setArray('cues')} rows={4} />
           </Field>
         </div>
       </div>
       
       <div className="mt-4 flex justify-end gap-2">
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <Button variant="primary" onClick={save} disabled={!form.name?.trim()}>Save exercise</Button>
+        <Button variant="ghost" onClick={onClose}>{t('library.cancel')}</Button>
+        <Button variant="primary" onClick={save} disabled={!form.name?.trim()}>{t('library.save')}</Button>
       </div>
     </Dialog>
   )
 }
 
 export default function LibraryPage() {
+  const { t } = useTranslation()
   const exercises = useLiveQuery(() => exercisesRepo.all(), [], undefined)
   const [query, setQuery] = useState('')
   const [activeCat, setActiveCat] = useState<ExerciseCategory | 'all'>('all')
@@ -236,20 +239,24 @@ export default function LibraryPage() {
 
   const loading = exercises === undefined
 
+  // A draft with NO id: the dialog tells "new" from "edit" by the id. This
+  // used to stamp() the draft, which assigns one — so "New exercise" opened
+  // as "Edit exercise" and Save updated a row that didn't exist (a silent
+  // no-op that still toasted "Updated …"). Custom exercises couldn't be made.
   const openNew = () => {
-    setEditItem(stamp({
+    setEditItem({
       name: '', aliases: [], category: activeCat !== 'all' ? activeCat : 'squat',
-      primaryMuscles: [], equipment: [], cues: [], isCustom: true, defaultTracking: 'weight_reps'
-    } as any) as Exercise)
+      primaryMuscles: [], equipment: [], cues: [], isCustom: true, defaultTracking: 'weight_reps',
+    } as Partial<Exercise> as Exercise)
   }
 
   return (
     <div className="max-w-5xl mx-auto">
       <SectionHeader
-        title="Exercise Library"
+        title={t('library.title')}
         action={
           <Button variant="primary" size="sm" onClick={openNew}>
-            <Plus size={14} /> New exercise
+            <Plus size={14} /> {t('library.newExercise')}
           </Button>
         }
       />
@@ -261,7 +268,7 @@ export default function LibraryPage() {
             <Search size={14} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-faint" />
             <Input
               className="ps-9"
-              placeholder={semanticMode ? "Describe what you need (e.g. 'low-impact rear delt work')…" : "Search 1,000+ exercises by name or slang (e.g. 'rdl')..."}
+              placeholder={semanticMode ? t('library.searchMeaning') : t('library.searchName')}
               value={query}
               onChange={e => setQuery(e.target.value)}
             />
@@ -270,19 +277,17 @@ export default function LibraryPage() {
             type="button"
             onClick={() => modelReady && setSemanticMode(m => !m)}
             disabled={!modelReady}
-            title={modelReady
-              ? 'Search by meaning, not just name — describe what you need in plain language.'
-              : 'Download the semantic search model in Settings → On-device AI to turn this on.'}
+            title={modelReady ? t('library.meaningOn') : t('library.meaningOff')}
             className={`flex shrink-0 items-center gap-1 rounded-ctl border px-2.5 py-2 text-xs font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
               semanticMode ? 'border-verde-600 bg-verde-100/60 text-verde-700' : 'border-line text-muted hover:bg-surface2'
             }`}
           >
             <Sparkles size={13} />
-            Meaning
+            {t('library.meaning')}
           </button>}
         </div>
         {semanticMode && indexing && (
-          <p className="text-2xs text-faint">Indexing library for semantic search… {indexing.done}/{indexing.total}</p>
+          <p className="text-2xs text-faint">{t('library.indexingProgress', { done: indexing.done, total: indexing.total })}</p>
         )}
 
         {/* Category Chips */}
@@ -293,46 +298,46 @@ export default function LibraryPage() {
               activeCat === 'all' ? 'bg-ink text-surface border-ink' : 'bg-surface text-muted border-line hover:border-ink/30'
             }`}
           >
-            All
+            {t('library.all')}
           </button>
           {CATEGORIES.map(cat => (
             <button
               key={cat}
               onClick={() => setActiveCat(cat)}
-              className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors capitalize ${
+              className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
                 activeCat === cat ? 'bg-ink text-surface border-ink' : 'bg-surface text-muted border-line hover:border-ink/30'
               }`}
             >
-              {cat}
+              {t(catKey(cat))}
             </button>
           ))}
         </div>
       </div>
 
       {loading ? (
-        <div className="animate-pulse p-4 text-sm text-faint">Loading library…</div>
+        <div className="animate-pulse p-4 text-sm text-faint">{t('library.loading')}</div>
       ) : semanticMode && (semanticSearching || indexing) && query.trim() ? (
         <div className="animate-pulse p-4 text-sm text-faint">
-          {indexing ? 'Indexing library…' : 'Searching by meaning…'}
+          {indexing ? t('library.indexing') : t('library.searchingMeaning')}
         </div>
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<Dumbbell size={28} strokeWidth={1.25} />}
-          title="No exercises found"
+          title={t('library.emptyTitle')}
           body={
             semanticMode && query
-              ? "Nothing scored as a close enough match by meaning — try rephrasing, or turn off Meaning to search by name."
-              : query ? "Try a different search term or category." : "Your library is empty."
+              ? t('library.emptyMeaning')
+              : query ? t('library.emptyQuery') : t('library.emptyLibrary')
           }
-          action={!query && <Button variant="primary" onClick={openNew}><Plus size={14} /> Add exercise</Button>}
+          action={!query && <Button variant="primary" onClick={openNew}><Plus size={14} /> {t('library.addExercise')}</Button>}
         />
       ) : (
         <Table head={
           <>
-            <th className="w-1/3">Exercise</th>
-            <th>Category</th>
-            <th>Equipment</th>
-            <th>Muscles</th>
+            <th className="w-1/3">{t('library.col.exercise')}</th>
+            <th>{t('library.form.category')}</th>
+            <th>{t('library.form.equipment')}</th>
+            <th>{t('library.col.muscles')}</th>
             <th className="w-12"></th>
           </>
         }>
@@ -342,11 +347,11 @@ export default function LibraryPage() {
                 <div className="flex flex-col">
                   <div className="font-medium text-ink flex items-center gap-2">
                     {ex.name}
-                    {ex.isCustom && <Tag tone="neutral">Custom</Tag>}
+                    {ex.isCustom && <Tag tone="neutral">{t('library.custom')}</Tag>}
                     {exerciseVideos(ex).length > 0 && (
                       <button
                         onClick={e => { e.stopPropagation(); setVideoItem(ex) }}
-                        className="text-verde-600 hover:text-verde-700" title="Watch video" aria-label="Watch video"
+                        className="text-verde-600 hover:text-verde-700" title={t('library.watchVideo')} aria-label={t('library.watchVideo')}
                       >
                         <PlayCircle size={14} />
                       </button>
@@ -354,12 +359,12 @@ export default function LibraryPage() {
                   </div>
                   {ex.aliases.length > 0 && (
                     <div className="text-xs text-faint truncate mt-0.5">
-                      aka: {ex.aliases.join(', ')}
+                      {t('library.aka', { names: ex.aliases.join(', ') })}
                     </div>
                   )}
                 </div>
               </td>
-              <td className="capitalize text-sm text-muted">{ex.category}</td>
+              <td className="text-sm text-muted">{t(catKey(ex.category))}</td>
               <td className="text-sm text-muted">{ex.equipment.join(', ') || '—'}</td>
               <td className="text-sm text-muted">{ex.primaryMuscles.join(', ') || '—'}</td>
               <td className="text-end">
@@ -378,7 +383,7 @@ export default function LibraryPage() {
         onClose={() => setEditItem(null)}
       />
       <VideoViewerDialog
-        title={videoItem?.name ?? 'Video'}
+        title={videoItem?.name ?? t('library.video')}
         links={videoItem ? exerciseVideos(videoItem) : []}
         open={videoItem !== null}
         onClose={() => setVideoItem(null)}

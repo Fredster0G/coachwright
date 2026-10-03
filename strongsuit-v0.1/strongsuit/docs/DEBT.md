@@ -60,9 +60,9 @@ and the synced-table list + licence public key must match between app and server
 `core.ts` is deliberately different per app (Companion's is a small subset) — S24 found its `today()` was
 the UTC day, fixed.
 
-**64 · i18n: about 17 components still hold hardcoded English** (re-measured S27 — the old "~53 of 57"
-was stale: 30 of 55 feature components already use `t()`). Calendar, Messages, Team, Leads, Leaderboard, Reports and Studio (hub + location) converted S27. Biggest left: Settings
-Guide, Film Room, Nutrition tab, Library, Program Builder, Onboarding wizard. `lib/schedule.ts` `describeRule()` still returns English. **The science screens (Nutrition, Film Room
+**64 · i18n: about 15 components still hold hardcoded English** (re-measured S27 — the old "~53 of 57"
+was stale: 30 of 55 feature components already use `t()`). Calendar, Messages, Team, Leads, Leaderboard, Reports, Studio (hub + location) and Library (+ video viewer) converted S27. Biggest left: Settings
+Guide, Film Room, Nutrition tab, Program Builder, Onboarding wizard. `lib/schedule.ts` `describeRule()` still returns English. **The science screens (Nutrition, Film Room
 summaries, readiness) are mostly engine-written prose from `lib/` (rationale, notes, warnings)** — translating
 only their component labels yields a half-English page; those engines need message keys + params first. Layer + RTL are done.
 `es.json`/`ar.json` are **seed translations** marked in their own `_meta` — must not ship to customers

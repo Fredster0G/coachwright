@@ -39,10 +39,13 @@ Standing instruction: "always continue" — work through everything that doesn't
 - **Live crawl after the S26–S27 changes:** every coach route + all 11 client tabs at 1280 and 375px,
   and every Companion route at 360px — zero console errors. Only finding: two printouts overflowed a
   phone (header didn't wrap; intake's blank-line underscores can't break) — fixed, re-measured clean.
-- **i18n (DEBT-64):** re-measured (≈23 components left, not 53); Calendar, Messages tab, Team, Leads, Leaderboard, Reports, Studio converted (~280 keys;
+- **i18n (DEBT-64):** re-measured (≈23 components left, not 53); Calendar, Messages tab, Team, Leads, Leaderboard, Reports, Studio, Library converted (~350 keys;
   weekday/month names and day headings now use the browser locale). Verified live: no raw keys.
   Leaderboard: "1 sessions" → plural; the volume unit said "lb·reps"/"lb" (Leaderboard, Reports) even for kg coaches — now the coach's unit.
   Studio: staff roles showed raw ("front-desk"); "Delete location" deleted on one click — now asks.
+  **Library: custom exercises could not be created** — "New exercise" stamped the draft with an id, so it
+  opened as "Edit" and Save updated a nonexistent row (silent no-op, still toasted "Updated"). Fixed;
+  verified live (1,099 → 1,100).
 - Not doable here: the 4B/8B assistant tiers need a verified real download and Hugging Face is
   blocked by this environment's network policy (403 at the proxy).
 
