@@ -17,6 +17,7 @@ interface MessagesTabProps {
 }
 
 function LogMessageDialog({ clientId, open, onClose }: { clientId: string; open: boolean; onClose: () => void }) {
+  const { t } = useTranslation()
   const [form, setForm] = useState<{
     date: string
     direction: MessageDirection
@@ -49,34 +50,34 @@ function LogMessageDialog({ clientId, open, onClose }: { clientId: string; open:
   }
 
   return (
-    <Dialog open={open} onClose={onClose} title="Log Message">
+    <Dialog open={open} onClose={onClose} title={t('messages.logTitle')}>
       <form onSubmit={save} className="space-y-4">
-        <div><Label>Date & Time</Label><input 
+        <div><Label>{t('messages.form.dateTime')}</Label><input 
           type="datetime-local" required className="w-full bg-surface border border-line rounded px-3 py-2 text-ink mt-1"
           value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} 
         /></div>
         <div className="grid grid-cols-2 gap-4">
-          <div><Label>Direction</Label>
+          <div><Label>{t('messages.form.direction')}</Label>
             <select className="w-full bg-surface border border-line rounded px-3 py-2 text-ink mt-1"
               value={form.direction} onChange={e => setForm({ ...form, direction: e.target.value as MessageDirection })}>
-              <option value="outbound">Outbound (I sent)</option>
-              <option value="inbound">Inbound (Client sent)</option>
+              <option value="outbound">{t('messages.form.outbound')}</option>
+              <option value="inbound">{t('messages.form.inbound')}</option>
             </select>
           </div>
-          <div><Label>Channel</Label>
+          <div><Label>{t('messages.form.channel')}</Label>
             <select className="w-full bg-surface border border-line rounded px-3 py-2 text-ink mt-1"
               value={form.channel} onChange={e => setForm({ ...form, channel: e.target.value as MessageChannel })}>
-              <option value="sms">SMS</option>
-              <option value="email">Email</option>
-              <option value="whatsapp">WhatsApp</option>
-              <option value="in-person">In-person</option>
-              <option value="other">Other</option>
+              <option value="sms">{t('messages.channel.sms')}</option>
+              <option value="email">{t('messages.channel.email')}</option>
+              <option value="whatsapp">{t('messages.channel.whatsapp')}</option>
+              <option value="in-person">{t('messages.channel.inPerson')}</option>
+              <option value="other">{t('messages.channel.other')}</option>
             </select>
           </div>
         </div>
         
         <div>
-          <Label>Message Content</Label>
+          <Label>{t('messages.form.content')}</Label>
           <textarea 
             required
             className="w-full bg-surface border border-line rounded px-3 py-2 text-ink mt-1" 
@@ -86,8 +87,8 @@ function LogMessageDialog({ clientId, open, onClose }: { clientId: string; open:
         </div>
 
         <div className="pt-4 flex justify-end gap-3">
-          <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="primary">Save Message</Button>
+          <Button type="button" variant="ghost" onClick={onClose}>{t('messages.cancel')}</Button>
+          <Button type="submit" variant="primary">{t('messages.save')}</Button>
         </div>
       </form>
     </Dialog>
@@ -112,6 +113,7 @@ function defaultSendAt(): string {
  *  after `sendAt` — the copy says so rather than implying a push to a locked
  *  phone. */
 function ReminderScheduler({ clientId }: { clientId: string }) {
+  const { t } = useTranslation()
   const [content, setContent] = useState('')
   const [sendAt, setSendAt] = useState(defaultSendAt)
   const [upcoming, setUpcoming] = useState<UpcomingReminder[]>([])
@@ -134,23 +136,22 @@ function ReminderScheduler({ clientId }: { clientId: string }) {
   async function schedule() {
     const when = new Date(sendAt)
     if (!content.trim()) return
-    if (Number.isNaN(when.getTime())) { toastError('Pick a date and time first.'); return }
-    if (when.getTime() <= Date.now()) { toastError('Pick a time in the future.'); return }
+    if (Number.isNaN(when.getTime())) { toastError(t('messages.reminder.pickTime')); return }
+    if (when.getTime() <= Date.now()) { toastError(t('messages.reminder.future')); return }
     setBusy(true)
     try {
       await scheduleReminder(clientId, content.trim(), when)
       setContent('')
-      toast('Reminder scheduled.')
+      toast(t('messages.reminder.scheduled'))
       await refresh()
     } catch (e) {
-      toastError(e instanceof Error ? e.message : "Couldn't schedule the reminder.")
+      toastError(e instanceof Error ? e.message : t('messages.reminder.scheduleFailed'))
     } finally {
       setBusy(false)
     }
   }
 
   // ---- welcome sequence (lib/onboardingSequence.ts) ----
-  const { t } = useTranslation()
   const client = useLiveQuery(() => clientsRepo.get(clientId), [clientId])
   const steps = useLiveQuery(async () => (await trainerRepo.get())?.onboardingSteps ?? DEFAULT_ONBOARDING_STEPS, [], DEFAULT_ONBOARDING_STEPS)
   const [confirmOpen, setConfirmOpen] = useState(false)
@@ -168,7 +169,7 @@ function ReminderScheduler({ clientId }: { clientId: string }) {
       setConfirmOpen(false)
       await refresh()
     } catch (e) {
-      toastError(e instanceof Error ? e.message : "Couldn't schedule the welcome sequence.")
+      toastError(e instanceof Error ? e.message : t('clients.onboarding.failed'))
     } finally {
       setBusy(false)
     }
@@ -178,10 +179,10 @@ function ReminderScheduler({ clientId }: { clientId: string }) {
     setBusy(true)
     try {
       await cancelReminder(id)
-      toast('Reminder cancelled.')
+      toast(t('messages.reminder.cancelled'))
       await refresh()
     } catch (e) {
-      toastError(e instanceof Error ? e.message : "Couldn't cancel the reminder.")
+      toastError(e instanceof Error ? e.message : t('messages.reminder.cancelFailed'))
       await refresh()
     } finally {
       setBusy(false)
@@ -191,13 +192,13 @@ function ReminderScheduler({ clientId }: { clientId: string }) {
   return (
     <Card className="mb-4">
       <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-verde-600">
-        <AlarmClock size={13} /> Scheduled reminders
+        <AlarmClock size={13} /> {t('messages.reminder.title')}
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
         <input
           className="min-h-[44px] flex-1 rounded-ctl border border-line bg-surface px-3 py-2 text-sm text-ink"
-          placeholder="Remind them to…"
+          placeholder={t('messages.reminder.placeholder')}
           value={content}
           onChange={e => setContent(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') schedule() }}
@@ -209,12 +210,11 @@ function ReminderScheduler({ clientId }: { clientId: string }) {
           onChange={e => setSendAt(e.target.value)}
         />
         <Button size="sm" variant="primary" onClick={schedule} disabled={busy || !content.trim()}>
-          Schedule
+          {t('messages.reminder.schedule')}
         </Button>
       </div>
       <p className="mt-1.5 text-2xs text-faint">
-        Delivered the next time this client opens Companion after that time — reminders are
-        picked up on open, not pushed to a locked phone.
+        {t('messages.reminder.delivery')}
       </p>
 
       {client && (client.onboardingStartedAt ? (
@@ -245,7 +245,7 @@ function ReminderScheduler({ clientId }: { clientId: string }) {
       </Dialog>
 
       {loadFailed && (
-        <p className="mt-2 text-2xs text-ember-600">Couldn't load scheduled reminders — are you online?</p>
+        <p className="mt-2 text-2xs text-ember-600">{t('messages.reminder.loadFailed')}</p>
       )}
 
       {upcoming.length > 0 && (
@@ -260,8 +260,8 @@ function ReminderScheduler({ clientId }: { clientId: string }) {
                 onClick={() => cancel(r.id)}
                 disabled={busy}
                 className="shrink-0 text-faint hover:text-signal-600 disabled:opacity-50"
-                aria-label={`Cancel reminder: ${r.content}`}
-                title="Cancel"
+                aria-label={t('messages.reminder.cancelLabel', { content: r.content })}
+                title={t('messages.cancel')}
               >
                 <X size={14} />
               </button>
@@ -277,6 +277,7 @@ function ReminderScheduler({ clientId }: { clientId: string }) {
  *  `messages` row (channel 'app'): it reaches the cloud with the next sync,
  *  Companion picks it up from there, and replies come back the same way. */
 function LiveMessagePanel({ clientId }: { clientId: string }) {
+  const { t } = useTranslation()
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
 
@@ -289,9 +290,9 @@ function LiveMessagePanel({ clientId }: { clientId: string }) {
       })
       setDraft('')
       await syncNow()
-      toast('Sent.')
+      toast(t('messages.sent'))
     } catch (e) {
-      toastError(e instanceof Error ? e.message : "Couldn't send.")
+      toastError(e instanceof Error ? e.message : t('messages.sendFailed'))
     } finally {
       setBusy(false)
     }
@@ -307,13 +308,13 @@ function LiveMessagePanel({ clientId }: { clientId: string }) {
     <ReminderScheduler clientId={clientId} />
     <Card className="mb-4">
       <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-verde-600">
-        <Radio size={13} /> Companion app
+        <Radio size={13} /> {t('messages.companionTitle')}
       </div>
       <div className="flex items-end gap-2">
         <textarea
           className="min-h-[44px] flex-1 resize-none rounded-ctl border border-line bg-surface px-3 py-2 text-sm text-ink"
           rows={1}
-          placeholder="Message this client directly…"
+          placeholder={t('messages.placeholder')}
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
@@ -321,17 +322,18 @@ function LiveMessagePanel({ clientId }: { clientId: string }) {
         <Button size="sm" variant="primary" onClick={send} disabled={busy || !draft.trim()}>
           <Send size={14} />
         </Button>
-        <Button size="sm" variant="ghost" onClick={checkForReplies} disabled={busy} title="Check for new replies">
+        <Button size="sm" variant="ghost" onClick={checkForReplies} disabled={busy} title={t('messages.checkReplies')} aria-label={t('messages.checkReplies')}>
           <RefreshCw size={14} className={busy ? 'animate-spin' : ''} />
         </Button>
       </div>
-      <p className="mt-1.5 text-2xs text-faint">Delivered once this client connects Companion (client page → Connect Companion).</p>
+      <p className="mt-1.5 text-2xs text-faint">{t('messages.companionHint')}</p>
     </Card>
     </>
   )
 }
 
 export default function MessagesTab({ clientId }: MessagesTabProps) {
+  const { t } = useTranslation()
   const messages = useLiveQuery(
     () => messagesRepo.forClient(clientId),
     [clientId],
@@ -344,17 +346,17 @@ export default function MessagesTab({ clientId }: MessagesTabProps) {
     <div className="max-w-3xl">
       <LiveMessagePanel clientId={clientId} />
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-lg">Message Log</h3>
+        <h3 className="font-semibold text-lg">{t('messages.logHeading')}</h3>
         <Button variant="ghost" size="sm" onClick={() => setDialogOpen(true)}>
-          <Plus size={16} className="me-1.5" /> Log Message
+          <Plus size={16} className="me-1.5" /> {t('messages.logTitle')}
         </Button>
       </div>
 
       {(!messages || messages.length === 0) ? (
         <EmptyState 
           icon={<MessageSquare size={28} strokeWidth={1.5} />}
-          title="No messages logged" 
-          body="Keep track of asynchronous communication with this client." 
+          title={t('messages.emptyTitle')} 
+          body={t('messages.emptyBody')} 
         />
       ) : (
         <div className="space-y-4">
