@@ -258,8 +258,10 @@ function SafetyCard({ client }: { client: Client }) {
         {t('clients.coaching.disclaimer')}
       </p>
 
-      <ScreeningDialog client={client} open={screenOpen} onClose={() => setScreenOpen(false)} />
-      <WaiverDialog client={client} businessName={trainer?.businessName || ''} open={waiverOpen} onClose={() => setWaiverOpen(false)} />
+      {/* Mounted only while open, so a re-screen starts from blank answers
+          instead of the last session's ticks (and the waiver from no name). */}
+      {screenOpen && <ScreeningDialog client={client} open onClose={() => setScreenOpen(false)} />}
+      {waiverOpen && <WaiverDialog client={client} businessName={trainer?.businessName || ''} open onClose={() => setWaiverOpen(false)} />}
     </Card>
   )
 }
