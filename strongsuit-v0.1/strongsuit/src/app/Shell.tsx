@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { trainerRepo } from '@/db/repo'
 import { daysSince } from '@/lib/core'
+import { APP_TAGLINE } from '@/lib/brand'
 import { BrandMark } from './brand/Logomark'
 import { useMenuNavigation } from './useMenuNavigation'
 import { Toaster, LogoSpinner } from '@/design'
@@ -49,6 +50,14 @@ const NAV_STUDIO: NavItem[] = [
   { to: '/reports', labelKey: 'nav.reports', icon: BarChart3, module: 'reports' as ModuleKey },
 ]
 
+function navClass(isActive: boolean) {
+  return `relative flex items-center gap-2.5 rounded-ctl px-3 py-2 text-sm font-medium transition-colors ${
+    isActive
+      ? 'bg-rail-active text-rail-text before:absolute before:inset-y-1.5 before:start-0 before:w-[3px] before:rounded-full before:bg-rail-spine'
+      : 'text-rail-muted hover:bg-rail-hover hover:text-rail-text'
+  }`
+}
+
 function BackupHealth() {
   const trainer = useLiveQuery(() => trainerRepo.get())
   const { t } = useTranslation()
@@ -63,12 +72,12 @@ function BackupHealth() {
   return (
     <NavLink
       to="/settings"
-      className="flex items-center gap-2 rounded-ctl px-3 py-2 text-xs text-muted hover:bg-surface"
+      className="flex items-center gap-2 rounded-ctl px-3 py-2 text-xs text-rail-faint hover:bg-rail-hover hover:text-rail-text"
       title={title}
     >
       {stale
-        ? <ShieldAlert size={15} className="text-ember-600" />
-        : <ShieldCheck size={15} className="text-verde-600" />}
+        ? <ShieldAlert size={15} className="text-ember-500" />
+        : <ShieldCheck size={15} className="text-rail-spine" />}
       <span className="font-mono tabular-nums">{label}</span>
     </NavLink>
   )
@@ -86,7 +95,11 @@ export default function Shell() {
   }, [location.pathname])
 
   if (!trainer) {
-    return <div className="h-screen flex items-center justify-center bg-surface2"><LogoSpinner className="text-faint" size={40} /></div>
+    return (
+      <div className="workshop-canvas workshop-grain flex h-screen items-center justify-center">
+        <LogoSpinner className="text-faint" size={40} />
+      </div>
+    )
   }
 
   if (!trainer.onboardingComplete) {
@@ -103,76 +116,61 @@ export default function Shell() {
   const studioItems = NAV_STUDIO.filter(item =>
     (!item.module || !hidden.has(item.module)) && (!item.requiresMultiSeat || cap.multiSeat),
   )
+  const logoVariant = trainer.sidebarLogoVariant ?? 'horizontal'
 
   return (
-    <div className="flex h-full relative">
+    <div className="relative flex h-full">
       {/* Mobile overlay */}
       {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-ink/20 z-40 md:hidden backdrop-blur-sm transition-opacity"
+        <div
+          className="fixed inset-0 z-40 bg-ink/40 backdrop-blur-sm transition-opacity md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
-      <aside className={`fixed md:static inset-y-0 start-0 z-50 flex w-64 md:w-52 shrink-0 flex-col border-e border-line bg-surface transition-transform duration-200 ease-in-out ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        <div className="flex items-center justify-between gap-2 px-4 pb-4 pt-5">
+      {/* Workshop rail — always dark; brand strip that doesn't theme-flip */}
+      <aside className={`workshop-rail fixed inset-y-0 start-0 z-50 flex w-64 shrink-0 flex-col border-e border-rail-line transition-transform duration-200 ease-out md:static md:w-[13.5rem] ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+        <div className="flex items-start justify-between gap-2 px-4 pb-5 pt-6">
           {/* animated=true is safe as a constant: Shell itself never remounts across
               navigation (only <Outlet/> content changes), so this plays once per app
-              session on first paint and holds its end state — never replays. */}
-          <BrandMark variant={trainer.sidebarLogoVariant ?? 'horizontal'} animated />
-          <button onClick={() => setSidebarOpen(false)} className="md:hidden text-faint hover:text-ink">
+              session on first paint and holds its end state — never replays.
+              tone="light" = porcelain mark on the dark rail. */}
+          <div className="min-w-0">
+            <BrandMark variant={logoVariant} animated tone="light" />
+            {logoVariant !== 'lockup' && (
+              <p className="mt-2 truncate font-mono text-[10px] uppercase tracking-[0.16em] text-rail-faint">
+                {APP_TAGLINE}
+              </p>
+            )}
+          </div>
+          <button onClick={() => setSidebarOpen(false)} className="text-rail-faint hover:text-rail-text md:hidden" aria-label="Close menu">
             <X size={20} />
           </button>
         </div>
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-2">
+        <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-2">
           {coreItems.map(({ to, labelKey, icon: Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              className={({ isActive }: { isActive: boolean }) =>
-                // Signature element #4: 3px verde spine on the active item
-                `relative flex items-center gap-2.5 rounded-ctl px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-verde-100/60 text-ink before:absolute before:inset-y-1.5 before:start-0 before:w-[3px] before:rounded-full before:bg-verde-600'
-                    : 'text-muted hover:bg-surface2 hover:text-ink'
-                }`
-              }
-            >
+            <NavLink key={to} to={to} end={end} className={({ isActive }: { isActive: boolean }) => navClass(isActive)}>
               <Icon size={16} strokeWidth={1.5} />
               {t(labelKey)}
             </NavLink>
           ))}
           {studioItems.length > 0 && (
-            <p className="mb-0.5 mt-3 px-3 text-2xs font-semibold uppercase tracking-wide text-faint">{t('nav.sectionStudio')}</p>
+            <p className="mb-0.5 mt-4 px-3 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-rail-faint">
+              {t('nav.sectionStudio')}
+            </p>
           )}
           {studioItems.map(({ to, labelKey, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              className={({ isActive }: { isActive: boolean }) =>
-                `relative flex items-center gap-2.5 rounded-ctl px-3 py-2 text-sm font-medium transition-colors ${
-                  isActive
-                    ? 'bg-verde-100/60 text-ink before:absolute before:inset-y-1.5 before:start-0 before:w-[3px] before:rounded-full before:bg-verde-600'
-                    : 'text-muted hover:bg-surface2 hover:text-ink'
-                }`
-              }
-            >
+            <NavLink key={to} to={to} className={({ isActive }: { isActive: boolean }) => navClass(isActive)}>
               <Icon size={16} strokeWidth={1.5} />
               {t(labelKey)}
             </NavLink>
           ))}
         </nav>
-        <div className="border-t border-line p-2">
+        <div className="border-t border-rail-line p-2">
           <BackupHealth />
           <NavLink
             to="/settings"
-            className={({ isActive }: { isActive: boolean }) =>
-              `flex items-center gap-2.5 rounded-ctl px-3 py-2 text-sm font-medium ${
-                isActive ? 'bg-verde-100/60 text-ink' : 'text-muted hover:bg-surface2 hover:text-ink'
-              }`
-            }
+            className={({ isActive }: { isActive: boolean }) => navClass(isActive)}
           >
             <Settings size={16} strokeWidth={1.5} />
             {t('nav.settings')}
@@ -180,17 +178,17 @@ export default function Shell() {
         </div>
       </aside>
 
-      <main className="panel-scroll min-w-0 flex-1 flex flex-col h-full overflow-hidden">
+      <main className="workshop-canvas workshop-grain panel-scroll flex h-full min-w-0 flex-1 flex-col overflow-hidden">
         {/* Mobile Header */}
-        <div className="md:hidden flex items-center justify-between border-b border-line bg-surface px-4 py-3 shrink-0">
-          <BrandMark variant={trainer.sidebarLogoVariant ?? 'horizontal'} />
-          <button onClick={() => setSidebarOpen(true)} className="text-faint hover:text-ink p-1">
+        <div className="flex shrink-0 items-center justify-between border-b border-line bg-surface/80 px-4 py-3 backdrop-blur-sm md:hidden">
+          <BrandMark variant={logoVariant} />
+          <button onClick={() => setSidebarOpen(true)} className="p-1 text-faint hover:text-ink" aria-label="Open menu">
             <Menu size={24} />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-5xl px-4 py-6 md:px-6">
+          <div key={location.pathname} className="mx-auto max-w-5xl animate-rise-in px-4 py-7 md:px-8 md:py-9">
             <Outlet />
           </div>
         </div>

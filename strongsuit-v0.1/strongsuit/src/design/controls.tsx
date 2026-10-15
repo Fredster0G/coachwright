@@ -5,9 +5,9 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'destructive'
 type Size = 'sm' | 'md'
 
 const variantCls: Record<Variant, string> = {
-  primary: 'bg-verde-600 text-white hover:bg-verde-700 border border-transparent',
-  secondary: 'bg-surface text-ink border border-line hover:bg-surface2',
-  ghost: 'bg-transparent text-muted hover:text-ink hover:bg-surface border border-transparent',
+  primary: 'bg-verde-600 text-white hover:bg-verde-700 border border-transparent shadow-[inset_0_-1px_0_rgb(0_0_0/12%)]',
+  secondary: 'bg-surface/90 text-ink border border-line hover:border-verde-600/35 hover:bg-surface',
+  ghost: 'bg-transparent text-muted hover:text-ink hover:bg-surface/80 border border-transparent',
   destructive: 'bg-signal-600 text-white hover:brightness-95 border border-transparent',
 }
 const sizeCls: Record<Size, string> = {

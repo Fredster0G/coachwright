@@ -72,19 +72,43 @@ export default function DashboardPage() {
   const clientMap = new Map(clients.map(c => [c.id, c]))
   const ruleMap = new Map(rules.map(r => [r.id, r]))
 
+  const shopName = trainer?.businessName?.trim() || trainer?.trainerName?.trim() || APP_NAME
+
   return (
-    <div className="space-y-8">
-      <div>
-        <SectionHeader title={t('dashboard.today')} />
-        <div className="flex flex-wrap gap-2">
-          <Button variant="primary" size="sm" onClick={() => setSelectClientOpen(true)}>
-            <PenLine size={14} /> {t('dashboard.logSession')}
-          </Button>
-          <Link to="/clients"><Button size="sm"><Plus size={14} /> {t('dashboard.newClient')}</Button></Link>
-          <Link to="/programs"><Button size="sm"><ClipboardList size={14} /> {t('dashboard.buildProgram')}</Button></Link>
-          <Link to="/settings"><Button size="sm"><FileDown size={14} /> {t('dashboard.backup')}</Button></Link>
+    <div className="space-y-9">
+      <header className="relative overflow-hidden rounded-card border border-line/80 bg-surface/85 shadow-bench">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_70%_at_100%_0%,rgb(21_94_78/10%),transparent_55%),radial-gradient(ellipse_50%_40%_at_0%_100%,rgb(217_115_13/8%),transparent_50%)]"
+        />
+        <div className="relative px-5 py-6 md:px-7 md:py-7">
+          <p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-faint">
+            {t('dashboard.todayEyebrow')}
+          </p>
+          <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
+            <div className="min-w-0 max-w-xl">
+              <h1 className="font-display text-3xl font-extrabold tracking-[-0.04em] text-ink md:text-[2.5rem] md:leading-none">
+                {t('dashboard.today')}
+              </h1>
+              <p className="mt-2 font-display text-lg font-semibold tracking-tight text-verde-700">
+                {t('dashboard.greetingNamed', { name: shopName })}
+              </p>
+              <p className="mt-2 max-w-md text-sm leading-relaxed text-muted">
+                {t('dashboard.todayLede')}
+              </p>
+            </div>
+            <div className="h-1 w-16 shrink-0 rounded-full bg-ember-500 md:mb-2" aria-hidden />
+          </div>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Button variant="primary" size="sm" onClick={() => setSelectClientOpen(true)}>
+              <PenLine size={14} /> {t('dashboard.logSession')}
+            </Button>
+            <Link to="/clients"><Button size="sm"><Plus size={14} /> {t('dashboard.newClient')}</Button></Link>
+            <Link to="/programs"><Button size="sm"><ClipboardList size={14} /> {t('dashboard.buildProgram')}</Button></Link>
+            <Link to="/settings"><Button size="sm"><FileDown size={14} /> {t('dashboard.backup')}</Button></Link>
+          </div>
         </div>
-      </div>
+      </header>
 
       {!setupDone && (
         <Card>

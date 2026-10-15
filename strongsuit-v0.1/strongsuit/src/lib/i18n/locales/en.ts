@@ -175,6 +175,9 @@ export const en = {
 
   // ---- dashboard ----
   'dashboard.today': 'Today',
+  'dashboard.todayEyebrow': 'On the bench',
+  'dashboard.todayLede': 'Log, build, back up — the work that keeps the practice yours.',
+  'dashboard.greetingNamed': '{name}',
   'dashboard.logSession': 'Log a session',
   'dashboard.newClient': 'New client',
   'dashboard.buildProgram': 'Build program',

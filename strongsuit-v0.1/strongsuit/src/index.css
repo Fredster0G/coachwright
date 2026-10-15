@@ -14,6 +14,19 @@
   --surface:var(--bone-0); --surface-2:var(--bone-50);
   --ink:var(--iron-950); --muted:var(--iron-700); --faint:var(--iron-400); --line:var(--iron-200);
 
+  /* Workshop rail — stays dark in both themes so the brand strip reads as a
+     machined instrument edge, not a theme-flipping chrome panel. */
+  --rail:#14181C;
+  --rail-lift:#1C2228;
+  --rail-text:#F7F6F3;
+  --rail-muted:rgb(247 246 243 / 58%);
+  --rail-faint:rgb(247 246 243 / 38%);
+  --rail-line:rgb(247 246 243 / 12%);
+  --rail-hover:rgb(247 246 243 / 7%);
+  --rail-active:rgb(21 94 78 / 42%);
+  --rail-spine:#2E8A72;
+  --sharp:cubic-bezier(0.2, 0, 0, 1);
+
   /* confidence / data-honesty treatment — from the design system import.
      Marks a number as measured vs. estimated vs. unmeasurable, rather than
      presenting every figure with equal confidence. Pairs with this session's
@@ -36,6 +49,7 @@
   --confidence-measured: var(--verde-600);
   --confidence-band-fill: rgb(46 138 114 / 16%);
   --confidence-band-line: rgb(46 138 114 / 40%);
+  --rail-spine:#37A186;
 }
 
 html, body, #root { height:100%; }
@@ -46,9 +60,40 @@ body {
 .font-mono, .tnum { font-variant-numeric: tabular-nums; }
 
 @layer utilities {
-  /* Ledger Rule — signature section header divider */
+  /* Ledger Rule — signature section header divider with a short machined tick */
   .ledger-rule { border-top:1px solid var(--line); position:relative; }
   .ledger-rule::after { content:''; position:absolute; top:3px; left:0; right:0; border-top:1px solid var(--line); }
+  .ledger-rule::before {
+    content:''; position:absolute; top:-1px; left:0; width:48px; height:3px;
+    background:var(--verde-600); border-radius:1px;
+  }
+
+  /* Main canvas — chalk wash + steel corner glow, not a flat fill */
+  .workshop-canvas {
+    background-color: var(--surface-2);
+    background-image:
+      radial-gradient(ellipse 90% 55% at 0% -10%, rgb(21 94 78 / 8%), transparent 55%),
+      radial-gradient(ellipse 70% 45% at 100% 0%, rgb(217 115 13 / 5%), transparent 50%),
+      linear-gradient(180deg, var(--surface-2), var(--surface-2));
+  }
+  .workshop-grain {
+    position: relative;
+  }
+  .workshop-grain::before {
+    content:''; pointer-events:none; position:absolute; inset:0; z-index:0; opacity:0.035;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size:180px;
+    mix-blend-mode:multiply;
+  }
+  .dark .workshop-grain::before { opacity:0.05; mix-blend-mode:overlay; }
+  .workshop-grain > * { position: relative; z-index: 1; }
+
+  .workshop-rail {
+    background:
+      radial-gradient(ellipse 120% 40% at 50% -10%, rgb(46 138 114 / 22%), transparent 55%),
+      linear-gradient(180deg, var(--rail-lift) 0%, var(--rail) 40%, #101417 100%);
+    color: var(--rail-text);
+  }
 }
 
 /* focus */
