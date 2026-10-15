@@ -41,9 +41,11 @@ body {
   .companion-canvas {
     background-color: var(--surface-2);
     background-image:
-      radial-gradient(ellipse 90% 55% at 0% -10%, rgb(21 94 78 / 10%), transparent 55%),
-      radial-gradient(ellipse 70% 45% at 100% 0%, rgb(217 115 13 / 7%), transparent 50%),
+      radial-gradient(ellipse 90% 55% at 0% -10%, rgb(21 94 78 / 12%), transparent 55%),
+      radial-gradient(ellipse 70% 45% at 100% 0%, rgb(217 115 13 / 9%), transparent 50%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='88' height='88' viewBox='0 0 88 88'%3E%3Ccircle cx='14' cy='18' r='3.5' fill='none' stroke='%23171A1E' stroke-opacity='0.055' stroke-width='1.5'/%3E%3Ccircle cx='74' cy='18' r='3.5' fill='none' stroke='%23171A1E' stroke-opacity='0.055' stroke-width='1.5'/%3E%3Cpath d='M20 18h48M44 26v36' stroke='%23171A1E' stroke-opacity='0.04' stroke-width='1.25'/%3E%3Cellipse cx='44' cy='72' rx='12' ry='3' fill='none' stroke='%23171A1E' stroke-opacity='0.05' stroke-width='1.25'/%3E%3C/svg%3E"),
       linear-gradient(180deg, var(--surface-2), var(--surface-2));
+    background-size: auto, auto, 88px 88px, auto;
   }
   .companion-grain {
     position: relative;

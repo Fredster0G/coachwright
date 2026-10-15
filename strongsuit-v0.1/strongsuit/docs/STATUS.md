@@ -17,8 +17,8 @@
 
 | | |
 |---|---|
-| **Last worked on** | S24: retargeted S23 personality to membership SaaS framing (S15 notes / ROADMAP §0). Plan chip in rail, copy no longer “own forever.” Logo still unchanged. |
-| **Safe to pick up** | PRODUCT_OVERVIEW one-liners still say “software you own” — marketing refresh. Or deeper page personality / ROADMAP. |
+| **Last worked on** | S25: denser maximalist personality + chalk-stamp gym emblems on coach Today/rail and Companion home/onboarding. Logo unchanged. SaaS framing kept. |
+| **Safe to pick up** | Emblem language on Clients/Programs/Film Room empty states; PRODUCT_OVERVIEW one-liners still say “software you own.” |
 | **Half-done / in flight** | Nothing mid-edit. |
 | **Don't touch without reading first** | `AGENTS.md` §4's `tsc -b` note — this changes the session-start/session-end commands for every tool, permanently. Also see DEBT-68/69 below, both small and freshly found, not yet acted on. |
 | **Blocked on Caleb (no AI can do these)** | Real Stripe keys · deploy the relay domain · run the Windows installer on real hardware · a Mac to build on · real-phone Film Room footage |

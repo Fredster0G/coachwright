@@ -125,12 +125,16 @@ export default function DashboardPage() {
             className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_70%_at_100%_0%,rgb(21_94_78/14%),transparent_55%),radial-gradient(ellipse_50%_40%_at_0%_100%,rgb(217_115_13/10%),transparent_50%)]"
           />
           <EmblemLifter
-            size={148}
-            className="pointer-events-none absolute -end-2 bottom-0 text-ink/10 animate-float-soft md:end-4 md:text-ink/[0.12]"
+            size={168}
+            className="pointer-events-none absolute -end-1 bottom-0 text-ink/[0.14] animate-float-soft md:end-3 md:text-ink/[0.16]"
           />
           <EmblemPlates
-            size={56}
-            className="pointer-events-none absolute end-28 top-4 hidden text-verde-600/20 md:block"
+            size={64}
+            className="pointer-events-none absolute end-32 top-3 hidden text-verde-600/30 md:block"
+          />
+          <EmblemKettle
+            size={48}
+            className="pointer-events-none absolute end-16 top-16 hidden text-ember-500/25 md:block animate-float-soft"
           />
           <div className="relative max-w-xl">
             <div className="flex items-center gap-3">
@@ -170,20 +174,23 @@ export default function DashboardPage() {
         <StatCell label={t('dashboard.statAttention')} value={attention.length} Emblem={EmblemGrip} />
       </div>
 
-      {/* Emblem strip — mural row of house marks */}
-      <div className="stagger-in flex flex-wrap items-end justify-between gap-3 rounded-card border border-line/60 bg-surface/50 px-4 py-3 chalk-mesh">
-        {[
-          { Emblem: EmblemLifter, label: 'Floor' },
-          { Emblem: EmblemCoach, label: 'Coach' },
-          { Emblem: EmblemSpotter, label: 'Roster' },
-          { Emblem: EmblemKettle, label: 'Work' },
-          { Emblem: EmblemFilm, label: 'Film' },
-          { Emblem: EmblemStride, label: 'Client' },
-        ].map(({ Emblem, label }) => (
-          <EmblemStamp key={label} label={label} className="text-ink/70">
-            <Emblem size={36} className="text-ink" />
-          </EmblemStamp>
-        ))}
+      {/* Emblem strip — dark workshop mural of house marks */}
+      <div className="stagger-in relative overflow-hidden rounded-card border border-rail-line bg-[linear-gradient(180deg,#1C2228_0%,#14181C_100%)] px-4 py-4 text-rail-text shadow-bench">
+        <EmblemRack size={96} className="pointer-events-none absolute -start-4 top-1/2 -translate-y-1/2 text-rail-text/[0.07]" />
+        <div className="relative flex flex-wrap items-end justify-between gap-3">
+          {[
+            { Emblem: EmblemLifter, label: 'Floor' },
+            { Emblem: EmblemCoach, label: 'Coach' },
+            { Emblem: EmblemSpotter, label: 'Roster' },
+            { Emblem: EmblemKettle, label: 'Work' },
+            { Emblem: EmblemFilm, label: 'Film' },
+            { Emblem: EmblemStride, label: 'Client' },
+          ].map(({ Emblem, label }) => (
+            <EmblemStamp key={label} label={label} className="text-rail-text/85">
+              <Emblem size={40} className="text-rail-text" />
+            </EmblemStamp>
+          ))}
+        </div>
       </div>
 
       {!setupDone && (

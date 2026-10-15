@@ -78,7 +78,7 @@ export function EmblemSpotter({ size = 64, accent = 'var(--verde-600)', ...props
   )
 }
 
-/** Kettlebell sentinel — abstract, slightly characterful stance. */
+/** Kettlebell mark — iron tool stamp, not a face. */
 export function EmblemKettle({ size = 64, accent = 'var(--ember-500)', ...props }: EmblemProps) {
   return (
     <svg {...base(size, props)}>
@@ -94,9 +94,8 @@ export function EmblemKettle({ size = 64, accent = 'var(--ember-500)', ...props 
         strokeWidth="2.5"
         strokeLinejoin="round"
       />
-      <circle cx="28" cy="40" r="1.8" fill={accent} />
-      <circle cx="36" cy="40" r="1.8" fill={accent} />
-      <path d="M26 46h12" stroke={accent} strokeWidth="1.75" strokeLinecap="round" opacity="0.8" />
+      <circle cx="32" cy="40" r="5" stroke={accent} strokeWidth="2" />
+      <circle cx="32" cy="40" r="1.5" fill={accent} />
     </svg>
   )
 }
@@ -197,12 +196,14 @@ export function EmblemStamp({
 }) {
   return (
     <div className={`relative inline-flex flex-col items-center ${className}`}>
-      <div className="relative rounded-[2px] border-2 border-current/20 p-2">
-        <div className="pointer-events-none absolute inset-1 border border-current/10" aria-hidden />
+      <div className="relative rounded-[2px] border-2 border-current/40 bg-current/[0.06] p-2.5">
+        <div className="pointer-events-none absolute inset-1 border border-current/15" aria-hidden />
+        <div className="pointer-events-none absolute -end-0.5 -top-0.5 h-2 w-2 border-e-2 border-t-2 border-ember-500/70" aria-hidden />
+        <div className="pointer-events-none absolute -bottom-0.5 -start-0.5 h-2 w-2 border-b-2 border-s-2 border-verde-600/70" aria-hidden />
         {children}
       </div>
       {label && (
-        <span className="mt-1.5 font-mono text-[9px] font-semibold uppercase tracking-[0.16em] text-current/55">
+        <span className="mt-1.5 font-mono text-[9px] font-bold uppercase tracking-[0.16em] text-current/70">
           {label}
         </span>
       )}

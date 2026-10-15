@@ -57,18 +57,21 @@ export function HomePage({ profile }: { profile: CompanionProfile }) {
         </header>
       </CornerFrame>
 
-      {/* Mural strip */}
-      <div className="stagger-in flex items-end justify-between gap-2 rounded-card border border-line/60 bg-surface/55 px-3 py-2.5 chalk-mesh">
-        {[
-          { Emblem: EmblemLifter, label: 'Lift' },
-          { Emblem: EmblemStride, label: 'Move' },
-          { Emblem: EmblemFilm, label: 'Form' },
-          { Emblem: EmblemCoach, label: 'Coach' },
-        ].map(({ Emblem, label }) => (
-          <EmblemStamp key={label} label={label} className="text-ink/65">
-            <Emblem size={32} className="text-ink" />
-          </EmblemStamp>
-        ))}
+      {/* Dark workshop mural strip */}
+      <div className="stagger-in relative overflow-hidden rounded-card border border-nav-line bg-[linear-gradient(180deg,#1C2228_0%,#14181C_100%)] px-3 py-3.5 text-nav-text shadow-bench">
+        <EmblemLifter size={72} className="pointer-events-none absolute -end-2 top-1/2 -translate-y-1/2 text-nav-text/[0.08]" />
+        <div className="relative flex items-end justify-between gap-2">
+          {[
+            { Emblem: EmblemLifter, label: 'Lift' },
+            { Emblem: EmblemStride, label: 'Move' },
+            { Emblem: EmblemFilm, label: 'Form' },
+            { Emblem: EmblemCoach, label: 'Coach' },
+          ].map(({ Emblem, label }) => (
+            <EmblemStamp key={label} label={label} className="text-nav-text/90">
+              <Emblem size={34} className="text-nav-text" />
+            </EmblemStamp>
+          ))}
+        </div>
       </div>
 
       <div className="stagger-in space-y-3">
