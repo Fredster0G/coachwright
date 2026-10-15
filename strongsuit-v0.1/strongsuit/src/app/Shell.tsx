@@ -138,7 +138,7 @@ export default function Shell() {
       <aside className={`workshop-rail relative fixed inset-y-0 start-0 z-50 flex w-64 shrink-0 flex-col overflow-hidden border-e border-rail-line transition-transform duration-200 ease-out md:static md:w-[13.5rem] ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
         <EmblemLifter
           size={120}
-          className="pointer-events-none absolute -bottom-2 -end-4 text-rail-text/[0.06] animate-float-soft"
+          className="pointer-events-none absolute -bottom-2 -end-4 opacity-20 animate-float-soft"
         />
         <div className="relative flex items-start justify-between gap-2 px-4 pb-5 pt-6">
           {/* animated=true is safe as a constant: Shell itself never remounts across
@@ -152,7 +152,7 @@ export default function Shell() {
                 {APP_TAGLINE}
               </p>
             )}
-            <EmblemKettle size={22} className="mt-3 text-rail-spine/70" />
+            <EmblemKettle size={28} className="mt-3 opacity-90" />
           </div>
           <button onClick={() => setSidebarOpen(false)} className="text-rail-faint hover:text-rail-text md:hidden" aria-label="Close menu">
             <X size={20} />

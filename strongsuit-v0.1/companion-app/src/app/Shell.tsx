@@ -49,7 +49,7 @@ export function Shell({ profile, onProfileChange }: {
           </Routes>
         </main>
         <nav className="companion-nav relative fixed inset-x-0 bottom-0 mx-auto max-w-md overflow-hidden border-t pb-[env(safe-area-inset-bottom)]">
-          <EmblemKettle size={64} className="pointer-events-none absolute -end-2 -top-3 text-nav-text/[0.07]" />
+          <EmblemKettle size={64} className="pointer-events-none absolute -end-2 -top-3 opacity-20" />
           <div className="relative flex items-stretch justify-around">
             {TABS.map(t => (
               <NavLink

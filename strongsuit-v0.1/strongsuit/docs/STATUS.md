@@ -1,7 +1,7 @@
 # STATUS — read this first
 
-**Last updated:** 2026-10-15 (S24, Cursor Cloud Agent)
-**Health:** 50 test files · 735 tests green (last full run S21) · `npx tsc -b --force` clean this session · UI chrome retargeted to membership SaaS
+**Last updated:** 2026-10-15 (S26, Cursor Cloud Agent)
+**Health:** 50 test files · 735 tests green (last full run S21) · `npx tsc -b --force` clean this session · AI-generated emblem rasters on coach + Companion
 
 > ⚠️ **The `tsc` command above is not a typo — read `AGENTS.md` §4 before you trust any prior "clean
 > typecheck" claim, including ones in older session files.** The root `tsc --noEmit` invocation silently
@@ -17,8 +17,8 @@
 
 | | |
 |---|---|
-| **Last worked on** | S25: denser maximalist personality + chalk-stamp gym emblems on coach Today/rail and Companion home/onboarding. Logo unchanged. SaaS framing kept. |
-| **Safe to pick up** | Emblem language on Clients/Programs/Film Room empty states; PRODUCT_OVERVIEW one-liners still say “software you own.” |
+| **Last worked on** | S26: swapped hand SVG emblems for AI-generated `public/emblems/*.webp` (Cursor image gen — no ChatGPT API in env). Logo unchanged. |
+| **Safe to pick up** | Drop real ChatGPT/DALL·E exports into `public/emblems/` to replace; or emblem language on Clients/Programs/Film Room. |
 | **Half-done / in flight** | Nothing mid-edit. |
 | **Don't touch without reading first** | `AGENTS.md` §4's `tsc -b` note — this changes the session-start/session-end commands for every tool, permanently. Also see DEBT-68/69 below, both small and freshly found, not yet acted on. |
 | **Blocked on Caleb (no AI can do these)** | Real Stripe keys · deploy the relay domain · run the Windows installer on real hardware · a Mac to build on · real-phone Film Room footage |

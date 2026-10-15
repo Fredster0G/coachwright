@@ -1,4 +1,4 @@
-import { useState, type ComponentType, type SVGProps } from 'react'
+import { useState, type ComponentType } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { format, subDays } from 'date-fns'
@@ -45,11 +45,11 @@ function StatCell({
 }: {
   label: string
   value: number | string
-  Emblem: ComponentType<SVGProps<SVGSVGElement> & { size?: number }>
+  Emblem: ComponentType<{ size?: number; className?: string }>
 }) {
   return (
     <div className="stamp-panel relative min-w-0 overflow-hidden rounded-card border border-line/70 bg-surface/80 px-3 py-3 shadow-raise">
-      <Emblem size={44} className="pointer-events-none absolute -end-1 -top-1 text-ink/10" />
+      <Emblem size={44} className="pointer-events-none absolute -end-1 -top-1 opacity-20" />
       <p className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-faint">{label}</p>
       <p className="mt-1 font-display text-2xl font-extrabold tracking-tight text-ink tabular-nums">{value}</p>
     </div>
@@ -126,20 +126,20 @@ export default function DashboardPage() {
           />
           <EmblemLifter
             size={168}
-            className="pointer-events-none absolute -end-1 bottom-0 text-ink/[0.14] animate-float-soft md:end-3 md:text-ink/[0.16]"
+            className="pointer-events-none absolute -end-1 bottom-0 opacity-25 animate-float-soft md:end-3"
           />
           <EmblemPlates
             size={64}
-            className="pointer-events-none absolute end-32 top-3 hidden text-verde-600/30 md:block"
+            className="pointer-events-none absolute end-32 top-3 hidden opacity-40 md:block"
           />
           <EmblemKettle
             size={48}
-            className="pointer-events-none absolute end-16 top-16 hidden text-ember-500/25 md:block animate-float-soft"
+            className="pointer-events-none absolute end-16 top-16 hidden opacity-35 md:block animate-float-soft"
           />
           <div className="relative max-w-xl">
             <div className="flex items-center gap-3">
               <EmblemStamp className="text-ink">
-                <EmblemCoach size={40} className="text-ink" />
+                <EmblemCoach size={40} />
               </EmblemStamp>
               <p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-faint">
                 {t('dashboard.todayEyebrow')}
@@ -176,7 +176,7 @@ export default function DashboardPage() {
 
       {/* Emblem strip — dark workshop mural of house marks */}
       <div className="stagger-in relative overflow-hidden rounded-card border border-rail-line bg-[linear-gradient(180deg,#1C2228_0%,#14181C_100%)] px-4 py-4 text-rail-text shadow-bench">
-        <EmblemRack size={96} className="pointer-events-none absolute -start-4 top-1/2 -translate-y-1/2 text-rail-text/[0.07]" />
+        <EmblemRack size={96} className="pointer-events-none absolute -start-4 top-1/2 -translate-y-1/2 opacity-15" />
         <div className="relative flex flex-wrap items-end justify-between gap-3">
           {[
             { Emblem: EmblemLifter, label: 'Floor' },
@@ -187,7 +187,7 @@ export default function DashboardPage() {
             { Emblem: EmblemStride, label: 'Client' },
           ].map(({ Emblem, label }) => (
             <EmblemStamp key={label} label={label} className="text-rail-text/85">
-              <Emblem size={40} className="text-rail-text" />
+              <Emblem size={40} />
             </EmblemStamp>
           ))}
         </div>
@@ -196,7 +196,7 @@ export default function DashboardPage() {
       {!setupDone && (
         <CornerFrame className="rounded-card border border-line bg-surface/90 p-4 shadow-raise animate-rise-in">
           <div className="flex gap-3">
-            <EmblemKettle size={48} className="shrink-0 text-verde-700" />
+            <EmblemKettle size={48} className="shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="mb-1 font-display text-base font-semibold">{t('dashboard.setup.title')}</p>
               <p className="mb-3 text-xs text-muted">{t('dashboard.setup.body', { app: APP_NAME })}</p>
@@ -219,14 +219,14 @@ export default function DashboardPage() {
               to={to}
               className="hover-lift stamp-panel group relative flex items-start gap-3 overflow-hidden rounded-card border border-line/80 bg-surface/85 p-3.5 shadow-raise"
             >
-              <span className="relative z-[1] flex h-12 w-12 shrink-0 items-center justify-center rounded-ctl border border-verde-600/20 bg-verde-100 text-verde-700 transition-colors group-hover:border-verde-600/40 group-hover:bg-verde-600 group-hover:text-white">
-                <Emblem size={32} className="transition-colors" />
+              <span className="relative z-[1] flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-ctl border border-verde-600/20 bg-verde-100 transition-colors group-hover:border-verde-600/40 group-hover:bg-verde-100">
+                <Emblem size={36} />
               </span>
               <span className="relative z-[1] min-w-0">
                 <span className="block font-display text-sm font-semibold tracking-tight text-ink">{label}</span>
                 <span className="mt-0.5 block text-2xs leading-snug text-muted">{hint}</span>
               </span>
-              <Emblem size={64} className="pointer-events-none absolute -bottom-2 -end-2 text-ink/[0.06] transition-opacity group-hover:text-verde-600/15" />
+              <Emblem size={64} className="pointer-events-none absolute -bottom-2 -end-2 opacity-10 transition-opacity group-hover:opacity-20" />
             </Link>
           ))}
         </div>
@@ -238,13 +238,13 @@ export default function DashboardPage() {
         <SectionHeader title={t('dashboard.needsAttention')} action={<Link to="/settings" className="text-2xs text-faint hover:text-ink">{t('dashboard.customizeRules')}</Link>} />
         {!hasClient ? (
           <CornerFrame className="rounded-card border border-dashed border-line bg-surface/60 px-6 py-10 text-center chalk-mesh">
-            <EmblemSpotter size={72} className="mx-auto mb-3 text-ink/35" />
+            <EmblemSpotter size={72} className="mx-auto mb-3 opacity-50" />
             <p className="font-display text-base font-semibold text-ink">{t('dashboard.emptyAttentionTitle')}</p>
             <p className="mx-auto mt-1 max-w-sm text-xs text-muted">{t('dashboard.emptyAttentionBody')}</p>
           </CornerFrame>
         ) : attention.length === 0 ? (
           <Card className="relative overflow-hidden text-sm text-muted">
-            <EmblemGrip size={56} className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 text-verde-600/15" />
+            <EmblemGrip size={56} className="pointer-events-none absolute end-3 top-1/2 -translate-y-1/2 opacity-20" />
             <span className="relative">{t('dashboard.allClear')}</span>
           </Card>
         ) : (
@@ -293,7 +293,7 @@ export default function DashboardPage() {
         <div className="flex h-full flex-col">
           <div className="flex items-center justify-between border-b border-line px-4 py-4">
             <div className="flex items-center gap-2">
-              <EmblemLifter size={28} className="text-verde-700" />
+              <EmblemLifter size={28} />
               <h2 className="text-lg font-bold text-ink">{t('dashboard.selectClient')}</h2>
             </div>
             <Button variant="ghost" size="sm" onClick={() => setSelectClientOpen(false)}>{t('action.cancel')}</Button>

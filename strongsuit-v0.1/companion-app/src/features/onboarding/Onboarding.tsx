@@ -43,10 +43,10 @@ export function Onboarding({ profile, onDone }: {
       {step === 'name' && (
         <div className="animate-rise-in space-y-5">
           <CornerFrame className="relative overflow-hidden rounded-card border border-line/70 bg-surface/80 px-4 py-5 chalk-mesh">
-            <EmblemStride size={96} className="pointer-events-none absolute -end-2 bottom-0 text-ink/10 animate-float-soft" />
+            <EmblemStride size={96} className="pointer-events-none absolute -end-2 bottom-0 opacity-25 animate-float-soft" />
             <div className="relative flex items-start gap-3">
               <EmblemStamp className="text-ink" label="Floor">
-                <EmblemLifter size={44} className="text-ink" />
+                <EmblemLifter size={48} />
               </EmblemStamp>
               <div>
                 <p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-faint">Coachwright</p>
@@ -80,8 +80,8 @@ export function Onboarding({ profile, onDone }: {
               onClick={() => setStep('pair')}
               className="hover-lift stamp-panel flex w-full items-center gap-3 rounded-card border border-line bg-surface p-3.5 text-left shadow-raise hover:border-verde-600/50"
             >
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-ctl border border-verde-600/20 bg-verde-100 text-verde-700">
-                <EmblemSpotter size={32} />
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-ctl border border-verde-600/20 bg-verde-100">
+                <EmblemSpotter size={36} />
               </span>
               <span>
                 <span className="block font-display text-sm font-semibold text-ink">Yes, I have a coach</span>
@@ -93,8 +93,8 @@ export function Onboarding({ profile, onDone }: {
               disabled={busy}
               className="hover-lift stamp-panel flex w-full items-center gap-3 rounded-card border border-line bg-surface p-3.5 text-left shadow-raise hover:border-verde-600/50 disabled:opacity-50"
             >
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-ctl border border-verde-600/20 bg-verde-100 text-verde-700">
-                <EmblemStride size={32} />
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-ctl border border-verde-600/20 bg-verde-100">
+                <EmblemStride size={36} />
               </span>
               <span>
                 <span className="block font-display text-sm font-semibold text-ink">No, I&apos;m training myself</span>
@@ -108,7 +108,7 @@ export function Onboarding({ profile, onDone }: {
       {step === 'pair' && (
         <div className="animate-rise-in">
           <div className="mb-4 flex items-center gap-3">
-            <EmblemCoach size={40} className="text-verde-700" />
+            <EmblemCoach size={44} />
             <div>
               <p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-faint">Pairing</p>
               <h1 className="font-display text-2xl font-extrabold tracking-tight text-ink">Pair with your coach</h1>
