@@ -95,8 +95,8 @@ export default function OnboardingWizard({ trainer }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-surface2 flex items-center justify-center p-6">
-      <Card className="max-w-xl w-full p-8 shadow-2xl border-line">
+    <div className="workshop-canvas workshop-grain flex min-h-screen items-center justify-center p-6">
+      <Card className="w-full max-w-xl border-line p-8 shadow-bench">
 
         {step === 1 && (
           <div className="text-center space-y-6">

@@ -20,8 +20,8 @@ export default function EulaScreen({ trainer }: { trainer: Trainer }) {
   }
 
   return (
-    <div className="flex h-screen items-center justify-center bg-surface2 p-6">
-      <Card className="flex h-full max-h-[600px] w-full max-w-2xl flex-col shadow-xl">
+    <div className="workshop-canvas workshop-grain flex h-screen items-center justify-center p-6">
+      <Card className="flex h-full max-h-[600px] w-full max-w-2xl flex-col shadow-bench">
         <div className="mb-4 flex items-center gap-3">
           <Logomark size={36} />
           <h1 className="text-xl font-bold tracking-tight text-ink">End User License Agreement</h1>
