@@ -1,367 +1,572 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="./support.js"></script>
-</head>
-<body>
-<x-dc>
-<helmet>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Inter+Tight:wght@500;600;700;800;900&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
-<script src="./deck-stage.js"></script>
+<title>Coachwright — Investor / Buyer Brief</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@500;600;700;800;900&family=Instrument+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root{
-  --k-black:#000; --k-white:#fff;
-  --k-g02:#FAFAFA; --k-g05:#F2F2F2; --k-g10:#E6E6E6; --k-g20:#CCC; --k-g40:#999; --k-g60:#666; --k-g80:#333;
-  --k-disp:"Inter Tight","Helvetica Neue",Arial,sans-serif;
-  --k-text:"Inter","Helvetica Neue",Arial,sans-serif;
-  --k-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --ink:#171A1E;
+  --porcelain:#F7F6F3;
+  --jade:#155E4E;
+  --jade-deep:#0E3F35;
+  --jade-mist:#D8E8E3;
+  --ember:#D9730D;
+  --iron-100:#E8E6E1;
+  --iron-200:#D4D1CA;
+  --iron-400:#8A919B;
+  --iron-600:#4A5160;
+  --iron-800:#2A3038;
+  --disp:"Inter Tight","Helvetica Neue",Arial,sans-serif;
+  --text:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  --sharp:cubic-bezier(0.2,0,0,1);
+  --slide-w:1920px;
+  --slide-h:1080px;
 }
-.slide{ width:1920px; height:1080px; background:var(--k-white); color:var(--k-black); font-family:var(--k-text); letter-spacing:-0.005em; position:relative; overflow:hidden; }
-.slide.dark{ background:var(--k-black); color:var(--k-white); }
-.eyebrow{ font-family:var(--k-mono); font-size:20px; letter-spacing:0.16em; text-transform:uppercase; color:var(--k-g60); }
-.eyebrow.on-dark{ color:var(--k-g40); }
-.mono{ font-family:var(--k-mono); }
-.disp{ font-family:var(--k-disp); font-weight:800; letter-spacing:-0.04em; line-height:0.92; }
-.pagefoot{ position:absolute; bottom:56px; left:96px; right:96px; display:flex; justify-content:space-between; font-family:var(--k-mono); font-size:16px; letter-spacing:0.16em; text-transform:uppercase; color:var(--k-g40); }
-.pagefoot.on-dark{ color:var(--k-g60); }
-</style>
-</helmet>
+*{box-sizing:border-box;}
+html,body{margin:0;background:#0E1210;color:var(--ink);font-family:var(--text);}
+body{min-height:100vh;}
 
-<x-import component-from-global-scope="deck-stage" from="./deck-stage.js" width="1920" height="1080" hint-size="100%,100%" data-uneditable="">
-
-  <!-- 01 — COVER -->
-  <section data-label="01 Cover" data-speaker-notes="Coachwright: coaching software you own. Pay once, sixty dollars, own it forever. No subscription, no per-client tax, no data held hostage in someone else's cloud." class="slide dark" style="display:flex;flex-direction:column;justify-content:space-between;padding:96px;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-      <div style="display:flex;align-items:center;gap:24px;">
-        <div style="width:88px;height:88px;border:2px solid #fff;display:flex;align-items:center;justify-content:center;">
-          <svg viewBox="0 0 100 100" style="width:52px;height:52px;"><path d="M 70.6 74.5 A 32 32 0 1 0 70.6 25.5" fill="none" stroke="#fff" stroke-width="15" stroke-linecap="square"></path></svg>
-        </div>
-        <span class="disp" style="font-size:44px;color:#fff;">Coachwright</span>
-      </div>
-      <span class="eyebrow on-dark">Investor / Buyer Brief — 2026</span>
-    </div>
-    <div>
-      <div class="eyebrow on-dark" style="margin-bottom:40px;">Coaching software you own</div>
-      <h1 class="disp" style="font-size:200px;color:#fff;margin:0;">Pay once.<br>Own it forever.</h1>
-    </div>
-    <div style="display:flex;gap:48px;">
-      <span class="mono" style="font-size:22px;letter-spacing:0.16em;text-transform:uppercase;color:var(--k-g40);">Owned</span>
-      <span class="mono" style="font-size:22px;letter-spacing:0.16em;text-transform:uppercase;color:var(--k-g40);">Private</span>
-      <span class="mono" style="font-size:22px;letter-spacing:0.16em;text-transform:uppercase;color:var(--k-g40);">Forever</span>
-    </div>
-  </section>
-
-  <!-- 02 — THE PROBLEM -->
-  <section data-label="02 The Problem" data-speaker-notes="Coaching software is rented, and the rent scales with your success. TrueCoach jumps from 26 dollars at 5 clients to 129 at 50. It adds a 5 percent cut of every client payment. Trainerize charges 169 dollars just to put your name on the app. The price on the page is never the price on the invoice." class="slide" style="padding:96px;display:flex;flex-direction:column;">
-    <div class="eyebrow" style="margin-bottom:20px;">01 — The Problem</div>
-    <h2 class="disp" style="font-size:88px;max-width:1400px;margin-bottom:52px;">Coaches rent their own business back, and the rent goes up as they grow.</h2>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:2px solid var(--k-black);">
-      <div style="padding:48px;border-right:1px solid var(--k-g20);">
-        <div class="eyebrow" style="margin-bottom:20px;">Per-client tax</div>
-        <div class="mono disp" style="font-size:72px;letter-spacing:-0.04em;">$26 → $129</div>
-        <p style="color:var(--k-g80);font-size:22px;margin-top:16px;line-height:1.5;">TrueCoach, per month, as a roster grows from 5 to 50 clients. Same features. Higher bill.</p>
-      </div>
-      <div style="padding:48px;border-right:1px solid var(--k-g20);">
-        <div class="eyebrow" style="margin-bottom:20px;">Payment surcharge</div>
-        <div class="mono disp" style="font-size:72px;letter-spacing:-0.04em;">+5%</div>
-        <p style="color:var(--k-g80);font-size:22px;margin-top:16px;line-height:1.5;">Taken off the top of every client payment processed through the platform — on top of Stripe's own fee.</p>
-      </div>
-      <div style="padding:48px;">
-        <div class="eyebrow" style="margin-bottom:20px;">Branding fee</div>
-        <div class="mono disp" style="font-size:72px;letter-spacing:-0.04em;">$169</div>
-        <p style="color:var(--k-g80);font-size:22px;margin-top:16px;line-height:1.5;">Setup fee to show your own name on the app. White-label runs $166–225 / month on some rivals.</p>
-      </div>
-    </div>
-    <p class="mono" style="font-size:18px;color:var(--k-g60);margin-top:28px;">Sources: TrueCoach &amp; Trainerize published pricing, 2026 · assistantcoach.fit hidden-fees audit, May 2026</p>
-    <div class="pagefoot"><span>Coachwright</span><span>№ 02</span></div>
-  </section>
-
-  <!-- 03 — WHAT THEY FEEL -->
-  <section data-label="03 Buyer Psychology" data-speaker-notes="Four feelings drive this buyer. Punished for growing. Held hostage by data in a vendor cloud. Nickeled by surcharges and paywalls. Unseen — treated like a consumer, not a small business. We talk to them as a fellow tradesperson." class="slide dark" style="padding:96px;display:flex;flex-direction:column;justify-content:center;">
-    <div class="eyebrow on-dark" style="margin-bottom:48px;">02 — Who We Sell To</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--k-g80);">
-      <div style="padding:56px 56px 56px 0;border-bottom:1px solid var(--k-g80);border-right:1px solid var(--k-g80);">
-        <span class="mono disp" style="font-size:56px;color:#fff;">01</span>
-        <h3 class="disp" style="font-size:52px;color:#fff;margin:16px 0;">Punished for growing</h3>
-        <p style="color:var(--k-g40);font-size:24px;line-height:1.5;">Per-client pricing means every new client raises the rent.</p>
-      </div>
-      <div style="padding:56px 0 56px 56px;border-bottom:1px solid var(--k-g80);">
-        <span class="mono disp" style="font-size:56px;color:#fff;">02</span>
-        <h3 class="disp" style="font-size:52px;color:#fff;margin:16px 0;">Held hostage</h3>
-        <p style="color:var(--k-g40);font-size:24px;line-height:1.5;">Client data lives in a vendor's cloud. Canceling feels like losing the business.</p>
-      </div>
-      <div style="padding:56px 56px 0 0;border-right:1px solid var(--k-g80);">
-        <span class="mono disp" style="font-size:56px;color:#fff;">03</span>
-        <h3 class="disp" style="font-size:52px;color:#fff;margin:16px 0;">Nickeled &amp; dimed</h3>
-        <p style="color:var(--k-g40);font-size:24px;line-height:1.5;">Payment surcharges, feature paywalls, "contact sales."</p>
-      </div>
-      <div style="padding:56px 0 0 56px;">
-        <span class="mono disp" style="font-size:56px;color:#fff;">04</span>
-        <h3 class="disp" style="font-size:52px;color:#fff;margin:16px 0;">Unseen</h3>
-        <p style="color:var(--k-g40);font-size:24px;line-height:1.5;">Small businesses, treated like consumers by billion-dollar platforms.</p>
-      </div>
-    </div>
-    <div class="pagefoot on-dark"><span>Coachwright</span><span>№ 03</span></div>
-  </section>
-
-  <!-- 04 — THE SOLUTION -->
-  <section data-label="04 The Solution" data-speaker-notes="Coachwright is a professional coaching workstation you buy once for sixty dollars and own outright. Every client, program, and session on your machine — not our servers, because we don't have servers. Everything included. Free updates for the version you buy." class="slide" style="padding:96px;display:flex;flex-direction:column;justify-content:center;">
-    <div class="eyebrow" style="margin-bottom:40px;">03 — The Solution</div>
-    <h2 class="disp" style="font-size:120px;max-width:1500px;margin-bottom:64px;">One price. Every feature. Your data, on your machine.</h2>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;border:2px solid var(--k-black);">
-      <div style="padding:56px;border-right:1px solid var(--k-g20);">
-        <div class="mono disp" style="font-size:96px;">$60</div>
-        <div class="eyebrow" style="margin-top:16px;">Once — not per month</div>
-      </div>
-      <div style="padding:56px;border-right:1px solid var(--k-g20);">
-        <div class="mono disp" style="font-size:96px;">0</div>
-        <div class="eyebrow" style="margin-top:16px;">Servers we run · network calls</div>
-      </div>
-      <div style="padding:56px;">
-        <div class="mono disp" style="font-size:96px;">∞</div>
-        <div class="eyebrow" style="margin-top:16px;">Clients · no per-seat tax</div>
-      </div>
-    </div>
-    <p style="font-size:32px;color:var(--k-g80);margin-top:56px;max-width:1400px;line-height:1.4;">Everything you use TrueCoach for — the program builder, logging, analytics, video analysis, nutrition, the client-facing app — minus the monthly bill and the per-client tax.</p>
-    <div class="pagefoot"><span>Coachwright</span><span>№ 04</span></div>
-  </section>
-
-  <!-- 05 — MARKET -->
-  <section data-label="05 Market" data-speaker-notes="The personal trainer software market is roughly 780 million dollars in 2025, growing to about 1.85 billion by 2033 at an 11 percent CAGR. The US is the largest single market at 22 percent. Coaches — not gyms — are 72 percent of usage. That's exactly our buyer." class="slide dark" style="padding:96px;display:flex;flex-direction:column;justify-content:center;">
-    <div class="eyebrow on-dark" style="margin-bottom:40px;">04 — Market</div>
-    <h2 class="disp" style="font-size:96px;color:#fff;max-width:1500px;margin-bottom:80px;">A growing market, priced for the vendor — not the coach.</h2>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid var(--k-g80);border-bottom:1px solid var(--k-g80);">
-      <div style="padding:48px 48px 48px 0;border-right:1px solid var(--k-g80);">
-        <div class="mono disp" style="font-size:88px;color:#fff;">$780M</div>
-        <p style="color:var(--k-g40);font-size:20px;margin-top:16px;line-height:1.45;">Personal trainer software market, 2025</p>
-      </div>
-      <div style="padding:48px;border-right:1px solid var(--k-g80);">
-        <div class="mono disp" style="font-size:88px;color:#fff;">$1.85B</div>
-        <p style="color:var(--k-g40);font-size:20px;margin-top:16px;line-height:1.45;">Projected by 2033 · 11.4% CAGR</p>
-      </div>
-      <div style="padding:48px;border-right:1px solid var(--k-g80);">
-        <div class="mono disp" style="font-size:88px;color:#fff;">72%</div>
-        <p style="color:var(--k-g40);font-size:20px;margin-top:16px;line-height:1.45;">Of usage is individual coaches, not gyms</p>
-      </div>
-      <div style="padding:48px 0 48px 48px;">
-        <div class="mono disp" style="font-size:88px;color:#fff;">22%</div>
-        <p style="color:var(--k-g40);font-size:20px;margin-top:16px;line-height:1.45;">US share — the largest single market</p>
-      </div>
-    </div>
-    <p class="mono" style="font-size:18px;color:var(--k-g60);margin-top:40px;">Sources: Future Market Report &amp; Future Market Insights, personal trainer software market, 2025–2026</p>
-    <div class="pagefoot on-dark"><span>Coachwright</span><span>№ 05</span></div>
-  </section>
-
-  <!-- 06 — COST COMPARISON -->
-  <section data-label="06 Cost Comparison" data-speaker-notes="Here's the math over five years for a coach growing to fifty clients. TrueCoach runs about seven and a half thousand dollars. Trainerize with add-ons, similar. Coachwright is sixty dollars, once — or 960 if you add our optional hosting the whole time. We win on price by an order of magnitude." class="slide" style="padding:72px 96px;display:flex;flex-direction:column;justify-content:center;">
-    <div class="eyebrow" style="margin-bottom:16px;">05 — Cost Comparison</div>
-    <h2 class="disp" style="font-size:68px;margin-bottom:14px;">5-year cost of ownership</h2>
-    <p style="font-size:22px;color:var(--k-g60);margin-bottom:36px;">A single coach growing to ~50 active clients. Subscription figures use published mid-tier pricing.</p>
-    <div style="border:2px solid var(--k-black);">
-      <!-- header -->
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;border-bottom:2px solid var(--k-black);">
-        <div style="padding:28px 40px;" class="eyebrow">Platform</div>
-        <div style="padding:28px 40px;border-left:1px solid var(--k-g20);" class="eyebrow">Per year</div>
-        <div style="padding:28px 40px;border-left:1px solid var(--k-g20);" class="eyebrow">5-year total</div>
-      </div>
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;border-bottom:1px solid var(--k-g20);">
-        <div style="padding:24px 40px;font-size:28px;font-weight:600;">TrueCoach (Pro, 50 clients)</div>
-        <div style="padding:24px 40px;border-left:1px solid var(--k-g20);font-size:28px;" class="mono">≈ $1,548</div>
-        <div style="padding:24px 40px;border-left:1px solid var(--k-g20);font-size:28px;" class="mono">≈ $7,740</div>
-      </div>
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;border-bottom:1px solid var(--k-g20);">
-        <div style="padding:24px 40px;font-size:28px;font-weight:600;">Trainerize + nutrition + branding</div>
-        <div style="padding:24px 40px;border-left:1px solid var(--k-g20);font-size:28px;" class="mono">≈ $1,380</div>
-        <div style="padding:24px 40px;border-left:1px solid var(--k-g20);font-size:28px;" class="mono">≈ $7,069</div>
-      </div>
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;border-bottom:1px solid var(--k-g20);">
-        <div style="padding:24px 40px;font-size:28px;font-weight:600;">Everfit (annual + add-ons)</div>
-        <div style="padding:24px 40px;border-left:1px solid var(--k-g20);font-size:28px;" class="mono">≈ $1,536</div>
-        <div style="padding:24px 40px;border-left:1px solid var(--k-g20);font-size:28px;" class="mono">≈ $7,680</div>
-      </div>
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;background:var(--k-black);color:#fff;">
-        <div style="padding:24px 40px;font-size:28px;font-weight:700;">Coachwright — self-hosted</div>
-        <div style="padding:24px 40px;border-left:1px solid var(--k-g80);font-size:28px;" class="mono">$0 after yr 1</div>
-        <div style="padding: 24px 40px; border-left: 1px solid var(--k-g80); font-size: 28px; font-family: jetbrains mono, ui-monospace,menlo,monospace" class="mono disp">$60</div>
-      </div>
-      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;background:var(--k-g05);">
-        <div style="padding:24px 40px;font-size:28px;font-weight:600;">Coachwright + our hosting ($15/mo)</div>
-        <div style="padding:24px 40px;border-left:1px solid var(--k-g20);font-size:28px;" class="mono">$180</div>
-        <div style="padding:24px 40px;border-left:1px solid var(--k-g20);font-size:28px;" class="mono">$960</div>
-      </div>
-    </div>
-    <p style="font-size:24px;margin-top:28px;">Against TrueCoach, a coach keeps <strong class="mono">≈ $7,680</strong> over five years — even with our hosting on the whole time, <strong class="mono">≈ $6,780</strong>.</p>
-    <div class="pagefoot"><span>Coachwright</span><span>№ 06</span></div>
-  </section>
-
-  <!-- 07 — FEATURE COMPARISON -->
-  <section data-label="07 Feature Comparison" data-speaker-notes="We play fair. We concede live in-app chat and a hosted-by-default cloud — those need a server we deliberately don't run. We win on video Film Room, on-device movement-tracking AI, the Profit Planner, the offline Companion for clients, true data ownership, and flat pricing." class="slide" style="padding:72px 96px;display:flex;flex-direction:column;justify-content:center;">
-    <div class="eyebrow" style="margin-bottom:20px;">06 — Feature Comparison</div>
-    <h2 class="disp" style="font-size:64px;margin-bottom:36px;">Scrupulously fair. We still win where it counts.</h2>
-    <div style="border:2px solid var(--k-black);font-size:24px;">
-      <div style="display:grid;grid-template-columns:2.2fr 1fr 1fr 1fr 1fr;border-bottom:2px solid var(--k-black);">
-        <div style="padding:22px 32px;" class="eyebrow">Capability</div>
-        <div style="padding:22px 20px;text-align:center;background:var(--k-black);color:#fff;" class="eyebrow on-dark">Coachwright</div>
-        <div style="padding:22px 20px;text-align:center;border-left:1px solid var(--k-g20);" class="eyebrow">TrueCoach</div>
-        <div style="padding:22px 20px;text-align:center;border-left:1px solid var(--k-g20);" class="eyebrow">Trainerize</div>
-        <div style="padding:22px 20px;text-align:center;border-left:1px solid var(--k-g20);" class="eyebrow">Everfit</div>
-      </div>
-      <!-- rows -->
-      <div class="cmp-row">
-        <div class="cmp-name">Program builder + logging</div>
-        <div class="cmp-us">Yes</div><div class="cmp">Yes</div><div class="cmp">Yes</div><div class="cmp">Yes</div>
-      </div>
-      <div class="cmp-row">
-        <div class="cmp-name">Video Film Room (frame analysis)</div>
-        <div class="cmp-us">Yes</div><div class="cmp cmp-no">—</div><div class="cmp cmp-no">—</div><div class="cmp">Basic</div>
-      </div>
-      <div class="cmp-row">
-        <div class="cmp-name">On-device movement-tracking AI</div>
-        <div class="cmp-us">Yes</div><div class="cmp cmp-no">—</div><div class="cmp cmp-no">—</div><div class="cmp cmp-no">—</div>
-      </div>
-      <div class="cmp-row">
-        <div class="cmp-name">Profit Planner (business math)</div>
-        <div class="cmp-us">Yes</div><div class="cmp cmp-no">—</div><div class="cmp cmp-no">—</div><div class="cmp cmp-no">—</div>
-      </div>
-      <div class="cmp-row">
-        <div class="cmp-name">Offline client Companion (no account)</div>
-        <div class="cmp-us">Yes</div><div class="cmp cmp-no">—</div><div class="cmp cmp-no">—</div><div class="cmp cmp-no">—</div>
-      </div>
-      <div class="cmp-row">
-        <div class="cmp-name">Data owned &amp; stored locally</div>
-        <div class="cmp-us">Yes</div><div class="cmp cmp-no">—</div><div class="cmp cmp-no">—</div><div class="cmp cmp-no">—</div>
-      </div>
-      <div class="cmp-row">
-        <div class="cmp-name">Live in-app client chat</div>
-        <div class="cmp cmp-no">—</div><div class="cmp">Yes</div><div class="cmp">Yes</div><div class="cmp">Yes</div>
-      </div>
-      <div class="cmp-row" style="border-bottom:none;">
-        <div class="cmp-name" style="font-weight:700;">Pricing model</div>
-        <div class="cmp-us mono">$60 once</div><div class="cmp mono cmp-no">per-client</div><div class="cmp mono cmp-no">per-client</div><div class="cmp mono cmp-no">tiered</div>
-      </div>
-    </div>
-    <div class="pagefoot"><span>Coachwright</span><span>№ 07</span></div>
-  </section>
-
-  <!-- 08 — PRIVACY -->
-  <section data-label="08 Privacy" data-speaker-notes="This is the moat. No account, no login — the app doesn't know who you are. Zero network calls in the core app; no telemetry. Backups are AES-GCM encrypted with a passphrase only you hold. There's no server to breach because there's nothing to breach. Honesty is verifiable: invite the audit." class="slide dark" style="padding:88px 96px;display:flex;flex-direction:column;justify-content:center;">
-    <div class="eyebrow on-dark" style="margin-bottom:36px;">07 — Privacy &amp; Ownership</div>
-    <h2 class="disp" style="font-size:112px;color:#fff;max-width:1500px;margin-bottom:60px;">We couldn't read your data if we wanted to.</h2>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;border-top:1px solid var(--k-g80);">
-      <div style="padding:48px 48px 0 0;border-right:1px solid var(--k-g80);">
-        <div class="eyebrow on-dark" style="margin-bottom:20px;">No account</div>
-        <p style="color:var(--k-g40);font-size:24px;line-height:1.5;">No login. The app doesn't know who you are. Nothing to sign into, nothing to leak.</p>
-      </div>
-      <div style="padding:48px;border-right:1px solid var(--k-g80);">
-        <div class="eyebrow on-dark" style="margin-bottom:20px;">Zero network calls</div>
-        <p style="color:var(--k-g40);font-size:24px;line-height:1.5;">The core app makes no outbound requests. No telemetry, no beacons — auditable, and we invite the audit.</p>
-      </div>
-      <div style="padding:48px 0 0 48px;">
-        <div class="eyebrow on-dark" style="margin-bottom:20px;">Encrypted backups</div>
-        <p style="color:var(--k-g40);font-size:24px;line-height:1.5;">AES-GCM with a passphrase only you hold. Your export, your key, your machine.</p>
-      </div>
-    </div>
-    <p style="font-size:30px;color:#fff;margin-top:52px;max-width:1500px;line-height:1.4;">No servers means no data breaches, no vendor lock-in, no HIPAA cloud liability. If you leave, you lose nothing — it was always yours.</p>
-    <div class="pagefoot on-dark"><span>Coachwright</span><span>№ 08</span></div>
-  </section>
-
-  <!-- 09 — PRICING & HOSTING OPTIONS -->
-  <section data-label="09 Pricing &amp; Hosting" data-speaker-notes="Sixty dollars gets you the whole app, forever, all updates included for the version you buy. Hosting is entirely optional. Run it yourself for free. Or don't sync at all — pair devices over WiFi, hand a file back and forth, or just tell the client their program; they never need the app. If you want managed sync and a customer web portal, add our hosting for fifteen a month." class="slide" style="padding:72px 96px;display:flex;flex-direction:column;justify-content:center;">
-    <div class="eyebrow" style="margin-bottom:20px;">08 — Pricing &amp; Hosting</div>
-    <h2 class="disp" style="font-size:72px;margin-bottom:16px;">$60 once. Hosting is optional — always.</h2>
-    <p style="font-size:22px;color:var(--k-g60);margin-bottom:36px;">All updates included for the version you buy. Pick how your data moves — or choose to let it not move at all.</p>
-    <div style="display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:0;border:2px solid var(--k-black);">
-      <div style="padding:48px;border-right:1px solid var(--k-g20);background:var(--k-black);color:#fff;">
-        <div class="eyebrow on-dark" style="margin-bottom:24px;">The license</div>
-        <div class="mono disp" style="font-size:88px;color:#fff;">$60</div>
-        <p style="color:var(--k-g40);font-size:22px;margin-top:20px;line-height:1.5;">One time. Every feature. Free updates for the version. 60-day refund.</p>
-      </div>
-      <div style="padding:48px;border-right:1px solid var(--k-g20);">
-        <div class="eyebrow" style="margin-bottom:24px;">Host it yourself</div>
-        <div class="mono disp" style="font-size:88px;">Free</div>
-        <p style="color:var(--k-g80);font-size:22px;margin-top:20px;line-height:1.5;">Run it entirely on your own machine. WiFi device pairing, file sync — no cloud, no fee, ever.</p>
-      </div>
-      <div style="padding:48px;">
-        <div class="eyebrow" style="margin-bottom:24px;">Our hosting — optional</div>
-        <div class="mono disp" style="font-size:88px;">$15<span style="font-size:34px;color:var(--k-g60);">/mo</span></div>
-        <p style="color:var(--k-g80);font-size:22px;margin-top:20px;line-height:1.5;">Managed cloud sync across devices plus a customer web portal. Cancel anytime — the app still works.</p>
-      </div>
-    </div>
-    <div style="margin-top:40px;border-top:2px solid var(--k-black);padding-top:32px;">
-      <div class="eyebrow" style="margin-bottom:24px;">You never have to use hosting at all</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:32px;">
-        <div><span class="mono disp" style="font-size:40px;">01</span><p style="font-size:22px;color:var(--k-g80);margin-top:12px;line-height:1.45;">Sync devices over local WiFi</p></div>
-        <div><span class="mono disp" style="font-size:40px;">02</span><p style="font-size:22px;color:var(--k-g80);margin-top:12px;line-height:1.45;">Send data files back and forth</p></div>
-        <div><span class="mono disp" style="font-size:40px;">03</span><p style="font-size:22px;color:var(--k-g80);margin-top:12px;line-height:1.45;">Give clients the offline Companion</p></div>
-        <div><span class="mono disp" style="font-size:40px;">04</span><p style="font-size:22px;color:var(--k-g80);margin-top:12px;line-height:1.45;">Or just tell the client — no app required</p></div>
-      </div>
-    </div>
-    <div class="pagefoot"><span>Coachwright</span><span>№ 09</span></div>
-  </section>
-
-  <!-- 10 — ROADMAP -->
-  <section data-label="10 Roadmap" data-speaker-notes="Shipping now: the desktop app on Windows and Mac, with the full feature set. On the way: an Android app, and a web portal for customers on our hosting plan. We're being honest about iOS — it's not planned yet. Every update is included; no in-app purchases, no paywalls." class="slide dark" style="padding:96px;display:flex;flex-direction:column;justify-content:center;">
-    <div class="eyebrow on-dark" style="margin-bottom:48px;">09 — Roadmap</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-top:1px solid var(--k-g80);border-bottom:1px solid var(--k-g80);">
-      <div style="padding:56px 56px 56px 0;border-right:1px solid var(--k-g80);">
-        <div class="eyebrow on-dark" style="margin-bottom:24px;">Shipping now</div>
-        <h3 class="disp" style="font-size:48px;color:#fff;margin-bottom:24px;">Desktop app</h3>
-        <p style="color:var(--k-g40);font-size:22px;line-height:1.55;">Windows &amp; Mac. Full feature set — builder, Film Room, movement AI, Profit Planner, Companion export.</p>
-      </div>
-      <div style="padding:56px;border-right:1px solid var(--k-g80);">
-        <div class="eyebrow on-dark" style="margin-bottom:24px;">On the way</div>
-        <h3 class="disp" style="font-size:48px;color:#fff;margin-bottom:24px;">Android app</h3>
-        <p style="color:var(--k-g40);font-size:22px;line-height:1.55;">A mobile client for coaches, syncing with the desktop app. In active development for the Play Store.</p>
-      </div>
-      <div style="padding:56px 0 56px 56px;">
-        <div class="eyebrow on-dark" style="margin-bottom:24px;">Alongside hosting</div>
-        <h3 class="disp" style="font-size:48px;color:#fff;margin-bottom:24px;">Customer web portal</h3>
-        <p style="color:var(--k-g40);font-size:22px;line-height:1.55;">A launching website for customers on the cloud-hosting plan — manage sync and access from anywhere.</p>
-      </div>
-    </div>
-    <p style="font-size:24px;color:var(--k-g40);margin-top:56px;max-width:1400px;line-height:1.5;">Honest about scope: <strong style="color:#fff;">an iOS app is not planned yet.</strong> Every update is free — no in-app purchases, no feature paywalls.</p>
-    <div class="pagefoot on-dark"><span>Coachwright</span><span>№ 10</span></div>
-  </section>
-
-  <!-- 11 — CLOSE -->
-  <section data-label="11 Close" data-speaker-notes="Coachwright is for coaches who want to own their business, not rent it. Built like an instrument, not a dashboard. Sixty dollars. Owned, private, forever." class="slide" style="display:flex;flex-direction:column;justify-content:space-between;padding:96px;">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-      <div style="display:flex;align-items:center;gap:24px;">
-        <div style="width:88px;height:88px;background:var(--k-black);display:flex;align-items:center;justify-content:center;">
-          <svg viewBox="0 0 100 100" style="width:52px;height:52px;"><path d="M 70.6 74.5 A 32 32 0 1 0 70.6 25.5" fill="none" stroke="#fff" stroke-width="15" stroke-linecap="square"></path></svg>
-        </div>
-        <span class="disp" style="font-size:44px;">Coachwright</span>
-      </div>
-      <span class="eyebrow">The Close</span>
-    </div>
-    <h2 class="disp" style="font-size:168px;max-width:1600px;">Own your coaching business.</h2>
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;">
-      <div>
-        <div class="mono disp" style="font-size:96px;">$60. Forever.</div>
-        <div class="eyebrow" style="margin-top:20px;">Owned · Private · Forever</div>
-      </div>
-      <div style="text-align:right;">
-        <div class="mono" style="font-size:22px;letter-spacing:0.16em;text-transform:uppercase;color:var(--k-g60);">coachwright.app</div>
-        <div class="mono" style="font-size:22px;letter-spacing:0.16em;text-transform:uppercase;color:var(--k-g60);margin-top:8px;"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b7c4c3c2d3ded8f7d4d8d6d4dfc0c5ded0dfc399d6c7c7">[email&#160;protected]</a></div>
-      </div>
-    </div>
-  </section>
-</x-import>
-
-<style>
-.cmp-row{ display:grid; grid-template-columns:2.2fr 1fr 1fr 1fr 1fr; border-bottom:1px solid var(--k-g20); }
-.cmp-name{ padding:20px 32px; font-weight:600; }
-.cmp{ padding:20px 20px; text-align:center; border-left:1px solid var(--k-g20); color:var(--k-g80); }
-.cmp-no{ color:var(--k-g40); }
-.cmp-us{ padding:20px 20px; text-align:center; background:var(--k-g05); font-weight:700; }
-</style>
-</x-dc>
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="text/x-dc" data-dc-script>
-class Component extends DCLogic {
-  renderVals() { return {}; }
+/* Stage chrome — outside the 16:9 canvas */
+.deck-chrome{
+  position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:24px 24px 72px; gap:16px;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(21,94,78,0.35), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 90% 90%, rgba(217,115,13,0.12), transparent 50%),
+    #0E1210;
 }
+.stage-wrap{
+  width:min(100%, calc((100vh - 120px) * 16 / 9));
+  aspect-ratio:16/9;
+  position:relative;
+  box-shadow:0 40px 120px rgba(0,0,0,0.55);
+  border-radius:4px;
+  overflow:hidden;
+}
+.stage{
+  width:var(--slide-w); height:var(--slide-h);
+  transform-origin:top left;
+  position:absolute; inset:0;
+}
+.nav{
+  display:flex; align-items:center; gap:20px;
+  font-family:var(--mono); font-size:12px; letter-spacing:0.14em; text-transform:uppercase;
+  color:rgba(247,246,243,0.55);
+}
+.nav button{
+  appearance:none; border:1px solid rgba(247,246,243,0.25); background:transparent;
+  color:var(--porcelain); font:inherit; letter-spacing:inherit; text-transform:inherit;
+  padding:10px 18px; cursor:pointer; transition:background 0.2s var(--sharp), border-color 0.2s var(--sharp);
+}
+.nav button:hover{ background:rgba(247,246,243,0.08); border-color:rgba(247,246,243,0.5); }
+.nav button:disabled{ opacity:0.3; cursor:default; }
+
+.slide{
+  width:var(--slide-w); height:var(--slide-h);
+  position:absolute; inset:0;
+  padding:88px 96px;
+  display:none;
+  overflow:hidden;
+  opacity:0;
+  transform:translateY(18px);
+  transition:opacity 0.45s var(--sharp), transform 0.55s var(--sharp);
+}
+.slide.active{ display:flex; flex-direction:column; opacity:1; transform:translateY(0); }
+.slide.porcelain{
+  background:
+    linear-gradient(165deg, rgba(21,94,78,0.07) 0%, transparent 42%),
+    linear-gradient(0deg, var(--porcelain), var(--porcelain));
+  color:var(--ink);
+}
+.slide.ink{
+  background:
+    radial-gradient(ellipse 90% 70% at 85% 15%, rgba(21,94,78,0.45), transparent 55%),
+    linear-gradient(160deg, #101412 0%, var(--ink) 55%, #0C1412 100%);
+  color:var(--porcelain);
+}
+.slide.jade{
+  background:
+    radial-gradient(ellipse 100% 80% at 0% 100%, rgba(217,115,13,0.18), transparent 45%),
+    linear-gradient(145deg, var(--jade-deep) 0%, var(--jade) 55%, #1A6F5C 100%);
+  color:var(--porcelain);
+}
+
+/* Atmosphere — chalk/steel grain, not a flat fill */
+.slide::before{
+  content:""; position:absolute; inset:0; pointer-events:none; opacity:0.045;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size:180px;
+  mix-blend-mode:overlay;
+}
+.slide > *{ position:relative; z-index:1; }
+
+.eyebrow{
+  font-family:var(--mono); font-size:18px; letter-spacing:0.16em; text-transform:uppercase;
+  color:var(--iron-600);
+}
+.slide.ink .eyebrow, .slide.jade .eyebrow{ color:rgba(247,246,243,0.55); }
+.disp{ font-family:var(--disp); font-weight:800; letter-spacing:-0.04em; line-height:0.94; }
+.mono{ font-family:var(--mono); }
+.lede{ font-size:28px; line-height:1.45; max-width:1400px; }
+.slide.porcelain .lede{ color:var(--iron-600); }
+.slide.ink .lede, .slide.jade .lede{ color:rgba(247,246,243,0.72); }
+
+.pagefoot{
+  margin-top:auto; padding-top:40px;
+  display:flex; justify-content:space-between; align-items:center;
+  font-family:var(--mono); font-size:15px; letter-spacing:0.16em; text-transform:uppercase;
+}
+.slide.porcelain .pagefoot{ color:var(--iron-400); border-top:1px solid var(--iron-200); }
+.slide.ink .pagefoot, .slide.jade .pagefoot{ color:rgba(247,246,243,0.4); border-top:1px solid rgba(247,246,243,0.12); }
+
+.brand-row{ display:flex; align-items:center; gap:22px; }
+.mark{
+  width:88px; height:88px; flex-shrink:0;
+  display:flex; align-items:center; justify-content:center;
+  background:var(--ink);
+}
+.mark svg{ width:52px; height:52px; }
+.mark.on-dark{ background:var(--porcelain); }
+.mark.on-dark path{ fill:var(--ink); }
+.word{ font-family:var(--disp); font-weight:800; font-size:44px; letter-spacing:-0.04em; line-height:1; }
+
+.panel-grid{ display:grid; gap:20px; }
+.panel-grid.cols-3{ grid-template-columns:repeat(3,1fr); }
+.panel-grid.cols-4{ grid-template-columns:repeat(4,1fr); }
+.panel-grid.cols-2{ grid-template-columns:repeat(2,1fr); }
+.panel{
+  padding:40px 36px;
+  background:rgba(255,255,255,0.55);
+  border:1px solid var(--iron-200);
+}
+.slide.ink .panel{
+  background:rgba(247,246,243,0.04);
+  border:1px solid rgba(247,246,243,0.12);
+}
+.slide.jade .panel{
+  background:rgba(0,0,0,0.18);
+  border:1px solid rgba(247,246,243,0.14);
+}
+.panel .stat{
+  font-family:var(--mono); font-weight:600; font-size:64px; letter-spacing:-0.04em; line-height:1;
+}
+.panel .label{
+  font-family:var(--mono); font-size:16px; letter-spacing:0.14em; text-transform:uppercase;
+  margin-bottom:16px; color:var(--iron-600);
+}
+.slide.ink .panel .label, .slide.jade .panel .label{ color:rgba(247,246,243,0.5); }
+.panel p{ margin:16px 0 0; font-size:22px; line-height:1.45; }
+.slide.porcelain .panel p{ color:var(--iron-600); }
+.slide.ink .panel p, .slide.jade .panel p{ color:rgba(247,246,243,0.7); }
+
+.panel.featured{
+  background:var(--ink); color:var(--porcelain); border-color:var(--ink);
+}
+.panel.featured .label{ color:rgba(247,246,243,0.5); }
+.panel.featured p{ color:rgba(247,246,243,0.7); }
+.panel.accent{
+  background:var(--jade); color:var(--porcelain); border-color:var(--jade);
+}
+.panel.accent .label{ color:rgba(247,246,243,0.55); }
+.panel.accent p{ color:rgba(247,246,243,0.78); }
+
+.feel-grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px; flex:1; }
+.feel{
+  padding:48px 44px;
+  background:rgba(247,246,243,0.04);
+  border-left:3px solid var(--ember);
+}
+.feel .n{ font-family:var(--mono); font-size:20px; letter-spacing:0.14em; color:var(--ember); margin-bottom:18px; }
+.feel h3{ font-family:var(--disp); font-weight:800; font-size:44px; letter-spacing:-0.03em; margin:0 0 14px; }
+.feel p{ margin:0; font-size:24px; line-height:1.45; color:rgba(247,246,243,0.65); }
+
+table.cmp{
+  width:100%; border-collapse:separate; border-spacing:0; font-size:24px;
+}
+table.cmp th, table.cmp td{
+  padding:20px 28px; text-align:left;
+  border-bottom:1px solid var(--iron-200);
+}
+table.cmp th{
+  font-family:var(--mono); font-size:15px; letter-spacing:0.14em; text-transform:uppercase;
+  font-weight:500; color:var(--iron-600);
+}
+table.cmp th.us{ background:var(--jade); color:var(--porcelain); border-bottom-color:var(--jade); }
+table.cmp td.us{ background:var(--jade-mist); font-weight:700; }
+table.cmp td.mute{ color:var(--iron-400); }
+table.cmp tr.highlight td{ background:var(--ink); color:var(--porcelain); border-bottom-color:var(--ink); }
+table.cmp tr.highlight td.us{ background:var(--jade); }
+
+.bar-row{ display:grid; grid-template-columns:280px 1fr 160px; gap:24px; align-items:center; margin:14px 0; }
+.bar-track{ height:28px; background:var(--iron-100); position:relative; overflow:hidden; }
+.bar-fill{ height:100%; background:var(--iron-400); transform-origin:left; animation:grow 0.9s var(--sharp) both; }
+.bar-fill.us{ background:var(--jade); }
+@keyframes grow{ from{ transform:scaleX(0);} to{ transform:scaleX(1);} }
+
+.pillars{ display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.pillar{ padding:36px; background:rgba(0,0,0,0.2); border-top:3px solid rgba(247,246,243,0.35); }
+.pillar h3{ font-family:var(--disp); font-size:36px; margin:0 0 14px; letter-spacing:-0.03em; }
+.pillar p{ margin:0; font-size:22px; line-height:1.45; color:rgba(247,246,243,0.72); }
+
+.steps{ display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+.step{ padding:28px 24px; background:rgba(255,255,255,0.5); border:1px solid var(--iron-200); }
+.step .n{ font-family:var(--mono); font-size:28px; color:var(--jade); margin-bottom:10px; }
+.step p{ margin:0; font-size:22px; line-height:1.4; color:var(--iron-600); }
+
+.source{ font-family:var(--mono); font-size:16px; color:var(--iron-400); margin-top:20px; }
+.slide.ink .source{ color:rgba(247,246,243,0.4); }
+
+/* Motion on enter */
+.slide.active .rise{ animation:rise 0.65s var(--sharp) both; }
+.slide.active .rise.d1{ animation-delay:0.08s; }
+.slide.active .rise.d2{ animation-delay:0.16s; }
+.slide.active .rise.d3{ animation-delay:0.24s; }
+.slide.active .rise.d4{ animation-delay:0.32s; }
+@keyframes rise{
+  from{ opacity:0; transform:translateY(22px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+.slide.active .mark{ animation:wipe 0.75s var(--sharp) both; }
+@keyframes wipe{
+  from{ clip-path:inset(0 100% 0 0); }
+  to{ clip-path:inset(0 0 0 0); }
+}
+
+.hero-rule{
+  width:120px; height:4px; background:var(--ember); margin:28px 0 36px;
+}
+.slide.porcelain .hero-rule{ background:var(--jade); }
+
+@media (max-width: 900px){
+  .deck-chrome{ padding:12px 12px 64px; }
+  .nav{ font-size:10px; gap:10px; }
+  .nav button{ padding:8px 12px; }
+}
+</style>
+</head>
+<body>
+<div class="deck-chrome">
+  <div class="stage-wrap" id="stageWrap">
+    <div class="stage" id="stage">
+
+      <!-- 01 COVER -->
+      <section class="slide ink active" data-label="01 Cover" data-notes="Coachwright: coaching software that runs on your machine. Free for up to 3 clients. Membership is 29 a month for unlimited — flat, no per-client tax. Your data stays on your device.">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div class="brand-row rise">
+            <div class="mark on-dark" aria-hidden="true">
+              <svg viewBox="0 0 100 100"><path d="M 86.4 29 A 42 42 0 1 0 86.4 71 L 67.3 60 A 20 20 0 1 1 67.3 40 Z" fill="#171A1E"/></svg>
+            </div>
+            <span class="word">Coachwright</span>
+          </div>
+          <span class="eyebrow rise d1">Investor / Buyer Brief — 2026</span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;max-width:1600px;">
+          <div class="eyebrow rise d1">Coaching software that stays on your machine</div>
+          <div class="hero-rule rise d2"></div>
+          <h1 class="disp rise d2" style="font-size:148px;margin:0;">Your roster.<br>Your machine.<br>Flat price.</h1>
+        </div>
+        <div class="rise d3" style="display:flex;gap:40px;font-family:var(--mono);font-size:20px;letter-spacing:0.16em;text-transform:uppercase;color:rgba(247,246,243,0.45);">
+          <span>Local-first</span>
+          <span>Private</span>
+          <span>No per-client tax</span>
+        </div>
+      </section>
+
+      <!-- 02 PROBLEM -->
+      <section class="slide porcelain" data-label="02 The Problem" data-notes="Coaching software is rented, and the rent scales with success. TrueCoach jumps from 26 dollars at 5 clients to 129 at 50. Trainerize charges branding fees. The price on the page is never the price on the invoice.">
+        <div class="eyebrow rise">01 — The Problem</div>
+        <h2 class="disp rise d1" style="font-size:72px;max-width:1500px;margin:20px 0 48px;">Coaches rent their business back — and the rent rises as they grow.</h2>
+        <div class="panel-grid cols-3">
+          <div class="panel rise d1">
+            <div class="label">Per-client tax</div>
+            <div class="stat">$26 → $129</div>
+            <p>TrueCoach, per month, as a roster grows from 5 to 50. Same features. Higher bill.</p>
+          </div>
+          <div class="panel rise d2">
+            <div class="label">Payment surcharge</div>
+            <div class="stat">+5%</div>
+            <p>Taken off the top of every client payment on some platforms — on top of Stripe’s own fee.</p>
+          </div>
+          <div class="panel rise d3">
+            <div class="label">Branding fee</div>
+            <div class="stat">$169</div>
+            <p>Setup fee just to show your own name. White-label runs $166–225 / month elsewhere.</p>
+          </div>
+        </div>
+        <p class="source rise d4">Sources: TrueCoach &amp; Trainerize published pricing · assistantcoach.fit hidden-fees audit</p>
+        <div class="pagefoot"><span>Coachwright</span><span>№ 02</span></div>
+      </section>
+
+      <!-- 03 BUYER -->
+      <section class="slide ink" data-label="03 Buyer Psychology" data-notes="Four feelings drive this buyer. Punished for growing. Held hostage by vendor cloud data. Nickeled by surcharges. Unseen — treated like a consumer, not a small business.">
+        <div class="eyebrow rise">02 — Who We Sell To</div>
+        <h2 class="disp rise d1" style="font-size:64px;margin:20px 0 40px;max-width:1400px;">Independent coaches. Talk to them like tradespeople — not “users.”</h2>
+        <div class="feel-grid">
+          <div class="feel rise d1"><div class="n">01</div><h3>Punished for growing</h3><p>Per-client pricing means every new client raises the rent.</p></div>
+          <div class="feel rise d2"><div class="n">02</div><h3>Held hostage</h3><p>Client data lives in a vendor cloud. Canceling feels like losing the business.</p></div>
+          <div class="feel rise d3"><div class="n">03</div><h3>Nickeled &amp; dimed</h3><p>Payment surcharges, feature paywalls, “contact sales.”</p></div>
+          <div class="feel rise d4"><div class="n">04</div><h3>Unseen</h3><p>Small businesses, treated like consumers by billion-dollar platforms.</p></div>
+        </div>
+        <div class="pagefoot"><span>Coachwright</span><span>№ 03</span></div>
+      </section>
+
+      <!-- 04 SOLUTION -->
+      <section class="slide jade" data-label="04 The Solution" data-notes="Coachwright is a professional coaching workstation. Free for up to 3 clients. Membership removes the cap at 29 a month — flat. Every client, program, and session on the coach's machine.">
+        <div class="eyebrow rise">03 — The Solution</div>
+        <h2 class="disp rise d1" style="font-size:88px;max-width:1550px;margin:24px 0 56px;">Every feature on day one.<br>Data on your machine.<br>Price that doesn’t scale against you.</h2>
+        <div class="panel-grid cols-3">
+          <div class="panel rise d1">
+            <div class="label">Free tier</div>
+            <div class="stat">3</div>
+            <p>Active clients, indefinitely. No card. No trial clock. No nag.</p>
+          </div>
+          <div class="panel rise d2" style="background:rgba(0,0,0,0.28);border-color:rgba(247,246,243,0.2);">
+            <div class="label">Membership</div>
+            <div class="stat">$29<span style="font-size:28px;opacity:0.6;">/mo</span></div>
+            <p>Unlimited clients. Flat — whether you have 4 or 400.</p>
+          </div>
+          <div class="panel rise d3">
+            <div class="label">Core doctrine</div>
+            <div class="stat">0</div>
+            <p>Servers holding your roster. Coaching data never leaves the device.</p>
+          </div>
+        </div>
+        <div class="pagefoot"><span>Coachwright</span><span>№ 04</span></div>
+      </section>
+
+      <!-- 05 MARKET -->
+      <section class="slide porcelain" data-label="05 Market" data-notes="Personal trainer software is roughly 780 million in 2025, heading toward 1.85 billion by 2033. Coaches, not gyms, are 72 percent of usage.">
+        <div class="eyebrow rise">04 — Market</div>
+        <h2 class="disp rise d1" style="font-size:72px;max-width:1500px;margin:20px 0 56px;">A growing market, still priced for the vendor — not the coach.</h2>
+        <div class="panel-grid cols-4">
+          <div class="panel rise d1"><div class="stat" style="font-size:56px;">$780M</div><p>Personal trainer software market, 2025</p></div>
+          <div class="panel rise d2"><div class="stat" style="font-size:56px;">$1.85B</div><p>Projected by 2033 · 11.4% CAGR</p></div>
+          <div class="panel rise d3"><div class="stat" style="font-size:56px;">72%</div><p>Of usage is individual coaches, not gyms</p></div>
+          <div class="panel rise d4"><div class="stat" style="font-size:56px;">22%</div><p>US share — the largest single market</p></div>
+        </div>
+        <p class="source rise d4">Sources: Future Market Report &amp; Future Market Insights, 2025–2026</p>
+        <div class="pagefoot"><span>Coachwright</span><span>№ 05</span></div>
+      </section>
+
+      <!-- 06 COST -->
+      <section class="slide porcelain" data-label="06 Cost Comparison" data-notes="Five-year cost for a coach growing to fifty clients. TrueCoach runs about seventy-five hundred. Coachwright Membership is about seventeen forty. Optional hosting adds nine hundred.">
+        <div class="eyebrow rise">05 — Cost Comparison</div>
+        <h2 class="disp rise d1" style="font-size:64px;margin:16px 0 8px;">5-year cost of ownership</h2>
+        <p class="lede rise d1" style="font-size:24px;margin:0 0 36px;">A single coach growing to ~50 active clients. Subscription figures use published mid-tier pricing.</p>
+        <div class="rise d2">
+          <div class="bar-row">
+            <div style="font-size:26px;font-weight:600;">TrueCoach Pro</div>
+            <div class="bar-track"><div class="bar-fill" style="width:100%"></div></div>
+            <div class="mono" style="font-size:26px;text-align:right;">≈ $7,740</div>
+          </div>
+          <div class="bar-row">
+            <div style="font-size:26px;font-weight:600;">Trainerize + add-ons</div>
+            <div class="bar-track"><div class="bar-fill" style="width:91%"></div></div>
+            <div class="mono" style="font-size:26px;text-align:right;">≈ $7,069</div>
+          </div>
+          <div class="bar-row">
+            <div style="font-size:26px;font-weight:600;">Everfit</div>
+            <div class="bar-track"><div class="bar-fill" style="width:99%"></div></div>
+            <div class="mono" style="font-size:26px;text-align:right;">≈ $7,680</div>
+          </div>
+          <div class="bar-row">
+            <div style="font-size:26px;font-weight:700;color:var(--jade);">Coachwright Membership</div>
+            <div class="bar-track"><div class="bar-fill us" style="width:22%"></div></div>
+            <div class="mono" style="font-size:26px;text-align:right;color:var(--jade);">$1,740</div>
+          </div>
+          <div class="bar-row">
+            <div style="font-size:26px;font-weight:600;">+ our hosting ($15/mo)</div>
+            <div class="bar-track"><div class="bar-fill us" style="width:34%;opacity:0.7"></div></div>
+            <div class="mono" style="font-size:26px;text-align:right;">$2,640</div>
+          </div>
+        </div>
+        <p class="rise d3" style="font-size:26px;margin-top:28px;">Against TrueCoach, a member keeps <strong class="mono">≈ $6,000</strong> over five years — even with hosting the whole time, <strong class="mono">≈ $5,100</strong>.</p>
+        <div class="pagefoot"><span>Coachwright</span><span>№ 06</span></div>
+      </section>
+
+      <!-- 07 FEATURES -->
+      <section class="slide porcelain" data-label="07 Feature Comparison" data-notes="We concede live in-app chat and hosted-by-default cloud. We win on Film Room, on-device movement AI, Profit Planner, offline Companion, local data ownership, and flat pricing.">
+        <div class="eyebrow rise">06 — Feature Comparison</div>
+        <h2 class="disp rise d1" style="font-size:56px;margin:16px 0 32px;">Scrupulously fair. We still win where it counts.</h2>
+        <table class="cmp rise d2">
+          <thead>
+            <tr>
+              <th>Capability</th>
+              <th class="us">Coachwright</th>
+              <th>TrueCoach</th>
+              <th>Trainerize</th>
+              <th>Everfit</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Program builder + logging</td><td class="us">Yes</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td>Video Film Room</td><td class="us">Yes</td><td class="mute">—</td><td class="mute">—</td><td>Basic</td></tr>
+            <tr><td>On-device movement-tracking AI</td><td class="us">Yes</td><td class="mute">—</td><td class="mute">—</td><td class="mute">—</td></tr>
+            <tr><td>Profit Planner</td><td class="us">Yes</td><td class="mute">—</td><td class="mute">—</td><td class="mute">—</td></tr>
+            <tr><td>Offline Companion (no account)</td><td class="us">Yes</td><td class="mute">—</td><td class="mute">—</td><td class="mute">—</td></tr>
+            <tr><td>Data stored locally by default</td><td class="us">Yes</td><td class="mute">—</td><td class="mute">—</td><td class="mute">—</td></tr>
+            <tr><td>Live in-app client chat</td><td class="mute">—</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+            <tr class="highlight"><td>Pricing model</td><td class="us mono">flat $29/mo</td><td class="mute mono">per-client</td><td class="mute mono">per-client</td><td class="mute mono">tiered</td></tr>
+          </tbody>
+        </table>
+        <div class="pagefoot"><span>Coachwright</span><span>№ 07</span></div>
+      </section>
+
+      <!-- 08 PRIVACY -->
+      <section class="slide ink" data-label="08 Privacy" data-notes="No account required for the core coaching loop. Zero network calls in fully-local mode. Backups are AES-GCM with a passphrase only the coach holds. Membership billing is status metadata — never coaching data.">
+        <div class="eyebrow rise">07 — Privacy &amp; Ownership</div>
+        <h2 class="disp rise d1" style="font-size:88px;max-width:1550px;margin:24px 0 48px;">We couldn’t read your roster if we wanted to.</h2>
+        <div class="pillars">
+          <div class="pillar rise d1">
+            <h3>No account to coach</h3>
+            <p>The app doesn’t need to know who you are to run a practice. Nothing to sign into, nothing to leak.</p>
+          </div>
+          <div class="pillar rise d2">
+            <h3>Local by default</h3>
+            <p>Fully-local mode makes no outbound requests. No telemetry, no beacons — auditable, and we invite the audit.</p>
+          </div>
+          <div class="pillar rise d3">
+            <h3>Encrypted backups</h3>
+            <p>AES-GCM with a passphrase only you hold. Your export, your key, your machine.</p>
+          </div>
+        </div>
+        <p class="lede rise d4" style="margin-top:40px;font-size:26px;">Membership billing verifies a signed status token — never your clients, programs, or session logs.</p>
+        <div class="pagefoot"><span>Coachwright</span><span>№ 08</span></div>
+      </section>
+
+      <!-- 09 PRICING -->
+      <section class="slide porcelain" data-label="09 Pricing &amp; Hosting" data-notes="Free for three clients. Membership twenty-nine a month removes the cap. Hosting is optional at fifteen. Self-host the sync relay for free. Companion stays free for clients.">
+        <div class="eyebrow rise">08 — Pricing &amp; Hosting</div>
+        <h2 class="disp rise d1" style="font-size:64px;margin:16px 0 8px;">Free to start. Flat when you grow. Hosting optional.</h2>
+        <p class="lede rise d1" style="font-size:24px;margin:0 0 36px;">Pick how your data moves — or choose to let it not move at all.</p>
+        <div class="panel-grid cols-3" style="margin-bottom:36px;">
+          <div class="panel rise d1">
+            <div class="label">Free</div>
+            <div class="stat">$0</div>
+            <p>Every feature, up to 3 active clients. Indefinitely. No card.</p>
+          </div>
+          <div class="panel featured rise d2">
+            <div class="label">Membership</div>
+            <div class="stat">$29<span style="font-size:28px;opacity:0.55;">/mo</span></div>
+            <p>Unlimited clients. Cancel in Stripe’s portal — we never see a card number.</p>
+          </div>
+          <div class="panel accent rise d3">
+            <div class="label">Our hosting — optional</div>
+            <div class="stat">$15<span style="font-size:28px;opacity:0.7;">/mo</span></div>
+            <p>Managed sync relay. Independent of Membership. Self-host stays free.</p>
+          </div>
+        </div>
+        <div class="steps rise d4">
+          <div class="step"><div class="n">01</div><p>Sync devices over local Wi‑Fi</p></div>
+          <div class="step"><div class="n">02</div><p>Hand sealed files back and forth</p></div>
+          <div class="step"><div class="n">03</div><p>Give clients the offline Companion</p></div>
+          <div class="step"><div class="n">04</div><p>Or just tell the client — no app required</p></div>
+        </div>
+        <div class="pagefoot"><span>Coachwright</span><span>№ 09</span></div>
+      </section>
+
+      <!-- 10 ROADMAP -->
+      <section class="slide ink" data-label="10 Roadmap" data-notes="Shipping: desktop Windows and Mac, Companion PWA. On the way: Android. Honest about iOS — not planned yet. Membership billing is code-complete; live Stripe keys and relay deploy still need Caleb.">
+        <div class="eyebrow rise">09 — Roadmap</div>
+        <div class="panel-grid cols-3" style="flex:1;align-content:center;">
+          <div class="panel rise d1">
+            <div class="label">Shipping now</div>
+            <h3 class="disp" style="font-size:44px;margin:12px 0 16px;">Desktop + Companion</h3>
+            <p>Windows &amp; Mac workstation. Companion PWA for clients — free, offline, no account.</p>
+          </div>
+          <div class="panel rise d2">
+            <div class="label">On the way</div>
+            <h3 class="disp" style="font-size:44px;margin:12px 0 16px;">Android app</h3>
+            <p>Capacitor-based mobile client for coaches, syncing with the desktop app.</p>
+          </div>
+          <div class="panel rise d3">
+            <div class="label">Alongside hosting</div>
+            <h3 class="disp" style="font-size:44px;margin:12px 0 16px;">Managed relay</h3>
+            <p>Optional cloud sync we run for you. Self-host remains free forever.</p>
+          </div>
+        </div>
+        <p class="lede rise d4" style="font-size:24px;">Honest about scope: <strong style="color:var(--porcelain);">an iOS app is not planned yet.</strong> No in-app purchases inside a tier.</p>
+        <div class="pagefoot"><span>Coachwright</span><span>№ 10</span></div>
+      </section>
+
+      <!-- 11 CLOSE -->
+      <section class="slide jade" data-label="11 Close" data-notes="Coachwright is for coaches who want their software to feel like an instrument, not a dashboard. Free for three. Twenty-nine a month when the roster grows. Local-first, private, flat.">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div class="brand-row rise">
+            <div class="mark on-dark" aria-hidden="true">
+              <svg viewBox="0 0 100 100"><path d="M 86.4 29 A 42 42 0 1 0 86.4 71 L 67.3 60 A 20 20 0 1 1 67.3 40 Z" fill="#171A1E"/></svg>
+            </div>
+            <span class="word">Coachwright</span>
+          </div>
+          <span class="eyebrow rise d1">The Close</span>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;justify-content:center;">
+          <div class="hero-rule rise d1" style="background:var(--ember);"></div>
+          <h2 class="disp rise d2" style="font-size:120px;max-width:1600px;margin:0;">Build the practice.<br>Keep the data.<br>Pay a flat rate.</h2>
+        </div>
+        <div class="rise d3" style="display:flex;justify-content:space-between;align-items:flex-end;">
+          <div>
+            <div class="mono disp" style="font-size:72px;">Free → $29/mo</div>
+            <div class="eyebrow" style="margin-top:16px;color:rgba(247,246,243,0.55);">Local-first · Private · Flat</div>
+          </div>
+          <div style="text-align:right;font-family:var(--mono);font-size:20px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(247,246,243,0.55);">
+            <div>coachwright.app</div>
+            <div style="margin-top:8px;">hello@coachwright.app</div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+  <div class="nav">
+    <button type="button" id="prevBtn" aria-label="Previous slide">← Prev</button>
+    <span id="counter">01 / 11</span>
+    <button type="button" id="nextBtn" aria-label="Next slide">Next →</button>
+    <span style="opacity:0.45;">← → or click</span>
+  </div>
+</div>
+<script>
+(function () {
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const stage = document.getElementById('stage');
+  const wrap = document.getElementById('stageWrap');
+  const counter = document.getElementById('counter');
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  let i = 0;
+
+  function fit() {
+    const r = wrap.getBoundingClientRect();
+    const s = Math.min(r.width / 1920, r.height / 1080);
+    stage.style.transform = 'scale(' + s + ')';
+  }
+
+  function show(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((el, idx) => el.classList.toggle('active', idx === i));
+    counter.textContent = String(i + 1).padStart(2, '0') + ' / ' + String(slides.length).padStart(2, '0');
+    prevBtn.disabled = i === 0;
+    nextBtn.disabled = i === slides.length - 1;
+    document.title = 'Coachwright — ' + (slides[i].dataset.label || '');
+  }
+
+  prevBtn.addEventListener('click', () => show(i - 1));
+  nextBtn.addEventListener('click', () => show(i + 1));
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); show(i + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End') show(slides.length - 1);
+  });
+  window.addEventListener('resize', fit);
+  fit();
+  show(0);
+})();
 </script>
 </body>
 </html>

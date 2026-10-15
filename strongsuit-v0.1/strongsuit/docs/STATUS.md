@@ -1,7 +1,7 @@
 # STATUS — read this first
 
-**Last updated:** 2026-08-14 (S21, Claude Sonnet 5)
-**Health:** 50 test files · 735 tests green · `npx tsc -b --force` clean (0 errors) · `sync-server` typechecks clean
+**Last updated:** 2026-10-14 (S22, Cursor Cloud Agent)
+**Health:** 50 test files · 735 tests green (last measured S21) · `npx tsc -b --force` clean last measured S21 · this session touched marketing HTML only
 
 > ⚠️ **The `tsc` command above is not a typo — read `AGENTS.md` §4 before you trust any prior "clean
 > typecheck" claim, including ones in older session files.** The root `tsc --noEmit` invocation silently
@@ -17,8 +17,8 @@
 
 | | |
 |---|---|
-| **Last worked on** | S21: found and fixed the `tsc --noEmit` false-negative (see banner above) and everything it had been hiding. Also live-verified S16–S20's real work (exercise library import, seed versioning, food logging, roster summary, branding gate) in-browser — it's all genuinely working now. |
-| **Safe to pick up** | Anything in `ROADMAP.md`. Tree is clean, tests green, typecheck **actually** clean this time. |
+| **Last worked on** | S22: complete redesign of root `Coachwright Pitch Deck.dc.html` (Ironworks visuals, membership-era copy). Logo reference sheet untouched. App code untouched. |
+| **Safe to pick up** | Anything in `ROADMAP.md`. Pitch-deck PR is draft marketing HTML only. |
 | **Half-done / in flight** | Nothing mid-edit. |
 | **Don't touch without reading first** | `AGENTS.md` §4's `tsc -b` note — this changes the session-start/session-end commands for every tool, permanently. Also see DEBT-68/69 below, both small and freshly found, not yet acted on. |
 | **Blocked on Caleb (no AI can do these)** | Real Stripe keys · deploy the relay domain · run the Windows installer on real hardware · a Mac to build on · real-phone Film Room footage |
