@@ -97,7 +97,7 @@ export default function DashboardPage() {
                 {t('dashboard.todayLede')}
               </p>
             </div>
-            <div className="h-1 w-16 shrink-0 rounded-full bg-ember-500 md:mb-2" aria-hidden />
+            <div className="hidden h-1 w-16 shrink-0 rounded-full bg-ember-500 md:mb-2 md:block" aria-hidden />
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
             <Button variant="primary" size="sm" onClick={() => setSelectClientOpen(true)}>

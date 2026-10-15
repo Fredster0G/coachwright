@@ -9,12 +9,11 @@
 // already trademarked by another company).
 
 export const APP_NAME = 'Coachwright'
-export const APP_TAGLINE = 'Coaching workstation'
+/** Market-facing category line — S15 membership pivot: we're a SaaS product
+ *  with a free tier, not a pay-once "workstation you own" pitch. */
+export const APP_TAGLINE = 'Coaching platform'
 // S15: free tier (≤3 clients) + Coachwright Membership ($29/mo) replaced the
-// one-time-purchase model — see docs/MEMBERSHIP.md. Not referenced by any
-// component yet (grep before assuming otherwise if that's changed), but kept
-// accurate since new landing/about copy is exactly the kind of place a
-// stale constant like this quietly resurfaces.
+// one-time-purchase model — see docs/MEMBERSHIP.md.
 export const APP_ONELINER = 'Free for up to 3 clients. $29/mo, flat, for the rest of your practice.'
 
 /** Backup file extension shown to the trainer (new canonical + legacy accepted). */

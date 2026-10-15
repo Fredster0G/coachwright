@@ -4,11 +4,12 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import {
   LayoutDashboard, Users, ClipboardList, Dumbbell, Clapperboard,
   CalendarDays, Wallet, BarChart3, Settings, ShieldCheck, ShieldAlert, RadioTower,
-  UserCog, UserPlus, Trophy, Menu, X, FlaskConical, Building2
+  UserCog, UserPlus, Trophy, Menu, X, FlaskConical, Building2, Sparkles
 } from 'lucide-react'
 import { trainerRepo } from '@/db/repo'
 import { daysSince } from '@/lib/core'
 import { APP_TAGLINE } from '@/lib/brand'
+import { FREE_TIER_CLIENT_LIMIT } from '@/lib/membership'
 import { BrandMark } from './brand/Logomark'
 import { useMenuNavigation } from './useMenuNavigation'
 import { Toaster, LogoSpinner } from '@/design'
@@ -117,6 +118,10 @@ export default function Shell() {
     (!item.module || !hidden.has(item.module)) && (!item.requiresMultiSeat || cap.multiSeat),
   )
   const logoVariant = trainer.sidebarLogoVariant ?? 'horizontal'
+  // Grandfathered independent/studio editions count as unlocked (same gate as MembershipCard).
+  const isMember = !!trainer.membershipActive
+    || trainer.edition === 'independent'
+    || trainer.edition === 'studio'
 
   return (
     <div className="relative flex h-full">
@@ -167,6 +172,21 @@ export default function Shell() {
           ))}
         </nav>
         <div className="border-t border-rail-line p-2">
+          {/* SaaS plan chip — Free vs Membership is the product model (S15). */}
+          <NavLink
+            to="/settings"
+            className="mb-1 flex items-center justify-between gap-2 rounded-ctl border border-rail-line bg-rail-hover px-3 py-2 text-xs transition-colors hover:border-rail-spine/50"
+          >
+            <span className="flex items-center gap-1.5 font-mono uppercase tracking-[0.12em] text-rail-muted">
+              <Sparkles size={12} className={isMember ? 'text-rail-spine' : 'text-ember-500'} />
+              {isMember
+                ? t('nav.planMember')
+                : t('nav.planFree', { limit: FREE_TIER_CLIENT_LIMIT })}
+            </span>
+            {!isMember && (
+              <span className="font-medium text-rail-spine">{t('nav.planUpgrade')}</span>
+            )}
+          </NavLink>
           <BackupHealth />
           <NavLink
             to="/settings"
