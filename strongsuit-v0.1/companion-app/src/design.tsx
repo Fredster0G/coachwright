@@ -12,9 +12,9 @@ import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react
 export function Button({ variant = 'secondary', className = '', ...props }: ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: 'primary' | 'secondary' | 'ghost'
 }) {
-  const base = 'inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-ctl px-4 py-2 text-sm font-medium transition-colors active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none'
+  const base = 'inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-ctl px-4 py-2 text-sm font-medium transition-[color,background-color,transform,box-shadow] duration-200 ease-[cubic-bezier(0.2,0,0,1)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none'
   const variants = {
-    primary: 'bg-verde-600 text-white hover:bg-verde-700',
+    primary: 'bg-verde-600 text-white hover:bg-verde-700 shadow-raise',
     secondary: 'border border-line bg-surface text-ink hover:bg-surface2',
     ghost: 'text-muted hover:text-ink hover:bg-surface2',
   }
@@ -22,7 +22,7 @@ export function Button({ variant = 'secondary', className = '', ...props }: Butt
 }
 
 export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-card border border-line bg-surface p-4 shadow-[0_1px_2px_rgb(0_0_0/0.04)] ${className}`}>{children}</div>
+  return <div className={`rounded-card border border-line bg-surface/90 p-4 shadow-raise ${className}`}>{children}</div>
 }
 
 export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
@@ -37,10 +37,13 @@ export function Label({ children }: { children: ReactNode }) {
  *  title, optional right-side action. */
 export function PageHeader({ eyebrow, title, action }: { eyebrow?: string; title: string; action?: ReactNode }) {
   return (
-    <div className="flex items-end justify-between gap-3">
+    <div className="flex items-end justify-between gap-3 animate-rise-in">
       <div>
-        {eyebrow && <p className="text-xs text-muted">{eyebrow}</p>}
-        <h1 className="font-display text-xl font-semibold tracking-tight text-ink">{title}</h1>
+        {eyebrow && (
+          <p className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-faint">{eyebrow}</p>
+        )}
+        <h1 className="mt-0.5 font-display text-xl font-extrabold tracking-tight text-ink">{title}</h1>
+        <div aria-hidden className="mt-2 h-0.5 w-8 rounded-full bg-ember-500/80" />
       </div>
       {action}
     </div>

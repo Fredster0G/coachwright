@@ -17,9 +17,9 @@
 
 | | |
 |---|---|
-| **Last worked on** | S23: app personality — dark workshop rail, chalk-wash canvas, Today hero, stronger surfaces. Logo unchanged. Verified live (Playwright screenshots + walkthrough). |
-| **Safe to pick up** | Deeper page-level personality (Clients/Programs/Film Room), or anything in `ROADMAP.md`. |
-| **Half-done / in flight** | Nothing mid-edit. Pitch-deck PR #2 was a misread of an earlier ask — ignore unless Caleb wants it. |
+| **Last worked on** | S24: retargeted S23 personality to membership SaaS framing (S15 notes / ROADMAP §0). Plan chip in rail, copy no longer “own forever.” Logo still unchanged. |
+| **Safe to pick up** | PRODUCT_OVERVIEW one-liners still say “software you own” — marketing refresh. Or deeper page personality / ROADMAP. |
+| **Half-done / in flight** | Nothing mid-edit. |
 | **Don't touch without reading first** | `AGENTS.md` §4's `tsc -b` note — this changes the session-start/session-end commands for every tool, permanently. Also see DEBT-68/69 below, both small and freshly found, not yet acted on. |
 | **Blocked on Caleb (no AI can do these)** | Real Stripe keys · deploy the relay domain · run the Windows installer on real hardware · a Mac to build on · real-phone Film Room footage |
 

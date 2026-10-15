@@ -48,6 +48,14 @@ export default {
           '0%': { opacity: '0', transform: 'translateY(10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        'float-soft': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-4px)' },
+        },
+        'ember-pulse': {
+          '0%, 100%': { opacity: '0.55', transform: 'scaleX(1)' },
+          '50%': { opacity: '1', transform: 'scaleX(1.08)' },
+        },
       },
       animation: {
         'slide-left': 'slide-left 0.22s cubic-bezier(0.16, 1, 0.3, 1) both',
@@ -57,6 +65,8 @@ export default {
         'cw-spin': 'cw-spin 1s linear infinite',
         'cw-bar': 'cw-bar 1.4s cubic-bezier(0.2,0,0,1) infinite',
         'rise-in': 'rise-in 0.45s cubic-bezier(0.2,0,0,1) both',
+        'float-soft': 'float-soft 3.2s cubic-bezier(0.2,0,0,1) infinite',
+        'ember-pulse': 'ember-pulse 2.4s cubic-bezier(0.2,0,0,1) infinite',
       },
       fontSize: { '2xs': ['12px','16px'], xs: ['13px','18px'], sm: ['14px','21px'], base: ['16px','24px'], lg: ['18px','26px'], xl: ['22px','28px'], '2xl': ['28px','34px'], '3xl': ['36px','42px'] },
     },

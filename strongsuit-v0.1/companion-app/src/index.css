@@ -12,12 +12,21 @@
   --signal-red-600: #C2362B;
   --surface: var(--bone-0); --surface-2: var(--bone-50);
   --ink: var(--iron-950); --muted: var(--iron-700); --faint: var(--iron-400); --line: var(--iron-200);
+  --sharp: cubic-bezier(0.2, 0, 0, 1);
+  --nav: #14181C;
+  --nav-lift: #1C2228;
+  --nav-text: #F7F6F3;
+  --nav-muted: rgb(247 246 243 / 58%);
+  --nav-faint: rgb(247 246 243 / 38%);
+  --nav-line: rgb(247 246 243 / 12%);
+  --nav-spine: #2E8A72;
 }
 .dark {
   --bone-50: #101317; --bone-0: #171B20;
   --iron-950: #EDEFF2; --iron-700: #B7BEC7; --iron-400: #7E868F; --iron-200: #2A3037;
   --verde-600: #2E8A72; --verde-700: #37A186; --verde-100: #173229;
   --surface: #171B20; --surface-2: #101317;
+  --nav-spine: #37A186;
 }
 
 html, body, #root { height: 100%; }
@@ -27,8 +36,95 @@ body {
 }
 .font-mono, .tnum { font-variant-numeric: tabular-nums; }
 
+@layer utilities {
+  /* Phone canvas — chalk wash + steel corner glow, matching the coach desk */
+  .companion-canvas {
+    background-color: var(--surface-2);
+    background-image:
+      radial-gradient(ellipse 90% 55% at 0% -10%, rgb(21 94 78 / 10%), transparent 55%),
+      radial-gradient(ellipse 70% 45% at 100% 0%, rgb(217 115 13 / 7%), transparent 50%),
+      linear-gradient(180deg, var(--surface-2), var(--surface-2));
+  }
+  .companion-grain {
+    position: relative;
+  }
+  .companion-grain::before {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 160px;
+    mix-blend-mode: multiply;
+  }
+  .dark .companion-grain::before { opacity: 0.055; mix-blend-mode: overlay; }
+  .companion-grain > * { position: relative; z-index: 1; }
+
+  .companion-nav {
+    background:
+      radial-gradient(ellipse 120% 80% at 50% 120%, rgb(46 138 114 / 28%), transparent 55%),
+      linear-gradient(180deg, var(--nav-lift) 0%, var(--nav) 55%, #101417 100%);
+    color: var(--nav-text);
+    border-color: var(--nav-line);
+  }
+
+  .stagger-in > * {
+    animation: rise-in 0.48s var(--sharp) both;
+  }
+  .stagger-in > *:nth-child(1) { animation-delay: 0.02s; }
+  .stagger-in > *:nth-child(2) { animation-delay: 0.07s; }
+  .stagger-in > *:nth-child(3) { animation-delay: 0.12s; }
+  .stagger-in > *:nth-child(4) { animation-delay: 0.17s; }
+  .stagger-in > *:nth-child(5) { animation-delay: 0.22s; }
+  .stagger-in > *:nth-child(6) { animation-delay: 0.27s; }
+  .stagger-in > *:nth-child(7) { animation-delay: 0.32s; }
+  .stagger-in > *:nth-child(8) { animation-delay: 0.37s; }
+
+  .hover-lift {
+    transition: transform 0.28s var(--sharp), border-color 0.28s var(--sharp), box-shadow 0.28s var(--sharp);
+  }
+  .hover-lift:active {
+    transform: translateY(1px) scale(0.985);
+  }
+  @media (hover: hover) {
+    .hover-lift:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 28px rgb(21 94 78 / 12%);
+    }
+  }
+
+  .ember-pulse {
+    animation: ember-pulse 2.4s var(--sharp) infinite;
+  }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ember-pulse {
+  0%, 100% { opacity: 0.55; transform: scaleX(1); }
+  50% { opacity: 1; transform: scaleX(1.08); }
+}
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes tab-pop {
+  0% { transform: scale(0.92); opacity: 0.6; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
 :focus-visible { outline: 2px solid var(--verde-600); outline-offset: 2px; border-radius: 2px; }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    transition-delay: 0ms !important;
+  }
 }

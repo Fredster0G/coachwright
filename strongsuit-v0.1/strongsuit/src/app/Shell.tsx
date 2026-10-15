@@ -52,10 +52,10 @@ const NAV_STUDIO: NavItem[] = [
 ]
 
 function navClass(isActive: boolean) {
-  return `relative flex items-center gap-2.5 rounded-ctl px-3 py-2 text-sm font-medium transition-colors ${
+  return `relative flex items-center gap-2.5 rounded-ctl px-3 py-2 text-sm font-medium transition-[color,background-color,transform] duration-200 ease-[cubic-bezier(0.2,0,0,1)] ${
     isActive
-      ? 'bg-rail-active text-rail-text before:absolute before:inset-y-1.5 before:start-0 before:w-[3px] before:rounded-full before:bg-rail-spine'
-      : 'text-rail-muted hover:bg-rail-hover hover:text-rail-text'
+      ? 'bg-rail-active text-rail-text before:absolute before:inset-y-1.5 before:start-0 before:w-[3px] before:rounded-full before:bg-rail-spine before:animate-ember-pulse'
+      : 'text-rail-muted hover:bg-rail-hover hover:text-rail-text hover:translate-x-0.5'
   }`
 }
 
@@ -152,7 +152,7 @@ export default function Shell() {
             <X size={20} />
           </button>
         </div>
-        <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 pb-2">
+        <nav className="stagger-in flex-1 space-y-0.5 overflow-y-auto px-2 pb-2">
           {coreItems.map(({ to, labelKey, icon: Icon, end }) => (
             <NavLink key={to} to={to} end={end} className={({ isActive }: { isActive: boolean }) => navClass(isActive)}>
               <Icon size={16} strokeWidth={1.5} />

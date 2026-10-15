@@ -1,7 +1,11 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Plus, ClipboardList, FileDown, CheckCircle2, Circle, PenLine, ChevronRight, ChevronDown } from 'lucide-react'
+import { format, subDays } from 'date-fns'
+import {
+  Plus, ClipboardList, FileDown, CheckCircle2, Circle, PenLine, ChevronRight, ChevronDown,
+  Clapperboard, CalendarDays, Wallet, FlaskConical, RadioTower, Dumbbell,
+} from 'lucide-react'
 import { clientsRepo, trainerRepo, programsRepo, logsRepo, checkInsRepo, paymentsRepo, automationRulesRepo } from '@/db/repo'
 import { fullName } from '@/lib/core'
 import { APP_NAME } from '@/lib/brand'
@@ -19,6 +23,15 @@ function ChecklistItem({ done, label, to }: { done: boolean; label: string; to: 
         : <Circle size={16} className="text-faint" />}
       <span className={done ? 'text-faint line-through' : 'text-ink'}>{label}</span>
     </Link>
+  )
+}
+
+function StatCell({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div className="min-w-0 rounded-card border border-line/70 bg-surface/70 px-3 py-3 shadow-raise">
+      <p className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-faint">{label}</p>
+      <p className="mt-1 font-display text-2xl font-extrabold tracking-tight text-ink tabular-nums">{value}</p>
+    </div>
   )
 }
 
@@ -73,13 +86,24 @@ export default function DashboardPage() {
   const ruleMap = new Map(rules.map(r => [r.id, r]))
 
   const shopName = trainer?.businessName?.trim() || trainer?.trainerName?.trim() || APP_NAME
+  const weekAgo = format(subDays(new Date(), 7), 'yyyy-MM-dd')
+  const sessionsWeek = logs.filter(l => l.date >= weekAgo).length
+
+  const launchpad = [
+    { to: '/film-room', label: t('dashboard.launchpadFilm'), hint: t('dashboard.launchpadFilmHint'), icon: Clapperboard },
+    { to: '/calendar', label: t('dashboard.launchpadCalendar'), hint: t('dashboard.launchpadCalendarHint'), icon: CalendarDays },
+    { to: '/business', label: t('dashboard.launchpadBusiness'), hint: t('dashboard.launchpadBusinessHint'), icon: Wallet },
+    { to: '/science', label: t('dashboard.launchpadScience'), hint: t('dashboard.launchpadScienceHint'), icon: FlaskConical },
+    { to: '/sync', label: t('dashboard.launchpadCompanion'), hint: t('dashboard.launchpadCompanionHint'), icon: RadioTower },
+    { to: '/exercises', label: t('dashboard.launchpadLibrary'), hint: t('dashboard.launchpadLibraryHint'), icon: Dumbbell },
+  ] as const
 
   return (
-    <div className="space-y-9">
-      <header className="relative overflow-hidden rounded-card border border-line/80 bg-surface/85 shadow-bench">
+    <div className="space-y-8">
+      <header className="relative overflow-hidden rounded-card border border-line/80 bg-surface/85 shadow-bench animate-rise-in">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_70%_at_100%_0%,rgb(21_94_78/10%),transparent_55%),radial-gradient(ellipse_50%_40%_at_0%_100%,rgb(217_115_13/8%),transparent_50%)]"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_70%_at_100%_0%,rgb(21_94_78/12%),transparent_55%),radial-gradient(ellipse_50%_40%_at_0%_100%,rgb(217_115_13/9%),transparent_50%)]"
         />
         <div className="relative px-5 py-6 md:px-7 md:py-7">
           <p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-faint">
@@ -97,7 +121,10 @@ export default function DashboardPage() {
                 {t('dashboard.todayLede')}
               </p>
             </div>
-            <div className="hidden h-1 w-16 shrink-0 rounded-full bg-ember-500 md:mb-2 md:block" aria-hidden />
+            <div
+              aria-hidden
+              className="hidden h-1.5 w-20 shrink-0 rounded-full bg-ember-500 ember-pulse md:mb-2 md:block"
+            />
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
             <Button variant="primary" size="sm" onClick={() => setSelectClientOpen(true)}>
@@ -110,8 +137,15 @@ export default function DashboardPage() {
         </div>
       </header>
 
+      <div className="stagger-in grid grid-cols-2 gap-2.5 md:grid-cols-4">
+        <StatCell label={t('dashboard.statClients')} value={clients.length} />
+        <StatCell label={t('dashboard.statPrograms')} value={programs.length} />
+        <StatCell label={t('dashboard.statSessionsWeek')} value={sessionsWeek} />
+        <StatCell label={t('dashboard.statAttention')} value={attention.length} />
+      </div>
+
       {!setupDone && (
-        <Card>
+        <Card className="animate-rise-in">
           <p className="mb-1 font-display text-base font-semibold">{t('dashboard.setup.title')}</p>
           <p className="mb-3 text-xs text-muted">{t('dashboard.setup.body', { app: APP_NAME })}</p>
           <div className="space-y-0.5">
@@ -121,6 +155,27 @@ export default function DashboardPage() {
           </div>
         </Card>
       )}
+
+      <div>
+        <SectionHeader title={t('dashboard.launchpad')} />
+        <div className="stagger-in grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+          {launchpad.map(({ to, label, hint, icon: Icon }) => (
+            <Link
+              key={to}
+              to={to}
+              className="hover-lift group flex items-start gap-3 rounded-card border border-line/80 bg-surface/80 p-3.5 shadow-raise"
+            >
+              <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-ctl bg-verde-100 text-verde-700 transition-colors group-hover:bg-verde-600 group-hover:text-white">
+                <Icon size={18} strokeWidth={1.75} />
+              </span>
+              <span className="min-w-0">
+                <span className="block font-display text-sm font-semibold tracking-tight text-ink">{label}</span>
+                <span className="mt-0.5 block text-2xs leading-snug text-muted">{hint}</span>
+              </span>
+            </Link>
+          ))}
+        </div>
+      </div>
 
       {hasClient && <RosterSummaryCard />}
 
@@ -134,7 +189,7 @@ export default function DashboardPage() {
         ) : attention.length === 0 ? (
           <Card className="text-sm text-muted">{t('dashboard.allClear')}</Card>
         ) : (
-          <div className="space-y-2">
+          <div className="stagger-in space-y-2">
             {attention.map((item, i) => {
               const c = clientMap.get(item.clientId)
               if (!c) return null
@@ -142,7 +197,7 @@ export default function DashboardPage() {
               const key = `${item.clientId}-${item.ruleId}-${i}`
               const isExpanded = expandedKey === key
               return (
-                <Card key={key} className="transition-colors hover:border-verde-600/40">
+                <Card key={key} className="hover-lift transition-colors hover:border-verde-600/40">
                   <div className="flex items-center justify-between gap-2">
                     <Link to={`/clients/${c.id}`} className="text-sm font-medium hover:underline">{fullName(c)}</Link>
                     <div className="flex items-center gap-2">
