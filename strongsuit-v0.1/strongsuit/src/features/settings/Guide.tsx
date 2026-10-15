@@ -52,7 +52,7 @@ export default function Guide() {
       <div>
         <Section icon={<Rocket size={16} />} title="The big idea (read this first)" defaultOpen>
           <p>
-            {APP_NAME} is a local-first coaching workstation. There is no required account and no forced login — free covers up to 3 clients, genuinely, no trial clock. Coachwright Membership ($29/mo) removes that cap. Whichever tier you're on, every client, program, and session lives in this browser on this device by default, which is why your data stays private either way.
+            {APP_NAME} is a coaching platform with a free tier (up to 3 clients, no trial clock) and Coachwright Membership at $29/mo for unlimited clients — flat, no per-client tax. Coaching data still lives on this device by default, so privacy is a product feature, not a pricing tier.
           </p>
           <p>
             The one trade-off of staying fully local: <B>you are responsible for backups</B>, and there’s no real-time link to a client’s phone. That’s one click for backups (see “Back up &amp; move machines”) — do it weekly and you’re safe. If you want live sync or messaging instead, that’s an optional add-on, never a requirement — see “Cloud sync” below.

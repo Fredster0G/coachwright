@@ -127,14 +127,18 @@ export const BRAND_MARK_VARIANTS: { key: BrandMarkVariant; label: string; hint: 
   { key: 'lockup', label: 'Full lockup', hint: 'Mark, wordmark & tagline, side by side' },
 ]
 
-/** Renders whichever brand-mark variant a coach picked for the sidebar header. */
-export function BrandMark({ variant, animated = false }: { variant: BrandMarkVariant; animated?: boolean }) {
+/** Renders whichever brand-mark variant a coach picked for the sidebar header.
+ *  Pass `tone` when the mark sits on a fixed-color surface (the workshop rail
+ *  is always dark — theme-auto ink/porcelain would invert against it). */
+export function BrandMark({ variant, animated = false, tone }: {
+  variant: BrandMarkVariant; animated?: boolean; tone?: Tone
+}) {
   switch (variant) {
-    case 'mark': return <Logomark size={28} animated={animated} />
-    case 'monogram': return <Logomark size={36} animated={animated} />
-    case 'cw': return <MonogramCW size={26} />
-    case 'lockup': return <Lockup markSize={34} animated={animated} />
+    case 'mark': return <Logomark size={28} animated={animated} tone={tone} />
+    case 'monogram': return <Logomark size={36} animated={animated} tone={tone} />
+    case 'cw': return <MonogramCW size={26} tone={tone} />
+    case 'lockup': return <Lockup markSize={34} animated={animated} tone={tone} showTagline />
     case 'horizontal':
-    default: return <HorizontalLockup markSize={26} animated={animated} />
+    default: return <HorizontalLockup markSize={28} animated={animated} tone={tone} />
   }
 }

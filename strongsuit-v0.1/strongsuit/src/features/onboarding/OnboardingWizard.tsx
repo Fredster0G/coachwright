@@ -95,15 +95,15 @@ export default function OnboardingWizard({ trainer }: Props) {
   }
 
   return (
-    <div className="min-h-screen bg-surface2 flex items-center justify-center p-6">
-      <Card className="max-w-xl w-full p-8 shadow-2xl border-line">
+    <div className="workshop-canvas workshop-grain flex min-h-screen items-center justify-center p-6">
+      <Card className="w-full max-w-xl border-line p-8 shadow-bench">
 
         {step === 1 && (
           <div className="text-center space-y-6">
             <Logomark size={48} animated className="mx-auto" />
             <h1 className="text-3xl font-display font-bold text-ink">Welcome to {APP_NAME}</h1>
             <p className="text-muted text-lg">
-              The professional workshop instrument for coaches. Let's get your workspace set up in about 60 seconds.
+              The coaching platform built for how you actually work. Free for up to 3 clients — Membership unlocks the rest. About 60 seconds to set up.
             </p>
             <div className="pt-4">
               <Button variant="primary" className="w-full text-lg py-3" onClick={() => setStep(2)}>
@@ -194,8 +194,10 @@ export default function OnboardingWizard({ trainer }: Props) {
         {step === 4 && (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-ink mb-1">Data Ownership</h2>
-              <p className="text-faint text-sm">{APP_NAME} is local-first software — you choose what "the cloud" means, if anything.</p>
+              <h2 className="text-2xl font-bold text-ink mb-1">How your data works</h2>
+              <p className="text-faint text-sm">
+                {APP_NAME} is a membership product with a privacy default: coaching data stays on this device unless you turn sync on.
+              </p>
             </div>
 
             <div className="bg-amber-50 dark:bg-amber-950/20 p-5 rounded-xl border border-amber-200 dark:border-amber-900/50">
@@ -204,12 +206,12 @@ export default function OnboardingWizard({ trainer }: Props) {
                   <Save size={24} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-amber-900 dark:text-amber-500 mb-1">Your data lives on your device by default</h3>
+                  <h3 className="font-semibold text-amber-900 dark:text-amber-500 mb-1">Local by default. Sync when you want it.</h3>
                   <p className="text-amber-800/80 dark:text-amber-500/80 text-sm leading-relaxed mb-4">
-                    All client data, programs, and history save directly on this device. Nothing leaves it unless you turn on syncing — from Settings you can run your own free sync relay, or have us host one for $15/mo. Either way it stays end-to-end encrypted; we can't read it.
+                    Clients, programs, and sessions save on this device first — so the gym floor still works with bad wifi. When you want devices linked, turn on managed hosting ($15/mo) from Settings; sync stays end-to-end encrypted.
                   </p>
                   <p className="text-amber-800/80 dark:text-amber-500/80 text-sm font-semibold">
-                    You're responsible for your own backups either way. We'll remind you to export a backup file every 7 days.
+                    Export a backup weekly either way — we&apos;ll remind you every 7 days.
                   </p>
                 </div>
               </div>

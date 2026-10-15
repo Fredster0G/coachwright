@@ -26,7 +26,7 @@ export function BootScreen({ stage, progress = 0, fadingOut = false, error = nul
 
   if (error) {
     return (
-      <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-surface2 px-6">
+      <div className="workshop-canvas workshop-grain absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 px-6">
         <Logomark size={56} />
         <div className="max-w-sm text-center">
           <div className="font-display text-lg font-bold text-ink">{t('boot.failedTitle', { app: APP_NAME })}</div>
@@ -43,21 +43,21 @@ export function BootScreen({ stage, progress = 0, fadingOut = false, error = nul
 
   return (
     <div
-      className={`absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-surface2 ${fadingOut ? 'animate-[fade-out_0.35s_ease-in_both]' : ''}`}
+      className={`workshop-canvas workshop-grain absolute inset-0 z-50 flex flex-col items-center justify-center gap-5 ${fadingOut ? 'animate-[fade-out_0.35s_ease-in_both]' : ''}`}
     >
       {stage === 'progress' ? (
         <>
-          <Logomark size={56} />
-          <div className="h-1 w-40 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
+          <Logomark size={64} />
+          <div className="h-1 w-44 overflow-hidden rounded-full bg-line" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100}>
             <div className="h-full bg-ink transition-[width] duration-150 ease-out" style={{ width: `${progress}%` }} />
           </div>
         </>
       ) : (
         <>
-          <Logomark size={56} animated />
+          <Logomark size={64} animated />
           <div className="text-center">
-            <div className="font-display text-2xl font-bold tracking-tight text-ink animate-cw-word">{APP_NAME}</div>
-            <div className="font-mono text-2xs uppercase tracking-wide text-faint animate-cw-fade mt-1">{APP_TAGLINE}</div>
+            <div className="font-display text-3xl font-extrabold tracking-[-0.04em] text-ink animate-cw-word">{APP_NAME}</div>
+            <div className="mt-2 font-mono text-[10px] uppercase tracking-[0.18em] text-faint animate-cw-fade">{APP_TAGLINE}</div>
           </div>
         </>
       )}

@@ -1,7 +1,7 @@
 # STATUS — read this first
 
-**Last updated:** 2026-08-14 (S21, Claude Sonnet 5)
-**Health:** 50 test files · 735 tests green · `npx tsc -b --force` clean (0 errors) · `sync-server` typechecks clean
+**Last updated:** 2026-10-15 (S26, Cursor Cloud Agent)
+**Health:** 50 test files · 735 tests green (last full run S21) · `npx tsc -b --force` clean this session · AI-generated emblem rasters on coach + Companion
 
 > ⚠️ **The `tsc` command above is not a typo — read `AGENTS.md` §4 before you trust any prior "clean
 > typecheck" claim, including ones in older session files.** The root `tsc --noEmit` invocation silently
@@ -17,8 +17,8 @@
 
 | | |
 |---|---|
-| **Last worked on** | S21: found and fixed the `tsc --noEmit` false-negative (see banner above) and everything it had been hiding. Also live-verified S16–S20's real work (exercise library import, seed versioning, food logging, roster summary, branding gate) in-browser — it's all genuinely working now. |
-| **Safe to pick up** | Anything in `ROADMAP.md`. Tree is clean, tests green, typecheck **actually** clean this time. |
+| **Last worked on** | S26: swapped hand SVG emblems for AI-generated `public/emblems/*.webp` (Cursor image gen — no ChatGPT API in env). Logo unchanged. |
+| **Safe to pick up** | Drop real ChatGPT/DALL·E exports into `public/emblems/` to replace; or emblem language on Clients/Programs/Film Room. |
 | **Half-done / in flight** | Nothing mid-edit. |
 | **Don't touch without reading first** | `AGENTS.md` §4's `tsc -b` note — this changes the session-start/session-end commands for every tool, permanently. Also see DEBT-68/69 below, both small and freshly found, not yet acted on. |
 | **Blocked on Caleb (no AI can do these)** | Real Stripe keys · deploy the relay domain · run the Windows installer on real hardware · a Mac to build on · real-phone Film Room footage |

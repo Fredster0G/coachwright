@@ -3,18 +3,23 @@ import { initials } from '@/lib/core'
 
 export function Card({ children, className = '', pad = true }: { children: ReactNode; className?: string; pad?: boolean }) {
   return (
-    <div className={`rounded-card border border-line bg-surface shadow-raise ${pad ? 'p-4' : ''} ${className}`}>
+    <div className={`rounded-card border border-line/90 bg-surface/90 shadow-bench ${pad ? 'p-4' : ''} ${className}`}>
       {children}
     </div>
   )
 }
 
 /** Signature element #1 (spec §7.4): section header over the Ledger Rule. */
-export function SectionHeader({ title, action }: { title: string; action?: ReactNode }) {
+export function SectionHeader({ title, action, eyebrow }: { title: string; action?: ReactNode; eyebrow?: string }) {
   return (
-    <div className="mb-3">
-      <div className="mb-2 flex items-end justify-between">
-        <h2 className="font-display text-lg font-semibold tracking-tight text-ink">{title}</h2>
+    <div className="mb-4">
+      <div className="mb-2 flex items-end justify-between gap-3">
+        <div className="min-w-0">
+          {eyebrow && (
+            <p className="mb-1 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-faint">{eyebrow}</p>
+          )}
+          <h2 className="font-display text-xl font-extrabold tracking-[-0.03em] text-ink">{title}</h2>
+        </div>
         {action}
       </div>
       <div className="ledger-rule h-[5px]" aria-hidden />
@@ -24,10 +29,10 @@ export function SectionHeader({ title, action }: { title: string; action?: React
 
 export function EmptyState({ icon, title, body, action }: { icon?: ReactNode; title: string; body: string; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-card border border-dashed border-line px-6 py-12 text-center">
+    <div className="flex flex-col items-center justify-center rounded-card border border-dashed border-line bg-surface/50 px-6 py-14 text-center">
       {icon && <div className="mb-3 text-faint">{icon}</div>}
-      <p className="font-display text-base font-semibold text-ink">{title}</p>
-      <p className="mt-1 max-w-sm text-sm text-muted">{body}</p>
+      <p className="font-display text-base font-bold tracking-tight text-ink">{title}</p>
+      <p className="mt-1.5 max-w-sm text-sm leading-relaxed text-muted">{body}</p>
       {action && <div className="mt-4">{action}</div>}
     </div>
   )

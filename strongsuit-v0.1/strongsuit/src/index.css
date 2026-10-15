@@ -14,6 +14,19 @@
   --surface:var(--bone-0); --surface-2:var(--bone-50);
   --ink:var(--iron-950); --muted:var(--iron-700); --faint:var(--iron-400); --line:var(--iron-200);
 
+  /* Workshop rail — stays dark in both themes so the brand strip reads as a
+     machined instrument edge, not a theme-flipping chrome panel. */
+  --rail:#14181C;
+  --rail-lift:#1C2228;
+  --rail-text:#F7F6F3;
+  --rail-muted:rgb(247 246 243 / 58%);
+  --rail-faint:rgb(247 246 243 / 38%);
+  --rail-line:rgb(247 246 243 / 12%);
+  --rail-hover:rgb(247 246 243 / 7%);
+  --rail-active:rgb(21 94 78 / 42%);
+  --rail-spine:#2E8A72;
+  --sharp:cubic-bezier(0.2, 0, 0, 1);
+
   /* confidence / data-honesty treatment — from the design system import.
      Marks a number as measured vs. estimated vs. unmeasurable, rather than
      presenting every figure with equal confidence. Pairs with this session's
@@ -36,6 +49,7 @@
   --confidence-measured: var(--verde-600);
   --confidence-band-fill: rgb(46 138 114 / 16%);
   --confidence-band-line: rgb(46 138 114 / 40%);
+  --rail-spine:#37A186;
 }
 
 html, body, #root { height:100%; }
@@ -46,9 +60,118 @@ body {
 .font-mono, .tnum { font-variant-numeric: tabular-nums; }
 
 @layer utilities {
-  /* Ledger Rule — signature section header divider */
+  /* Ledger Rule — signature section header divider with a short machined tick */
   .ledger-rule { border-top:1px solid var(--line); position:relative; }
   .ledger-rule::after { content:''; position:absolute; top:3px; left:0; right:0; border-top:1px solid var(--line); }
+  .ledger-rule::before {
+    content:''; position:absolute; top:-1px; left:0; width:48px; height:3px;
+    background:var(--verde-600); border-radius:1px;
+  }
+
+  /* Main canvas — chalk wash + steel corner glow, not a flat fill */
+  .workshop-canvas {
+    background-color: var(--surface-2);
+    background-image:
+      radial-gradient(ellipse 90% 55% at 0% -10%, rgb(21 94 78 / 10%), transparent 55%),
+      radial-gradient(ellipse 70% 45% at 100% 0%, rgb(217 115 13 / 7%), transparent 50%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='96' height='96' viewBox='0 0 96 96'%3E%3Ccircle cx='16' cy='20' r='4' fill='none' stroke='%23171A1E' stroke-opacity='0.045' stroke-width='1.5'/%3E%3Ccircle cx='80' cy='20' r='4' fill='none' stroke='%23171A1E' stroke-opacity='0.045' stroke-width='1.5'/%3E%3Cpath d='M22 20h52M48 28v40' stroke='%23171A1E' stroke-opacity='0.035' stroke-width='1.25'/%3E%3Cellipse cx='48' cy='78' rx='14' ry='3.5' fill='none' stroke='%23171A1E' stroke-opacity='0.04' stroke-width='1.25'/%3E%3C/svg%3E"),
+      linear-gradient(180deg, var(--surface-2), var(--surface-2));
+    background-size: auto, auto, 96px 96px, auto;
+  }
+  .workshop-grain {
+    position: relative;
+  }
+  .workshop-grain::before {
+    content:''; pointer-events:none; position:absolute; inset:0; z-index:0; opacity:0.035;
+    background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size:180px;
+    mix-blend-mode:multiply;
+  }
+  .dark .workshop-grain::before { opacity:0.05; mix-blend-mode:overlay; }
+  .workshop-grain > * { position: relative; z-index: 1; }
+
+  .workshop-rail {
+    background:
+      radial-gradient(ellipse 120% 40% at 50% -10%, rgb(46 138 114 / 22%), transparent 55%),
+      linear-gradient(180deg, var(--rail-lift) 0%, var(--rail) 40%, #101417 100%);
+    color: var(--rail-text);
+  }
+
+  /* Personality motion — sharp arrival, staggered denser UIs */
+  .stagger-in > * {
+    animation: rise-in 0.5s var(--sharp) both;
+  }
+  .stagger-in > *:nth-child(1) { animation-delay: 0.02s; }
+  .stagger-in > *:nth-child(2) { animation-delay: 0.07s; }
+  .stagger-in > *:nth-child(3) { animation-delay: 0.12s; }
+  .stagger-in > *:nth-child(4) { animation-delay: 0.17s; }
+  .stagger-in > *:nth-child(5) { animation-delay: 0.22s; }
+  .stagger-in > *:nth-child(6) { animation-delay: 0.27s; }
+  .stagger-in > *:nth-child(7) { animation-delay: 0.32s; }
+  .stagger-in > *:nth-child(8) { animation-delay: 0.37s; }
+
+  .hover-lift {
+    transition: transform 0.28s var(--sharp), border-color 0.28s var(--sharp), box-shadow 0.28s var(--sharp);
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgb(21 94 78 / 10%);
+  }
+
+  .ember-pulse {
+    animation: ember-pulse 2.4s var(--sharp) infinite;
+  }
+
+  .spine-glow {
+    animation: spine-glow 2.8s var(--sharp) infinite;
+  }
+
+  /* Maximalist chalk mesh — faint plate/rack motif under denser panels */
+  .chalk-mesh {
+    background-image:
+      radial-gradient(ellipse 80% 60% at 100% 0%, rgb(21 94 78 / 10%), transparent 55%),
+      radial-gradient(ellipse 50% 40% at 0% 100%, rgb(217 115 13 / 8%), transparent 50%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Ccircle cx='12' cy='12' r='3.5' fill='none' stroke='%23171A1E' stroke-opacity='0.06' stroke-width='1.5'/%3E%3Ccircle cx='60' cy='12' r='3.5' fill='none' stroke='%23171A1E' stroke-opacity='0.06' stroke-width='1.5'/%3E%3Cpath d='M18 12h36' stroke='%23171A1E' stroke-opacity='0.05' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-size: auto, auto, 72px 72px;
+  }
+  .dark .chalk-mesh {
+    background-image:
+      radial-gradient(ellipse 80% 60% at 100% 0%, rgb(46 138 114 / 14%), transparent 55%),
+      radial-gradient(ellipse 50% 40% at 0% 100%, rgb(217 115 13 / 10%), transparent 50%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Ccircle cx='12' cy='12' r='3.5' fill='none' stroke='%23EDEFF2' stroke-opacity='0.07' stroke-width='1.5'/%3E%3Ccircle cx='60' cy='12' r='3.5' fill='none' stroke='%23EDEFF2' stroke-opacity='0.07' stroke-width='1.5'/%3E%3Cpath d='M18 12h36' stroke='%23EDEFF2' stroke-opacity='0.05' stroke-width='1.5'/%3E%3C/svg%3E");
+  }
+
+  .stamp-panel {
+    position: relative;
+  }
+  .stamp-panel::after {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset: 4px;
+    border: 1px solid rgb(23 26 30 / 4%);
+    border-radius: 6px;
+  }
+  .dark .stamp-panel::after {
+    border-color: rgb(237 239 242 / 6%);
+  }
+}
+
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ember-pulse {
+  0%, 100% { opacity: 0.55; transform: scaleX(1); }
+  50% { opacity: 1; transform: scaleX(1.08); }
+}
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@keyframes spine-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(46 138 114 / 0%); }
+  50% { box-shadow: 0 0 12px 0 rgb(46 138 114 / 45%); }
 }
 
 /* focus */
