@@ -11,6 +11,7 @@ import { daysSince } from '@/lib/core'
 import { APP_TAGLINE } from '@/lib/brand'
 import { FREE_TIER_CLIENT_LIMIT } from '@/lib/membership'
 import { BrandMark } from './brand/Logomark'
+import { EmblemKettle, EmblemLifter } from './brand/Emblems'
 import { useMenuNavigation } from './useMenuNavigation'
 import { Toaster, LogoSpinner } from '@/design'
 import CommandPalette from '@/features/shell/CommandPalette'
@@ -134,8 +135,12 @@ export default function Shell() {
       )}
 
       {/* Workshop rail — always dark; brand strip that doesn't theme-flip */}
-      <aside className={`workshop-rail fixed inset-y-0 start-0 z-50 flex w-64 shrink-0 flex-col border-e border-rail-line transition-transform duration-200 ease-out md:static md:w-[13.5rem] ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        <div className="flex items-start justify-between gap-2 px-4 pb-5 pt-6">
+      <aside className={`workshop-rail relative fixed inset-y-0 start-0 z-50 flex w-64 shrink-0 flex-col overflow-hidden border-e border-rail-line transition-transform duration-200 ease-out md:static md:w-[13.5rem] ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+        <EmblemLifter
+          size={120}
+          className="pointer-events-none absolute -bottom-2 -end-4 text-rail-text/[0.06] animate-float-soft"
+        />
+        <div className="relative flex items-start justify-between gap-2 px-4 pb-5 pt-6">
           {/* animated=true is safe as a constant: Shell itself never remounts across
               navigation (only <Outlet/> content changes), so this plays once per app
               session on first paint and holds its end state — never replays.
@@ -147,6 +152,7 @@ export default function Shell() {
                 {APP_TAGLINE}
               </p>
             )}
+            <EmblemKettle size={22} className="mt-3 text-rail-spine/70" />
           </div>
           <button onClick={() => setSidebarOpen(false)} className="text-rail-faint hover:text-rail-text md:hidden" aria-label="Close menu">
             <X size={20} />

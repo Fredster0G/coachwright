@@ -9,6 +9,7 @@ import { ProgramPage } from '@/features/program/ProgramPage'
 import { FilmRoomPage } from '@/features/filmroom/FilmRoomPage'
 import { CyclePage } from '@/features/cycle/CyclePage'
 import { SettingsPage } from '@/features/settings/SettingsPage'
+import { EmblemKettle } from '@/brand/Emblems'
 
 const TABS = [
   { to: '/', label: 'Home', icon: Home, end: true },
@@ -47,8 +48,9 @@ export function Shell({ profile, onProfileChange }: {
             <Route path="/settings" element={<SettingsPage profile={profile} onProfileChange={onProfileChange} />} />
           </Routes>
         </main>
-        <nav className="companion-nav fixed inset-x-0 bottom-0 mx-auto max-w-md border-t pb-[env(safe-area-inset-bottom)]">
-          <div className="flex items-stretch justify-around">
+        <nav className="companion-nav relative fixed inset-x-0 bottom-0 mx-auto max-w-md overflow-hidden border-t pb-[env(safe-area-inset-bottom)]">
+          <EmblemKettle size={64} className="pointer-events-none absolute -end-2 -top-3 text-nav-text/[0.07]" />
+          <div className="relative flex items-stretch justify-around">
             {TABS.map(t => (
               <NavLink
                 key={t.to} to={t.to} end={'end' in t ? t.end : undefined}

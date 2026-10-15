@@ -1,9 +1,20 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ClipboardList, Dumbbell, LineChart, MessageCircle, Video, ChevronRight } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { Card, Button } from '@/design'
 import { workoutsRepo, coachLinkRepo, assignedProgramsRepo, messagesRepo } from '@/db/repo'
 import type { AssignedProgram, CoachLink, CoachMessage, CompanionProfile, PersonalWorkout } from '@/db/types'
+import {
+  CornerFrame,
+  EmblemCoach,
+  EmblemFilm,
+  EmblemKettle,
+  EmblemLifter,
+  EmblemPlates,
+  EmblemSpotter,
+  EmblemStamp,
+  EmblemStride,
+} from '@/brand/Emblems'
 
 export function HomePage({ profile }: { profile: CompanionProfile }) {
   const [recent, setRecent] = useState<PersonalWorkout[]>([])
@@ -20,29 +31,50 @@ export function HomePage({ profile }: { profile: CompanionProfile }) {
 
   return (
     <div className="space-y-5">
-      <header className="relative overflow-hidden rounded-card border border-line/80 bg-surface/85 px-4 py-5 shadow-bench animate-rise-in">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_70%_at_100%_0%,rgb(21_94_78/14%),transparent_55%),radial-gradient(ellipse_50%_40%_at_0%_100%,rgb(217_115_13/10%),transparent_50%)]"
-        />
-        <div className="relative">
-          <p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-faint">
-            Companion
-          </p>
-          <h1 className="mt-1.5 font-display text-[1.75rem] font-extrabold tracking-[-0.04em] text-ink leading-none">
-            {profile.name || 'You'}
-          </h1>
-          <p className="mt-2 max-w-xs text-sm leading-relaxed text-muted">
-            Your training log lives on this phone — no account, no cloud tax.
-          </p>
-          <div aria-hidden className="mt-4 h-1 w-14 rounded-full bg-ember-500 ember-pulse" />
-        </div>
-      </header>
+      <CornerFrame className="overflow-hidden rounded-card border border-line/80 bg-surface/90 shadow-bench animate-rise-in chalk-mesh">
+        <header className="relative px-4 py-5">
+          <EmblemStride
+            size={108}
+            className="pointer-events-none absolute -end-1 bottom-0 text-ink/10 animate-float-soft"
+          />
+          <div className="relative">
+            <div className="flex items-center gap-2.5">
+              <EmblemStamp className="text-ink">
+                <EmblemLifter size={36} className="text-ink" />
+              </EmblemStamp>
+              <p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-faint">
+                Companion
+              </p>
+            </div>
+            <h1 className="mt-2 font-display text-[1.85rem] font-extrabold tracking-[-0.04em] text-ink leading-none">
+              {profile.name || 'You'}
+            </h1>
+            <p className="mt-2 max-w-[15rem] text-sm leading-relaxed text-muted">
+              Your training log lives on this phone — no account, no cloud tax.
+            </p>
+            <div aria-hidden className="mt-4 h-1 w-14 rounded-full bg-ember-500 ember-pulse" />
+          </div>
+        </header>
+      </CornerFrame>
+
+      {/* Mural strip */}
+      <div className="stagger-in flex items-end justify-between gap-2 rounded-card border border-line/60 bg-surface/55 px-3 py-2.5 chalk-mesh">
+        {[
+          { Emblem: EmblemLifter, label: 'Lift' },
+          { Emblem: EmblemStride, label: 'Move' },
+          { Emblem: EmblemFilm, label: 'Form' },
+          { Emblem: EmblemCoach, label: 'Coach' },
+        ].map(({ Emblem, label }) => (
+          <EmblemStamp key={label} label={label} className="text-ink/65">
+            <Emblem size={32} className="text-ink" />
+          </EmblemStamp>
+        ))}
+      </div>
 
       <div className="stagger-in space-y-3">
         {coachLink && (
-          <Card className="flex items-center gap-2.5 text-xs hover-lift">
-            <span className={`h-2 w-2 shrink-0 rounded-full ${coachLink.pending ? 'bg-ember-500 animate-pulse' : 'bg-verde-600'}`} />
+          <Card className="hover-lift flex items-center gap-2.5 text-xs">
+            <EmblemSpotter size={28} className="shrink-0 text-verde-700" />
             <span className="text-muted">
               {coachLink.pending ? 'Connecting to your coach…' : `Paired with ${coachLink.coachName}`}
             </span>
@@ -56,9 +88,9 @@ export function HomePage({ profile }: { profile: CompanionProfile }) {
 
         {program && (
           <Link to="/program" className="block">
-            <Card className="hover-lift flex items-center gap-3 hover:border-verde-600/50">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-ctl bg-verde-100 text-verde-700">
-                <ClipboardList size={20} />
+            <Card className="hover-lift stamp-panel relative flex items-center gap-3 overflow-hidden hover:border-verde-600/50">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-ctl border border-verde-600/20 bg-verde-100 text-verde-700">
+                <EmblemPlates size={32} />
               </span>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-display text-sm font-semibold text-ink">{program.name}</p>
@@ -75,8 +107,8 @@ export function HomePage({ profile }: { profile: CompanionProfile }) {
         {lastCoachMsg && (
           <Link to="/coach" className="block">
             <Card className="hover-lift flex items-start gap-3 hover:border-verde-600/50">
-              <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-ctl bg-verde-100 text-verde-700">
-                <MessageCircle size={20} />
+              <span className="mt-0.5 flex h-12 w-12 shrink-0 items-center justify-center rounded-ctl border border-verde-600/20 bg-verde-100 text-verde-700">
+                <EmblemCoach size={30} />
               </span>
               <div className="min-w-0 flex-1">
                 <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">From your coach</p>
@@ -88,40 +120,40 @@ export function HomePage({ profile }: { profile: CompanionProfile }) {
 
         <div className="grid grid-cols-2 gap-2.5">
           <Link to="/log" className="block">
-            <Card className="hover-lift flex flex-col items-center gap-2 py-6 text-center hover:border-verde-600/50">
-              <span className="flex h-11 w-11 items-center justify-center rounded-ctl bg-verde-100 text-verde-700 animate-float-soft">
-                <Dumbbell size={22} />
-              </span>
+            <Card className="hover-lift stamp-panel relative flex flex-col items-center gap-2 overflow-hidden py-6 text-center hover:border-verde-600/50">
+              <EmblemKettle size={40} className="text-verde-700 animate-float-soft" />
               <span className="font-display text-sm font-semibold text-ink">Log a workout</span>
             </Card>
           </Link>
           <Link to="/progress" className="block">
-            <Card className="hover-lift flex flex-col items-center gap-2 py-6 text-center hover:border-verde-600/50">
-              <span className="flex h-11 w-11 items-center justify-center rounded-ctl bg-verde-100 text-verde-700">
-                <LineChart size={22} />
-              </span>
+            <Card className="hover-lift stamp-panel relative flex flex-col items-center gap-2 overflow-hidden py-6 text-center hover:border-verde-600/50">
+              <EmblemPlates size={40} className="text-verde-700" />
               <span className="font-display text-sm font-semibold text-ink">Track progress</span>
             </Card>
           </Link>
         </div>
 
         <Link to="/film-room" className="block">
-          <Card className="hover-lift flex items-center gap-3 hover:border-verde-600/50">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-ctl bg-ember-500/15 text-ember-600">
-              <Video size={20} />
+          <Card className="hover-lift stamp-panel relative flex items-center gap-3 overflow-hidden hover:border-verde-600/50">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-ctl border border-ember-500/25 bg-ember-500/12 text-ember-600">
+              <EmblemFilm size={30} />
             </span>
             <div className="min-w-0 flex-1">
               <p className="font-display text-sm font-semibold text-ink">Check your form</p>
               <p className="text-2xs text-muted">Film a set — reps, depth, tempo on this phone.</p>
             </div>
             <ChevronRight size={16} className="shrink-0 text-faint" />
+            <EmblemFilm size={72} className="pointer-events-none absolute -bottom-3 -end-3 text-ember-500/10" />
           </Card>
         </Link>
 
         <div>
           <p className="mb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">Recent</p>
           {recent.length === 0 ? (
-            <Card className="text-center text-xs text-muted">Nothing logged yet — your first workout is one tap away.</Card>
+            <CornerFrame className="rounded-card border border-dashed border-line bg-surface/60 px-4 py-8 text-center chalk-mesh">
+              <EmblemLifter size={56} className="mx-auto mb-2 text-ink/30" />
+              <p className="text-xs text-muted">Nothing logged yet — your first workout is one tap away.</p>
+            </CornerFrame>
           ) : (
             <div className="space-y-2">
               {recent.map(w => (
@@ -135,7 +167,10 @@ export function HomePage({ profile }: { profile: CompanionProfile }) {
         </div>
 
         <Link to="/log" className="block">
-          <Button variant="primary" className="w-full shadow-bench">Log today&apos;s workout</Button>
+          <Button variant="primary" className="w-full gap-2 shadow-bench">
+            <EmblemKettle size={20} className="text-white" />
+            Log today&apos;s workout
+          </Button>
         </Link>
       </div>
     </div>

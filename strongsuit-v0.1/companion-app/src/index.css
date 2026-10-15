@@ -98,6 +98,35 @@ body {
   .ember-pulse {
     animation: ember-pulse 2.4s var(--sharp) infinite;
   }
+
+  .chalk-mesh {
+    background-image:
+      radial-gradient(ellipse 80% 60% at 100% 0%, rgb(21 94 78 / 12%), transparent 55%),
+      radial-gradient(ellipse 50% 40% at 0% 100%, rgb(217 115 13 / 9%), transparent 50%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Ccircle cx='12' cy='12' r='3.5' fill='none' stroke='%23171A1E' stroke-opacity='0.07' stroke-width='1.5'/%3E%3Ccircle cx='60' cy='12' r='3.5' fill='none' stroke='%23171A1E' stroke-opacity='0.07' stroke-width='1.5'/%3E%3Cpath d='M18 12h36' stroke='%23171A1E' stroke-opacity='0.05' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-size: auto, auto, 72px 72px;
+  }
+  .dark .chalk-mesh {
+    background-image:
+      radial-gradient(ellipse 80% 60% at 100% 0%, rgb(46 138 114 / 16%), transparent 55%),
+      radial-gradient(ellipse 50% 40% at 0% 100%, rgb(217 115 13 / 11%), transparent 50%),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Ccircle cx='12' cy='12' r='3.5' fill='none' stroke='%23EDEFF2' stroke-opacity='0.08' stroke-width='1.5'/%3E%3Ccircle cx='60' cy='12' r='3.5' fill='none' stroke='%23EDEFF2' stroke-opacity='0.08' stroke-width='1.5'/%3E%3Cpath d='M18 12h36' stroke='%23EDEFF2' stroke-opacity='0.06' stroke-width='1.5'/%3E%3C/svg%3E");
+  }
+
+  .stamp-panel {
+    position: relative;
+  }
+  .stamp-panel::after {
+    content: '';
+    pointer-events: none;
+    position: absolute;
+    inset: 4px;
+    border: 1px solid rgb(23 26 30 / 5%);
+    border-radius: 6px;
+  }
+  .dark .stamp-panel::after {
+    border-color: rgb(237 239 242 / 7%);
+  }
 }
 
 @keyframes rise-in {
