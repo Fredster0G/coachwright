@@ -16,7 +16,6 @@ export interface CompanionProfile {
    *  the first-run flow, separate from whether a CoachLink exists (a client
    *  could finish onboarding solo and pair with a coach later). */
   onboarded: boolean
-  personalCloudTier: 'free' | 'personal'
   /** Opt-in system notifications for background-arrived coach items
    *  (messages/programs/reminders). Unindexed — no schema bump needed. */
   notifyEnabled?: boolean
@@ -25,64 +24,46 @@ export interface CompanionProfile {
    *  profile written before this field existed is correctly treated as
    *  never-consented rather than defaulting on. */
   cycleTrackingEnabled?: boolean
-  /** Lazily created the first time pairing is attempted — unindexed field,
-   *  no schema bump needed to add it (same convention as the coach app). */
-  identity?: SyncIdentity
   createdAt: string
   updatedAt: string
 }
 
-/** This device's own ECDH identity (spec: docs/CLIENT_APP_STRATEGY.md §3.5).
- *  Generated once, lazily, the first time pairing is attempted — mirrors the
- *  coach app's `SyncIdentity`/`getIdentity()` pattern exactly (same crypto,
- *  same shape) so the two sides interoperate without a version negotiation. */
-export interface SyncIdentity {
-  deviceId: string
-  name: string
-  publicJwk: JsonWebKey
-  privateJwk: JsonWebKey
-  createdAt: string
-}
-
-/** Present only once paired to a coach. See docs/CLIENT_APP_STRATEGY.md §3.5
- *  for the full pairing → transport → merge flow this backs. */
+/** Present once connected to a coach (a connect code from the coach app,
+ *  redeemed via Coachwright Cloud). */
 export interface CoachLink {
   id: string
-  coachDeviceId: string
   coachName: string
-  coachPublicJwk: JsonWebKey
+  /** Cloud token scoped to this one client of this one coach. A link from
+   *  before S23 (E2EE pairing) has none and is dropped at boot. */
+  token: string
   pairedAt: string
-  /** True until the safety-number confirmation step completes — an honest
-   *  "connecting" state rather than pretending pairing is instant. */
-  pending: boolean
-  /** The coach's relay — either their self-hosted address or our managed
-   *  one, given out-of-band alongside the pairing code (the pairing code
-   *  itself carries no server address, only identity). Sync is a no-op
-   *  without this — see §3.5 of the strategy doc: a client's own Personal
-   *  Cloud subscription never substitutes for the coach's relay. */
-  relayUrl?: string
-  relayApiKey?: string
-  /** The coach's desktop app's LAN address (from their WiFi Sync dialog's
-   *  QR code, e.g. http://192.168.1.20:4000) — the zero-server transport.
-   *  Only reachable while both devices share a network and the coach has
-   *  the server running; saved so the next gym visit is one tap. */
-  lanUrl?: string
-  /** Replay guard for inbound coach packets — mirrors the coach app's
-   *  Device.lastSeq. A packet with seq <= this has already been merged. */
-  lastSeqFromCoach?: number
-  /** Learned from the first synced coach packet (the coach's Client row for
-   *  this person rides along) — lets the UI say "your coach tracks you as
-   *  X" and confirms the remap on the coach side is pointing at the right
-   *  person. Purely informational on this side. */
+  /** The coach's Client.id for this person — informational. */
   clientIdOnCoachSide?: string
   lastSyncAt?: string
+  /** Watermark for incremental uploads — rows changed after this go up. */
+  lastPushAt?: string
+  // ---- self-booking, refreshed from the bundle on every sync (unindexed) ----
+  bookingEnabled?: boolean
+  /** Times the coach has free (ISO instants), notice period already applied. */
+  openSlots?: BookingSlot[]
+  /** This client's own upcoming sessions on the coach's calendar. */
+  sessions?: { id: string; title: string; start: string; end: string; recurring: boolean }[]
+  /** The coach's branding, when their plan includes it (server decides). */
+  brand?: { name?: string; logo?: string; color?: string } | null
+  /** The coach's load units — prescriptions are in them, uploads convert to them. */
+  coachUnits?: Units
 }
+
+export interface BookingSlot { start: string; end: string }
 
 export interface CoachMessage {
   id: string
   direction: 'from-coach' | 'to-coach'
   content: string
   createdAt: string
+  /** A session request sent from the booking screen; the coach's answer
+   *  comes back on the same message id. Absent status = waiting. */
+  booking?: BookingSlot & { status?: 'accepted' | 'declined' }
 }
 
 export type ExerciseSet = { reps: number; load?: number; rpe?: number }
@@ -99,6 +80,9 @@ export interface PersonalWorkout {
   notes?: string
   createdAt: string
   updatedAt: string
+  /** Deleted on this phone but not yet told to the coach (connected only) —
+   *  hidden everywhere, uploaded as a delete, then purged. */
+  deletedAt?: string
 }
 
 export type MetricType = 'bodyweight' | 'waist' | 'chest' | 'hips' | 'bodyfat'

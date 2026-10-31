@@ -64,6 +64,12 @@ Extends Ironworks (spec §7): jade `#155E4E` + porcelain `#F7F6F3` + ember `#D97
 
 ## 5. Pricing & offer
 
+> **⚠️ SUPERSEDED (S15, 2026-08-14).** Pricing is now a free tier (up to 3 active clients) plus
+> **Coachwright Membership at $29/mo** — see `PRODUCT_OVERVIEW.md` §8 and
+> `strongsuit-v0.1/strongsuit/docs/MEMBERSHIP.md`. The one-time-purchase offer below, and the "buy once
+> and own outright" line in §1's positioning statement, are kept as the record of the original plan and
+> must not be used in new copy. Rewriting the positioning itself is Caleb's call, not a doc sweep.
+
 - **Launch:** $79 one-time (test $59–99). Anchor line: *"Less than one month of what you pay now."*
 - **Wording:** "Free updates for the current major version" — never "lifetime updates."
 - **Guarantee:** 60-day refund, no questions — low risk because there's no infrastructure cost per user.

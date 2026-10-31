@@ -3,8 +3,10 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Sparkles, Check, RefreshCw } from 'lucide-react'
 import { Button, Card, Tag, Progress, toast, toastError } from '@/design'
 import { trainerRepo, clientsRepo } from '@/db/repo'
-import { FREE_TIER_CLIENT_LIMIT } from '@/lib/membership'
+import { FREE_TIER_CLIENT_LIMIT, hasActiveMembership, hasPaidAccess } from '@/lib/membership'
 import { refreshMembership, startMembershipCheckout, openMembershipBillingPortal } from '@/lib/membershipApi'
+import { APP_NAME } from '@/lib/brand'
+import { useTranslation } from '@/lib/i18n'
 
 /**
  * The $29/mo membership — separate card from `LicenceCard`, which still
@@ -18,28 +20,29 @@ export function MembershipCard() {
   const activeClients = useLiveQuery(() => clientsRepo.active(), [], [])
   const [checking, setChecking] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const { t } = useTranslation()
 
-  // Refresh once on mount — the same call a background/periodic check would
-  // make, so "what does this card show" always reflects a just-verified
-  // token rather than whatever was last cached, without the coach having to
-  // think about it.
+  // Refresh once on mount so the card reflects the account right now.
   useEffect(() => {
     refreshMembership().catch(() => {})
   }, [])
 
   if (!trainer) return null
 
-  const hasUnlimitedClients = !!trainer.membershipActive || trainer.edition === 'independent' || trainer.edition === 'studio'
-  const clientCount = activeClients.length
+  const hasUnlimitedClients = hasPaidAccess(trainer)
+  const membershipLive = hasActiveMembership(trainer)
+  // Sample clients don't count toward the free cap (app or server) — this bar
+  // used to show a new coach 3/3 with only the samples.
+  const clientCount = activeClients.filter(c => !c.isDemo).length
 
   async function upgrade() {
     setChecking(true)
     try {
-      const url = await startMembershipCheckout(trainer!.trainerName || trainer!.businessName || 'Coachwright member')
+      const url = await startMembershipCheckout()
       window.open(url, '_blank')
-      toast('Opening checkout in your browser…')
+      toast(t('membership.opening'))
     } catch (err) {
-      toastError(err instanceof Error ? err.message : 'Could not start checkout.')
+      toastError(err instanceof Error ? err.message : t('membership.checkoutFailed'))
     } finally {
       setChecking(false)
     }
@@ -50,7 +53,7 @@ export function MembershipCard() {
       const url = await openMembershipBillingPortal()
       window.open(url, '_blank')
     } catch (err) {
-      toastError(err instanceof Error ? err.message : 'Could not open the billing portal.')
+      toastError(err instanceof Error ? err.message : t('membership.portalFailed'))
     }
   }
 
@@ -58,9 +61,9 @@ export function MembershipCard() {
     setRefreshing(true)
     try {
       const result = await refreshMembership()
-      if (result === null) toastError('Could not reach the membership server. Try again once you’re online.')
-      else if (result.active) toast('Membership verified.')
-      else toast(result.reason || 'No active membership found.')
+      if (result === null) toastError(t('membership.unreachable'))
+      else if (result.active) toast(t('membership.verified'))
+      else toast(t('membership.none'))
     } finally {
       setRefreshing(false)
     }
@@ -70,43 +73,42 @@ export function MembershipCard() {
     <Card>
       <div className="mb-1 flex items-center gap-2">
         <Sparkles size={16} className="text-verde-600" />
-        <p className="font-display text-base font-semibold text-ink">Membership</p>
+        <p className="font-display text-base font-semibold text-ink">{t('membership.title')}</p>
       </div>
 
-      {trainer.membershipActive ? (
+      {membershipLive ? (
         <>
           <p className="mb-3 text-xs text-muted">
-            Unlimited clients, the program builder, full Film Room, and business tools — all unlocked.
+            {t('membership.unlocked')}
           </p>
           <div className="mb-3 rounded-ctl border border-line bg-surface2 px-3 py-2.5">
             <div className="flex flex-wrap items-center gap-1.5">
               <Check size={13} className="text-verde-600" />
-              <p className="text-sm text-ink">Coachwright Membership active</p>
-              <Tag tone="verde">$29/mo</Tag>
+              <p className="text-sm text-ink">{t('membership.active', { app: APP_NAME })}</p>
+              <Tag tone="verde">{t('membership.price')}</Tag>
             </div>
             {trainer.membershipExpiresAt && (
               <p className="mt-1 text-2xs text-faint">
-                Verified through {new Date(trainer.membershipExpiresAt).toLocaleDateString()} — refreshed automatically, no action needed.
+                {t('membership.verifiedThrough', { date: new Date(trainer.membershipExpiresAt).toLocaleDateString() })}
               </p>
             )}
           </div>
           <div className="flex gap-2">
-            <Button size="sm" onClick={manageBilling}>Manage billing</Button>
+            <Button size="sm" onClick={manageBilling}>{t('membership.manage')}</Button>
             <Button size="sm" variant="ghost" onClick={manualRefresh} disabled={refreshing}>
-              <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} /> {refreshing ? 'Checking…' : 'Refresh status'}
+              <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} /> {refreshing ? t('membership.checking') : t('membership.refresh')}
             </Button>
           </div>
         </>
       ) : (
         <>
           <p className="mb-3 text-xs text-muted">
-            Free Coachwright covers up to {FREE_TIER_CLIENT_LIMIT} clients. Coachwright Membership ($29/mo) removes the
-            cap and unlocks the program builder, full Film Room, and business tools.
+            {t('membership.freeBody', { app: APP_NAME, limit: FREE_TIER_CLIENT_LIMIT })}
           </p>
           {!hasUnlimitedClients && (
             <div className="mb-3">
               <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="text-muted">Active clients</span>
+                <span className="text-muted">{t('membership.activeClients')}</span>
                 <span className="font-mono tabular-nums text-faint">{clientCount}/{FREE_TIER_CLIENT_LIMIT}</span>
               </div>
               <Progress value={clientCount} max={FREE_TIER_CLIENT_LIMIT} />
@@ -114,10 +116,10 @@ export function MembershipCard() {
           )}
           <div className="flex gap-2">
             <Button variant="primary" size="sm" onClick={upgrade} disabled={checking}>
-              {checking ? 'Opening checkout…' : 'Upgrade — $29/mo'}
+              {checking ? t('membership.openingShort') : t('membership.upgrade')}
             </Button>
             <Button size="sm" variant="ghost" onClick={manualRefresh} disabled={refreshing}>
-              <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} /> {refreshing ? 'Checking…' : 'Already a member?'}
+              <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} /> {refreshing ? t('membership.checking') : t('membership.alreadyMember')}
             </Button>
           </div>
         </>

@@ -11,6 +11,8 @@
 // and consumed in several places, and none of this needs to destabilise it.
 // These compose on top.
 
+import { english, type Msg } from './i18n/msg'
+import type { MessageKey } from './i18n/locales/en'
 import type { Units } from '@/db/types'
 import { toKg } from './nutrition'
 
@@ -23,8 +25,11 @@ export interface BmrEstimate {
   equation: BmrEquation
   /** Why this equation was chosen — surfaced so the coach can defend it. */
   rationale: string
+  rationaleMsg: Msg
   source: string
 }
+
+const why = (m: Msg) => ({ rationale: english(m), rationaleMsg: m })
 
 /** Katch-McArdle: BMR = 370 + 21.6 × FFM(kg). Body-composition based. */
 export function katchMcArdle(ffmKg: number): number {
@@ -59,9 +64,7 @@ export function chooseBmr(opts: {
     return {
       bmr: mifflinBmr,
       equation: 'mifflin',
-      rationale:
-        'Mifflin-St Jeor — the most accurate predictive equation for healthy adults when body composition is unknown. ' +
-        'Log a body-fat measurement to switch to a composition-based equation.',
+      ...why({ key: 'adv.bmr.mifflin' }),
       source: 'Mifflin et al. 1990; Frankenfield et al. 2005 (Academy of Nutrition and Dietetics evidence review)',
     }
   }
@@ -73,17 +76,13 @@ export function chooseBmr(opts: {
     ? {
         bmr: cunningham(ffmKg),
         equation: 'cunningham',
-        rationale:
-          `Cunningham, using ${ffmKg.toFixed(1)} kg of fat-free mass. Preferred for lean, trained athletes — ` +
-          'Mifflin under-predicts here because it can’t see body composition.',
+        ...why({ key: 'adv.bmr.cunningham', params: { ffm: ffmKg.toFixed(1) } }),
         source: 'Cunningham 1980',
       }
     : {
         bmr: katchMcArdle(ffmKg),
         equation: 'katch-mcardle',
-        rationale:
-          `Katch-McArdle, using ${ffmKg.toFixed(1)} kg of fat-free mass. More accurate than Mifflin once body ` +
-          'composition is actually measured rather than assumed.',
+        ...why({ key: 'adv.bmr.katch', params: { ffm: ffmKg.toFixed(1) } }),
         source: 'Katch & McArdle',
       }
 }
@@ -100,6 +99,7 @@ export interface ProteinPlan {
   /** Minimum per meal to reliably trigger muscle protein synthesis. */
   perMealFloorG: number
   notes: string[]
+  noteMsgs: Msg[]
   source: string
 }
 
@@ -125,17 +125,14 @@ export function proteinDistribution(opts: {
 }): ProteinPlan {
   const meals = Math.max(2, Math.min(6, opts.meals ?? 4))
   const pattern = opts.pattern ?? 'omnivore'
-  const notes: string[] = []
+  const noteMsgs: Msg[] = []
 
   let perKg = opts.cutting ? 2.2 : 1.8
 
   // Plant proteins are typically lower in leucine and less digestible.
   if (pattern === 'plant-based') {
     perKg *= 1.15
-    notes.push(
-      'Plant-based: total raised ~15%, since plant proteins are generally lower in leucine and less digestible. ' +
-      'Spread across varied sources rather than relying on one.',
-    )
+    noteMsgs.push({ key: 'adv.protein.plant' })
   }
 
   // Anabolic resistance means older adults need a bigger per-meal dose, not
@@ -143,10 +140,7 @@ export function proteinDistribution(opts: {
   const older = opts.age >= 40
   const perMealFloorPerKg = older ? 0.40 : 0.30
   if (older) {
-    notes.push(
-      'Aged 40+: the per-meal floor is raised. Older muscle responds less to a given dose, so the same daily total ' +
-      'split into small feedings does noticeably less.',
-    )
+    noteMsgs.push({ key: 'adv.protein.older' })
   }
 
   const dailyG = Math.round(opts.weightKg * perKg)
@@ -154,17 +148,14 @@ export function proteinDistribution(opts: {
   const perMealFloorG = Math.round(opts.weightKg * perMealFloorPerKg)
 
   if (perMealG < perMealFloorG) {
-    notes.push(
-      `At ${meals} meals that's ${perMealG} g each — below the ~${perMealFloorG} g needed to reliably trigger the ` +
-      'response. Either fewer, larger feedings or a higher total.',
-    )
+    noteMsgs.push({ key: 'adv.protein.belowFloor', params: { meals, perMeal: perMealG, floor: perMealFloorG } })
   }
   if (opts.cutting) {
-    notes.push('Protein is at the top of the range because it’s the single biggest lever for keeping muscle in a deficit.')
+    noteMsgs.push({ key: 'adv.protein.cutting' })
   }
 
   return {
-    dailyG, meals, perMealG, perMealFloorG, notes,
+    dailyG, meals, perMealG, perMealFloorG, notes: noteMsgs.map(english), noteMsgs,
     source: 'Schoenfeld & Aragon 2018 (JISSN); Moore et al. 2015; Helms et al. 2014; Rogerson 2017',
   }
 }
@@ -178,7 +169,9 @@ export interface CarbTarget {
   gramsLow: number
   gramsHigh: number
   label: string
+  labelMsg: Msg
   intraSession: string | null
+  intraSessionMsg: Msg | null
   source: string
 }
 
@@ -204,25 +197,24 @@ const CARB_BANDS: Record<SessionLoad, { low: number; high: number; label: string
 
 export function carbTarget(weightKg: number, load: SessionLoad): CarbTarget {
   const band = CARB_BANDS[load]
+  const intra = intraSessionGuidance(load)
   return {
     gPerKg: { low: band.low, high: band.high },
     gramsLow: Math.round(weightKg * band.low),
     gramsHigh: Math.round(weightKg * band.high),
     label: band.label,
-    intraSession: intraSessionGuidance(load),
+    labelMsg: { key: `adv.carb.${load}` as MessageKey },
+    intraSession: intra ? english(intra) : null,
+    intraSessionMsg: intra,
     source: 'Burke et al. 2011; ACSM/AND/DC joint position 2016; Jeukendrup 2014',
   }
 }
 
-function intraSessionGuidance(load: SessionLoad): string | null {
+function intraSessionGuidance(load: SessionLoad): Msg | null {
   switch (load) {
-    case 'veryHigh':
-      return 'Over ~2.5 h: up to 90 g/h, but only using multiple transportable carbohydrates (glucose + fructose) — a single ' +
-        'source saturates absorption around 60 g/h. Practise it in training; it needs gut adaptation.'
-    case 'high':
-      return 'For sessions past the hour mark: 30–60 g of carbohydrate per hour during the session.'
-    default:
-      return null
+    case 'veryHigh': return { key: 'adv.intra.veryHigh' }
+    case 'high': return { key: 'adv.intra.high' }
+    default: return null
   }
 }
 

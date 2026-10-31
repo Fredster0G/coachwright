@@ -5,6 +5,7 @@ import { HomePage } from '@/features/home/HomePage'
 import { LogPage } from '@/features/log/LogPage'
 import { ProgressPage } from '@/features/progress/ProgressPage'
 import { CoachPage } from '@/features/coach/CoachPage'
+import { BookPage } from '@/features/coach/BookPage'
 import { ProgramPage } from '@/features/program/ProgramPage'
 import { FilmRoomPage } from '@/features/filmroom/FilmRoomPage'
 import { CyclePage } from '@/features/cycle/CyclePage'
@@ -37,6 +38,7 @@ export function Shell({ profile, onProfileChange }: {
             <Route path="/log" element={<LogPage />} />
             <Route path="/progress" element={<ProgressPage units={profile.units} />} />
             <Route path="/coach" element={<CoachPage />} />
+            <Route path="/book" element={<BookPage />} />
             <Route path="/program" element={<ProgramPage units={profile.units} />} />
             <Route path="/film-room" element={<FilmRoomPage />} />
             {/* Sub-page, not a tab — reached from Settings. Deliberately not

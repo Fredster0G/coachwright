@@ -1,5 +1,6 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { createHashRouter } from 'react-router-dom'
+import { LOCAL_AI_ENABLED } from '@/lib/cloud/config'
+import { createHashRouter, Navigate } from 'react-router-dom'
 import Shell from './Shell'
 import { RouteError } from './RouteError'
 import { LogoSpinner } from '@/design'
@@ -23,7 +24,7 @@ const FilmRoomPage = lazy(() => import('@/features/filmroom/FilmRoomPage'))
 const CalendarPage = lazy(() => import('@/features/calendar/CalendarPage'))
 const SciencePage = lazy(() => import('@/features/science/SciencePage'))
 const BusinessPage = lazy(() => import('@/features/business/BusinessPage'))
-const SyncCenterPage = lazy(() => import('@/features/sync/SyncCenterPage'))
+const AccountPage = lazy(() => import('@/features/account/AccountPage'))
 const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'))
 const TeamPage = lazy(() => import('@/features/team/TeamPage'))
 const StudioHubPage = lazy(() => import('@/features/studio/StudioHubPage'))
@@ -75,7 +76,7 @@ export const router = createHashRouter([
       { path: 'calendar', element: load(<CalendarPage />), errorElement: <RouteError /> },
       { path: 'science', element: load(<SciencePage />), errorElement: <RouteError /> },
       { path: 'business', element: load(<BusinessPage />), errorElement: <RouteError /> },
-      { path: 'sync', element: load(<SyncCenterPage />), errorElement: <RouteError /> },
+      { path: 'sync', element: load(<AccountPage />), errorElement: <RouteError /> },
       { path: 'reports', element: load(<ReportsPage />), errorElement: <RouteError /> },
       { path: 'team', element: load(<TeamPage />), errorElement: <RouteError /> },
       { path: 'studio', element: load(<StudioHubPage />), errorElement: <RouteError /> },
@@ -83,7 +84,14 @@ export const router = createHashRouter([
       { path: 'leads', element: load(<LeadsPage />), errorElement: <RouteError /> },
       { path: 'leaderboard', element: load(<LeaderboardPage />), errorElement: <RouteError /> },
       { path: 'settings', element: load(<SettingsPage />), errorElement: <RouteError /> },
-      { path: 'assistant', element: load(<AssistantPage />), errorElement: <RouteError /> },
+      // Desktop-only: the website build ships without on-device AI, and a
+      // hand-typed /#/assistant there goes home rather than to an error page.
+      LOCAL_AI_ENABLED
+        ? { path: 'assistant', element: load(<AssistantPage />), errorElement: <RouteError /> }
+        : { path: 'assistant', element: <Navigate to="/" replace /> },
+      // A password-reset link opened on a device that's already signed in:
+      // nothing to reset here — change the password from Account instead.
+      { path: 'reset-password', element: <Navigate to="/sync" replace /> },
       { path: 'kitchen-sink', element: load(<KitchenSink />), errorElement: <RouteError /> },
     ],
   },

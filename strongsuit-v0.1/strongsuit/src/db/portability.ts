@@ -1,7 +1,8 @@
 // ===== Client data portability (spec §4.34) =====
 // A client's history shouldn't be hostage to one coach's install. This
 // exports ONE client's full history (profile, programs, logs, check-ins,
-// metrics, payments, appointments, waivers, photos, habits, messages) as a
+// metrics, payments, appointments, waivers, photos, habits, messages, food
+// log) as a
 // single self-contained file a client can hand to a NEW coach running
 // Coachwright — or a coach can use to move a client between two of their own
 // installs, or hand off a departing staff member's clients (Team, spec §4.26).
@@ -16,6 +17,7 @@ import { BACKUP_APP_ID } from '@/lib/brand'
 import type {
   Client, ClientNote, Program, SessionLog, CheckIn, Metric, Payment,
   Appointment, Waiver, ProgressPhoto, Habit, HabitEntry, CoachMessage, Base,
+  FoodEntry, FoodItem,
 } from './types'
 
 export interface ClientPackage {
@@ -35,6 +37,13 @@ export interface ClientPackage {
   habits: Habit[]
   habitEntries: HabitEntry[]
   messages: CoachMessage[]
+  /** Optional: packages exported before S23 have neither field. */
+  foodEntries?: FoodEntry[]
+  /** The FoodItems those entries point at. `foodItems` is a SHARED,
+   *  non-client-scoped cache (one row per product, keyed by barcode), so a
+   *  package must carry the referenced rows — without them every entry's
+   *  `foodItemId` dangles at the destination and its macros are lost. */
+  foodItems?: FoodItem[]
 }
 
 async function byClient<T>(table: { where(k: string): { equals(v: string): { toArray(): Promise<T[]> } } }, clientId: string): Promise<T[]> {
@@ -62,11 +71,15 @@ export async function exportClientPackage(clientId: string): Promise<ClientPacka
     ])
   const habitIds = new Set(habits.map(h => h.id))
   const habitEntries = (await db.habitEntries.toArray()).filter(e => habitIds.has(e.habitId))
+  const foodEntries = await byClient<FoodEntry>(db.foodEntries, clientId)
+  const foodItemIds = [...new Set(foodEntries.map(e => e.foodItemId))]
+  const foodItems = (await db.foodItems.bulkGet(foodItemIds)).filter((f): f is FoodItem => !!f)
 
   return {
     app: BACKUP_APP_ID, kind: 'client-package', exportedAt: nowIso(),
     client, clientNotes, programs, sessionLogs, checkIns, metrics, payments,
     appointments, waivers, progressPhotos, habits, habitEntries, messages,
+    foodEntries, foodItems,
   }
 }
 
@@ -85,6 +98,7 @@ export function rekeyClientPackage(pkg: ClientPackage): ClientPackage {
   const clientId = newId()
   const programIdMap = new Map(pkg.programs.map(p => [p.id, newId()]))
   const habitIdMap = new Map(pkg.habits.map(h => [h.id, newId()]))
+  const foodItemIdMap = new Map((pkg.foodItems ?? []).map(f => [f.id, newId()]))
   const t = nowIso()
   const restamp = <T extends Base>(row: T): T => ({ ...row, id: newId(), createdAt: t, updatedAt: t })
 
@@ -103,7 +117,28 @@ export function rekeyClientPackage(pkg: ClientPackage): ClientPackage {
     habits: pkg.habits.map(h => ({ ...restamp(h), id: habitIdMap.get(h.id)!, clientId })),
     habitEntries: pkg.habitEntries.map(e => ({ ...restamp(e), clientId, habitId: habitIdMap.get(e.habitId)! })),
     messages: pkg.messages.map(m => ({ ...restamp(m), clientId })),
+    foodItems: (pkg.foodItems ?? []).map(f => ({ ...restamp(f), id: foodItemIdMap.get(f.id)! })),
+    // An entry whose item didn't travel (deleted from the source cache) would
+    // dangle with no macros — drop it rather than import a broken row.
+    foodEntries: (pkg.foodEntries ?? [])
+      .filter(e => foodItemIdMap.has(e.foodItemId))
+      .map(e => ({ ...restamp(e), clientId, foodItemId: foodItemIdMap.get(e.foodItemId)! })),
   }
+}
+
+/** Point packaged food entries at products the destination already has
+ *  cached (same barcode) instead of adding duplicates to the shared cache.
+ *  Returns the items that still need inserting. Pure. */
+export function dedupeFoodItems(pkg: ClientPackage, existingByBarcode: Map<string, string>): { items: FoodItem[]; entries: FoodEntry[] } {
+  const redirect = new Map<string, string>()
+  const items: FoodItem[] = []
+  for (const f of pkg.foodItems ?? []) {
+    const existing = f.barcode ? existingByBarcode.get(f.barcode) : undefined
+    if (existing) redirect.set(f.id, existing)
+    else items.push(f)
+  }
+  const entries = (pkg.foodEntries ?? []).map(e => redirect.has(e.foodItemId) ? { ...e, foodItemId: redirect.get(e.foodItemId)! } : e)
+  return { items, entries }
 }
 
 export interface ImportClientReport { clientName: string; recordsImported: number }
@@ -113,9 +148,13 @@ async function insertClientPackage(pkg: ClientPackage): Promise<ImportClientRepo
   const tables = [
     db.clients, db.clientNotes, db.programs, db.sessionLogs, db.checkIns, db.metrics,
     db.payments, db.appointments, db.waivers, db.progressPhotos, db.habits, db.habitEntries, db.messages,
+    db.foodItems, db.foodEntries,
   ]
   let count = 0
   await db.transaction('rw', tables, async () => {
+    const barcodes = (pkg.foodItems ?? []).map(f => f.barcode).filter((b): b is string => !!b)
+    const existing = barcodes.length ? await db.foodItems.where('barcode').anyOf(barcodes).toArray() : []
+    const food = dedupeFoodItems(pkg, new Map(existing.map(f => [f.barcode!, f.id])))
     await db.clients.add(pkg.client)
     count++
     for (const [rows, table] of [
@@ -123,6 +162,7 @@ async function insertClientPackage(pkg: ClientPackage): Promise<ImportClientRepo
       [pkg.checkIns, db.checkIns], [pkg.metrics, db.metrics], [pkg.payments, db.payments],
       [pkg.appointments, db.appointments], [pkg.waivers, db.waivers], [pkg.progressPhotos, db.progressPhotos],
       [pkg.habits, db.habits], [pkg.habitEntries, db.habitEntries], [pkg.messages, db.messages],
+      [food.items, db.foodItems], [food.entries, db.foodEntries],
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ] as [Base[], any][]) {
       if (rows.length) await table.bulkAdd(rows)

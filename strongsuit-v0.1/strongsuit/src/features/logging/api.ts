@@ -39,3 +39,22 @@ export function createSessionLogTemplate(clientId: string, program: Program, day
     source: 'trainer' as const
   } as Partial<SessionLog>) as SessionLog
 }
+
+/** The load a set's input shows before the coach types: the target, but only
+ *  when it IS a weight — a %1RM or RPE target isn't a load. */
+export function shownLoad(set: LoggedSet): number | undefined {
+  if (set.actualLoad != null) return set.actualLoad
+  return (set.targetLoadMode ?? 'absolute') === 'absolute' ? set.targetLoad : undefined
+}
+
+/** Marking a set done records what the inputs showed. Before, the load box
+ *  displayed the target but `done` saved neither load nor reps, so a set done
+ *  "as prescribed" reached history and analytics empty. Reps fill only from a
+ *  plain number ("8"), never a range or "AMRAP". */
+export function completeSet(set: LoggedSet): LoggedSet {
+  const out: LoggedSet = { ...set, done: true }
+  const load = shownLoad(set)
+  if (out.actualLoad == null && load != null) out.actualLoad = load
+  if (out.actualReps == null && set.targetReps && /^\d+$/.test(set.targetReps.trim())) out.actualReps = Number(set.targetReps)
+  return out
+}

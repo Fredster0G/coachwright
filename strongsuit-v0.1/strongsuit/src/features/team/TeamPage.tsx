@@ -11,10 +11,12 @@ import { staffCommissionForMonth } from '@/lib/business'
 import { editionCapabilities, EDITION_NAMES } from '@/lib/edition'
 import { getActiveStaffId, setActiveStaffId } from '@/lib/activeStaff'
 import { format } from 'date-fns'
+import { useTranslation, type MessageKey } from '@/lib/i18n'
 
-const ROLE_LABEL: Record<StaffRole, string> = { owner: 'Owner', coach: 'Coach', 'front-desk': 'Front desk' }
+const ROLE_KEY: Record<StaffRole, MessageKey> = { owner: 'team.role.owner', coach: 'team.role.coach', 'front-desk': 'team.role.frontDesk' }
 
 function AddStaffDialog({ open, onClose, locations }: { open: boolean; onClose: () => void; locations: Location[] }) {
+  const { t } = useTranslation()
   const [form, setForm] = useState({ name: '', email: '', role: 'coach' as StaffRole, commissionPercent: '', locationId: '' })
 
   async function save() {
@@ -24,37 +26,37 @@ function AddStaffDialog({ open, onClose, locations }: { open: boolean; onClose: 
       commissionPercent: form.commissionPercent ? Number(form.commissionPercent) : undefined,
       locationId: form.locationId || undefined, active: true,
     })
-    toast(`${form.name} added to the team.`)
+    toast(t('team.toast.staffAdded', { name: form.name }))
     setForm({ name: '', email: '', role: 'coach', commissionPercent: '', locationId: '' })
     onClose()
   }
 
   return (
-    <Dialog open={open} onClose={onClose} title="Add staff member">
+    <Dialog open={open} onClose={onClose} title={t('team.addStaffTitle')}>
       <div className="space-y-3">
-        <Field label="Name"><Input autoFocus value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></Field>
+        <Field label={t('team.form.name')}><Input autoFocus value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} /></Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Email" hint="optional"><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></Field>
-          <Field label="Role">
+          <Field label={t('team.form.email')} hint={t('team.form.optional')}><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} /></Field>
+          <Field label={t('team.form.role')}>
             <Select value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as StaffRole }))}>
-              <option value="owner">Owner</option>
-              <option value="coach">Coach</option>
-              <option value="front-desk">Front desk</option>
+              <option value="owner">{t('team.role.owner')}</option>
+              <option value="coach">{t('team.role.coach')}</option>
+              <option value="front-desk">{t('team.role.frontDesk')}</option>
             </Select>
           </Field>
-          <Field label="Commission %" hint="of their clients' income">
+          <Field label={t('team.form.commission')} hint={t('team.form.commissionHint')}>
             <Input type="number" min="0" max="100" value={form.commissionPercent} onChange={e => setForm(f => ({ ...f, commissionPercent: e.target.value }))} />
           </Field>
-          <Field label="Location" hint="optional">
+          <Field label={t('team.form.location')} hint={t('team.form.optional')}>
             <Select value={form.locationId} onChange={e => setForm(f => ({ ...f, locationId: e.target.value }))}>
-              <option value="">— unassigned —</option>
+              <option value="">{t('team.form.unassigned')}</option>
               {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
             </Select>
           </Field>
         </div>
         <div className="flex justify-end gap-2 pt-1">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" onClick={save} disabled={!form.name.trim()}>Add to team</Button>
+          <Button variant="ghost" onClick={onClose}>{t('team.cancel')}</Button>
+          <Button variant="primary" onClick={save} disabled={!form.name.trim()}>{t('team.addToTeam')}</Button>
         </div>
       </div>
     </Dialog>
@@ -62,22 +64,23 @@ function AddStaffDialog({ open, onClose, locations }: { open: boolean; onClose: 
 }
 
 function AddLocationDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation()
   const [form, setForm] = useState({ name: '', address: '' })
   async function save() {
     if (!form.name.trim()) return
     await locationsRepo.create({ name: form.name.trim(), address: form.address.trim() || undefined })
-    toast(`${form.name} added.`)
+    toast(t('team.toast.locationAdded', { name: form.name }))
     setForm({ name: '', address: '' })
     onClose()
   }
   return (
-    <Dialog open={open} onClose={onClose} title="Add location">
+    <Dialog open={open} onClose={onClose} title={t('team.addLocation')}>
       <div className="space-y-3">
-        <Field label="Name"><Input autoFocus value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="e.g. Downtown studio" /></Field>
-        <Field label="Address" hint="optional"><Input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} /></Field>
+        <Field label={t('team.form.name')}><Input autoFocus value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder={t('team.form.locationPlaceholder')} /></Field>
+        <Field label={t('team.form.address')} hint={t('team.form.optional')}><Input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} /></Field>
         <div className="flex justify-end gap-2 pt-1">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button variant="primary" onClick={save} disabled={!form.name.trim()}>Add location</Button>
+          <Button variant="ghost" onClick={onClose}>{t('team.cancel')}</Button>
+          <Button variant="primary" onClick={save} disabled={!form.name.trim()}>{t('team.addLocation')}</Button>
         </div>
       </div>
     </Dialog>
@@ -85,6 +88,7 @@ function AddLocationDialog({ open, onClose }: { open: boolean; onClose: () => vo
 }
 
 export default function TeamPage() {
+  const { t } = useTranslation()
   const [staffOpen, setStaffOpen] = useState(false)
   const [locOpen, setLocOpen] = useState(false)
   const trainer = useLiveQuery(() => trainerRepo.get())
@@ -105,8 +109,8 @@ export default function TeamPage() {
   if (trainer === undefined) {
     return (
       <div className="mx-auto max-w-4xl">
-        <SectionHeader title="Team & locations" />
-        <Card className="animate-pulse text-sm text-faint">Loading…</Card>
+        <SectionHeader title={t('team.title')} />
+        <Card className="animate-pulse text-sm text-faint">{t('team.loading')}</Card>
       </div>
     )
   }
@@ -114,11 +118,11 @@ export default function TeamPage() {
   if (!cap.multiSeat) {
     return (
       <div className="mx-auto max-w-4xl">
-        <SectionHeader title="Team & locations" />
+        <SectionHeader title={t('team.title')} />
         <Card className="flex flex-col items-center gap-3 py-10 text-center">
           <Lock size={28} className="text-faint" strokeWidth={1.5} />
           <p className="max-w-md text-sm text-muted">{cap.upgradeReason}</p>
-          <p className="text-2xs text-faint">Currently on {EDITION_NAMES[cap.edition]}.</p>
+          <p className="text-2xs text-faint">{t('team.currentEdition', { edition: EDITION_NAMES[cap.edition] })}</p>
         </Card>
       </div>
     )
@@ -126,27 +130,27 @@ export default function TeamPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-8">
-      <SectionHeader title="Team & locations" action={<div className="flex gap-2"><Button size="sm" variant="secondary" onClick={() => setLocOpen(true)}><MapPin size={14} /> Add location</Button><Button size="sm" variant="primary" onClick={() => setStaffOpen(true)}><Plus size={14} /> Add staff</Button></div>} />
+      <SectionHeader title={t('team.title')} action={<div className="flex gap-2"><Button size="sm" variant="secondary" onClick={() => setLocOpen(true)}><MapPin size={14} /> {t('team.addLocation')}</Button><Button size="sm" variant="primary" onClick={() => setStaffOpen(true)}><Plus size={14} /> {t('team.addStaff')}</Button></div>} />
 
       {staff.length > 0 && (
         <Card className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs font-medium text-muted"><UserCircle2 size={15} /> Working as</div>
+          <div className="flex items-center gap-1.5 text-xs font-medium text-muted"><UserCircle2 size={15} /> {t('team.workingAs')}</div>
           <Select className="!h-8 w-56" value={activeId ?? ''} onChange={e => chooseActive(e.target.value)}>
-            <option value="">— not set (no attribution) —</option>
+            <option value="">{t('team.notSet')}</option>
             {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </Select>
-          <p className="text-2xs text-faint">New sessions, payments, programs, and invoices from this device are stamped with whoever's picked here.</p>
+          <p className="text-2xs text-faint">{t('team.workingAsHint')}</p>
         </Card>
       )}
 
       <div>
-        <h3 className="mb-3 text-sm font-semibold text-muted">Staff — {format(new Date(), 'MMMM')} commissions</h3>
+        <h3 className="mb-3 text-sm font-semibold text-muted">{t('team.staffHeading', { month: new Date().toLocaleDateString(undefined, { month: 'long' }) })}</h3>
         {staff.length === 0 ? (
           <EmptyState
             icon={<Users size={28} strokeWidth={1.5} />}
-            title="Solo for now"
-            body="Add a coach or front-desk teammate. Assign clients to them on the client's Overview and Coachwright tracks their commission automatically."
-            action={<Button variant="primary" onClick={() => setStaffOpen(true)}><Plus size={14} /> Add staff</Button>}
+            title={t('team.emptyStaffTitle')}
+            body={t('team.emptyStaffBody')}
+            action={<Button variant="primary" onClick={() => setStaffOpen(true)}><Plus size={14} /> {t('team.addStaff')}</Button>}
           />
         ) : (
           <div className="space-y-2">
@@ -159,16 +163,16 @@ export default function TeamPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-ink">{s.name}</span>
-                      <Tag tone={s.role === 'owner' ? 'verde' : 'neutral'}>{ROLE_LABEL[s.role]}</Tag>
-                      {!s.active && <Tag tone="ember">inactive</Tag>}
+                      <Tag tone={s.role === 'owner' ? 'verde' : 'neutral'}>{t(ROLE_KEY[s.role])}</Tag>
+                      {!s.active && <Tag tone="ember">{t('team.inactive')}</Tag>}
                     </div>
                     <div className="mt-0.5 text-2xs text-faint">
-                      {assigned.length} client{assigned.length === 1 ? '' : 's'}{loc ? ` · ${loc.name}` : ''}{s.commissionPercent ? ` · ${s.commissionPercent}% commission` : ''}
+                      {t('team.clientCount', { count: assigned.length })}{loc ? ` · ${loc.name}` : ''}{s.commissionPercent ? ` · ${t('team.commissionPct', { pct: s.commissionPercent })}` : ''}
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    {s.commissionPercent ? <Stat label="Owed this month" value={`$${commission.toFixed(2)}`} tone="verde" /> : null}
-                    <Button size="sm" variant="ghost" className="text-ember-600" onClick={async () => { await staffRepo.remove(s.id); toast(`${s.name} removed.`) }}><Trash2 size={14} /></Button>
+                    {s.commissionPercent ? <Stat label={t('team.owedThisMonth')} value={`$${commission.toFixed(2)}`} tone="verde" /> : null}
+                    <Button size="sm" variant="ghost" className="text-ember-600" aria-label={t('team.remove', { name: s.name })} onClick={async () => { await staffRepo.remove(s.id); toast(t('team.toast.removed', { name: s.name })) }}><Trash2 size={14} /></Button>
                   </div>
                 </Card>
               )
@@ -178,13 +182,13 @@ export default function TeamPage() {
       </div>
 
       <div>
-        <h3 className="mb-3 text-sm font-semibold text-muted">Locations</h3>
+        <h3 className="mb-3 text-sm font-semibold text-muted">{t('team.locations')}</h3>
         {locations.length === 0 ? (
           <EmptyState
             icon={<MapPin size={28} strokeWidth={1.5} />}
-            title="Single location"
-            body="Running more than one studio? Add locations and assign clients and appointments to each — reports and the calendar can filter by location."
-            action={<Button variant="primary" onClick={() => setLocOpen(true)}><Plus size={14} /> Add location</Button>}
+            title={t('team.emptyLocTitle')}
+            body={t('team.emptyLocBody')}
+            action={<Button variant="primary" onClick={() => setLocOpen(true)}><Plus size={14} /> {t('team.addLocation')}</Button>}
           />
         ) : (
           <div className="space-y-2">
@@ -195,7 +199,7 @@ export default function TeamPage() {
                   <Card pad={false} className="flex items-center justify-between px-4 py-3 transition-colors hover:border-verde-600/40">
                     <div>
                       <div className="text-sm font-medium text-ink">{l.name}</div>
-                      <div className="text-2xs text-faint">{l.address || 'No address on file'} · {count} client{count === 1 ? '' : 's'}</div>
+                      <div className="text-2xs text-faint">{l.address || t('team.noAddress')} · {t('team.clientCount', { count })}</div>
                     </div>
                   </Card>
                 </Link>

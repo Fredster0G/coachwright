@@ -61,6 +61,9 @@ export function createPoseTracker(): PoseTracker {
     if (initPromise) return initPromise
     initPromise = (async () => {
       const vision = await import('@mediapipe/tasks-vision')
+      // Non-module loader: picks vision_wasm_internal (SIMD) or
+      // vision_wasm_nosimd_internal. The `_module_` variant is never used and
+      // is deliberately not shipped (DEBT-11, S24).
       const fileset = await vision.FilesetResolver.forVisionTasks('mediapipe')
       const baseOptions = { modelAssetPath: 'mediapipe/pose_landmarker_lite.task' }
 

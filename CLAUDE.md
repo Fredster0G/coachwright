@@ -12,4 +12,4 @@ Quick orientation:
 - **Do NOT bulk-read `PROGRESS.md`** — it's a frozen 380-line archive with 5,000-character paragraphs.
   Grep it; never load it whole.
 
-Session close-out is mandatory and takes four steps — see `AGENTS.md` §3.
+Session close-out is mandatory and takes five steps — see `AGENTS.md` §3 (the fifth: keep `TODO-FOR-CALEB.txt` current).

@@ -2,7 +2,12 @@ import { ulid } from 'ulid'
 
 export const newId = () => ulid()
 export const nowIso = () => new Date().toISOString()
-export const today = () => new Date().toISOString().slice(0, 10)
+/** The LOCAL calendar date. (Was `toISOString().slice(0, 10)` — UTC — so a
+ *  workout logged at 8pm in New York was dated tomorrow; S24.) */
+export function today(now = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`
+}
 
 /** Stamp create fields onto a partial entity — same convention as the coach app. */
 export function stamp<T extends { id?: string }>(x: T) {

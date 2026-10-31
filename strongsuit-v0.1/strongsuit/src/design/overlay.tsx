@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { create } from 'zustand'
 import { X } from 'lucide-react'
 import { IconButton } from './controls'
@@ -8,22 +8,30 @@ export function Dialog({ open, onClose, title, children, width = 440 }: {
   open: boolean; onClose: () => void; title: string; children: ReactNode; width?: number
 }) {
   const ref = useRef<HTMLDialogElement>(null)
+  const titleId = useId()
   useEffect(() => {
     const d = ref.current
     if (!d) return
-    if (open && !d.open) d.showModal()
+    if (open && !d.open) {
+      d.showModal()
+      // showModal() focuses the first focusable (the Close button), and an
+      // input's React autoFocus already fired while the dialog was closed —
+      // so typing went nowhere (⌘K search, exercise search, every "name" field).
+      d.querySelector<HTMLElement>('[data-autofocus]')?.focus()
+    }
     if (!open && d.open) d.close()
   }, [open])
   return (
     <dialog
       ref={ref}
+      aria-labelledby={titleId}
       onClose={onClose}
       onCancel={onClose}
       style={{ width, maxWidth: 'calc(100vw - 32px)' }}
       className="rounded-card border border-line bg-surface p-0 text-ink shadow-modal backdrop:bg-iron-950/40"
     >
       <div className="flex items-center justify-between border-b border-line px-4 py-3">
-        <h2 className="font-display text-base font-semibold">{title}</h2>
+        <h2 id={titleId} className="font-display text-base font-semibold">{title}</h2>
         <IconButton label="Close" onClick={onClose}><X size={16} /></IconButton>
       </div>
       <div className="p-4">{children}</div>
@@ -70,16 +78,31 @@ export function Toaster() {
 }
 
 // ============ Tabs ============
+/** Scrolls sideways when the tabs don't fit (a client page has 11 — on a
+ *  phone the last ones used to be clipped and unreachable), and keeps the
+ *  active tab in view. */
 export function Tabs({ tabs, active, onChange }: { tabs: { id: string; label: string }[]; active: string; onChange: (id: string) => void }) {
+  const listRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    // Scroll the strip only — scrollIntoView would also scroll the page
+    // vertically when the tabs start below the fold.
+    const list = listRef.current
+    const el = list?.querySelector<HTMLElement>('[aria-selected="true"]')
+    if (!list || !el) return
+    if (el.offsetLeft < list.scrollLeft) list.scrollLeft = el.offsetLeft
+    else if (el.offsetLeft + el.offsetWidth > list.scrollLeft + list.clientWidth) {
+      list.scrollLeft = el.offsetLeft + el.offsetWidth - list.clientWidth
+    }
+  }, [active])
   return (
-    <div role="tablist" className="flex gap-1 border-b border-line">
+    <div ref={listRef} role="tablist" className="relative flex gap-1 overflow-x-auto overflow-y-hidden shadow-[inset_0_-1px_0_var(--line)] [scrollbar-width:none]">
       {tabs.map(t => (
         <button
           key={t.id}
           role="tab"
           aria-selected={active === t.id}
           onClick={() => onChange(t.id)}
-          className={`-mb-px border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+          className={`shrink-0 whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
             active === t.id ? 'border-verde-600 text-ink' : 'border-transparent text-muted hover:text-ink'
           }`}
         >

@@ -3,10 +3,9 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { clientsRepo, exercisesRepo, logsRepo, trainerRepo } from '@/db/repo'
 import { calculateWeeklyTonnage, detectPRs } from '@/lib/analytics'
-import { APP_NAME } from '@/lib/brand'
-import { e1rm, fullName } from '@/lib/core'
+import { e1rm, fullName, isoDay } from '@/lib/core'
 import { useTranslation } from '@/lib/i18n'
-import { canUseCustomBranding } from '@/lib/membership'
+import { artifactBrand } from '@/lib/branding'
 
 
 export default function PrintProgressReport() {
@@ -21,10 +20,10 @@ export default function PrintProgressReport() {
   const { t } = useTranslation()
 
   // Date range from query params, default to last 30 days
-  const rangeEnd = searchParams.get('end') || new Date().toISOString().slice(0, 10)
+  const rangeEnd = searchParams.get('end') || isoDay(new Date())
   const rangeStart = searchParams.get('start') || (() => {
     const d = new Date(); d.setDate(d.getDate() - 30)
-    return d.toISOString().slice(0, 10)
+    return isoDay(d)
   })()
 
   const logs = useMemo(() => {
@@ -48,8 +47,8 @@ export default function PrintProgressReport() {
     return <div className="p-8">{t('print.progress.loading')}</div>
   }
 
-  const canBrand = canUseCustomBranding(trainer)
-  const business = (canBrand.allowed && trainer.businessName) ? trainer.businessName : APP_NAME
+  const brand = artifactBrand(trainer)
+  const business = brand.name
 
   const weeklyTonnage = calculateWeeklyTonnage(logs, trainer.weekStartsOn)
 
@@ -86,13 +85,14 @@ export default function PrintProgressReport() {
   return (
     <div className="bg-white text-black min-h-screen p-8 max-w-4xl mx-auto font-sans">
       {/* Header */}
-      <div className="mb-8 pb-4 border-b-2 border-black flex justify-between items-end">
+      <div className="mb-8 pb-4 border-b-2 border-black flex flex-wrap justify-between items-end gap-x-4 gap-y-2">
         <div>
           <h1 className="text-3xl font-bold uppercase tracking-tight">{fullName(client)}</h1>
           <h2 className="text-xl text-gray-600 mt-1">{t('print.progress.title')}</h2>
           <p className="text-sm text-gray-500 mt-1 font-mono">{t('print.progress.dateRange', { start: rangeStart, end: rangeEnd })}</p>
         </div>
         <div className="text-end text-sm text-gray-500">
+          {brand.logo && <img src={brand.logo} alt="" className="mb-1 ms-auto h-10 w-auto max-w-[120px] object-contain" />}
           <p>{business}</p>
           <p>{new Date().toLocaleDateString()}</p>
         </div>

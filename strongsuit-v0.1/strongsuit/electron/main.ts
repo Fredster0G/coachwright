@@ -2,16 +2,15 @@ import { app, BrowserWindow, ipcMain, Menu, protocol, net, shell } from 'electro
 import * as path from 'path'
 import * as fs from 'fs'
 import * as os from 'os'
-import { randomUUID } from 'crypto'
 import { pathToFileURL } from 'url'
-import express from 'express'
-import cors from 'cors'
-import { Server } from 'http'
 import { buildAppMenu } from './menu'
 import { loadWindowState, trackWindowState, MIN_SIZE } from './windowState'
+import { resolveAppAsset, windowOpenAction } from './policy'
 
 const APP_NAME = 'Coachwright'
 const APP_SCHEME = 'app'
+const DEV_ORIGIN = 'http://localhost:5173'
+const APP_ORIGINS = [`${APP_SCHEME}://coachwright`, DEV_ORIGIN]
 
 // Registered before `app.ready` (required — Electron docs) so the scheme
 // behaves like http/https for relative-URL resolution (`standard: true`,
@@ -32,11 +31,8 @@ protocol.registerSchemesAsPrivileged([
     scheme: APP_SCHEME,
     privileges: {
       standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true,
-      // src/main.tsx registers ./sw.js (PROD builds only) for offline PWA
-      // caching — without this flag that registration would silently fail
-      // under a custom scheme (silently, since it's wrapped in .catch(()=>{})
-      // there on purpose; still worth actually supporting rather than
-      // relying on the failure being harmless).
+      // Needed so public/sw.js (a self-removing worker since S23) can run
+      // once and unregister the old offline cache on existing installs.
       allowServiceWorkers: true,
     },
   },
@@ -44,20 +40,7 @@ protocol.registerSchemesAsPrivileged([
 
 let mainWindow: BrowserWindow | null = null
 let splashWindow: BrowserWindow | null = null
-let syncServer: Server | null = null
 
-function getLocalIpAddress(): string {
-  const interfaces = os.networkInterfaces()
-  for (const name of Object.keys(interfaces)) {
-    for (const iface of interfaces[name]!) {
-      // Skip internal and non-IPv4 addresses
-      if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address
-      }
-    }
-  }
-  return '127.0.0.1'
-}
 
 function createWindow() {
   // Splash shows immediately (native window boot is instant; the renderer's
@@ -135,9 +118,12 @@ function createWindow() {
   // Packaged loads over the app:// protocol registered in app.whenReady()
   // below — see the scheme-registration comment up top for why this can't
   // just be loadFile() over file://.
-  const isDev = !app.isPackaged
+  // CW_SERVE_DIST=1 runs an unpackaged build exactly like the packaged one
+  // (built dist/ over app://) — for checking the real renderer path without
+  // making an installer.
+  const isDev = !app.isPackaged && !process.env.CW_SERVE_DIST
   if (isDev) {
-    mainWindow.loadURL('http://localhost:5173')
+    mainWindow.loadURL(DEV_ORIGIN)
   } else {
     mainWindow.loadURL(`${APP_SCHEME}://coachwright/index.html`)
   }
@@ -156,7 +142,7 @@ app.on('web-contents-created', (event, contents) => {
     const parsedUrl = new URL(navigationUrl)
     // Dev server, the packaged app's own app:// origin, or (legacy) file://
     // — anything else gets blocked.
-    const allowed = parsedUrl.origin === 'http://localhost:5173'
+    const allowed = parsedUrl.origin === DEV_ORIGIN
       || navigationUrl.startsWith(`${APP_SCHEME}://`)
       || navigationUrl.startsWith('file://')
     if (!allowed) {
@@ -164,20 +150,31 @@ app.on('web-contents-created', (event, contents) => {
     }
   })
   
-  // A `target="_blank"` link (Stripe Checkout, the billing portal, video
-  // links, print-preview "open in browser") never opens a second Electron
-  // window — 'deny' always wins here. http/https instead get handed to the
-  // OS's real default browser via shell.openExternal, which is what a link
-  // clicked inside a desktop app should do; anything else (a custom scheme,
-  // a javascript: URL) is denied outright with no fallback. Before this,
-  // every such link was a silent no-op in the packaged app.
+  // `window.open` / `target="_blank"`: the app's own pages (print sheets,
+  // TV mode — `#/print/...`, `#/tv/...`) open as another app window with the
+  // same locked-down preferences; web links (Stripe Checkout, the billing
+  // portal, video links) go to the OS's default browser; anything else (a
+  // custom scheme, javascript:) is refused. S25: before, app:// pages were
+  // refused too, so Print and TV mode silently did nothing in the packaged app.
   contents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('https://') || url.startsWith('http://')) {
-      shell.openExternal(url)
+    const action = windowOpenAction(url, APP_ORIGINS)
+    if (action === 'app-window') {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          width: 1100, height: 850, autoHideMenuBar: true,
+          webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+        },
+      }
     }
+    if (action === 'external') shell.openExternal(url)
     return { action: 'deny' }
   })
 })
+
+// Windows shows renderer notifications (lib/coachNotify.ts) only for an app
+// with an AppUserModelID; it must match the installer's appId.
+if (process.platform === 'win32') app.setAppUserModelId('com.coachwright.app')
 
 app.whenReady().then(() => {
   // Serves the packaged renderer over app:// instead of file:// — see the
@@ -186,10 +183,12 @@ app.whenReady().then(() => {
   // it references with a relative path (`./assets/x.js`) arrives here as
   // `app://coachwright/assets/x.js`, since `standard: true` above makes this
   // scheme resolve relative URLs the same way http/https do.
+  const distRoot = path.join(__dirname, '../dist')
   protocol.handle(APP_SCHEME, request => {
-    const { pathname } = new URL(request.url)
-    const relative = decodeURIComponent(pathname === '/' ? '/index.html' : pathname)
-    const filePath = path.join(__dirname, '../dist', relative)
+    // resolveAppAsset refuses paths that decode to outside dist/ (an encoded
+    // `..%2F` survives URL parsing) — S25.
+    const filePath = resolveAppAsset(distRoot, new URL(request.url).pathname)
+    if (!filePath) return new Response('Not found', { status: 404 })
     return net.fetch(pathToFileURL(filePath).toString())
   })
 
@@ -223,77 +222,20 @@ ipcMain.handle('window-maximize-toggle', () => {
 })
 ipcMain.handle('window-close', () => { mainWindow?.close() })
 ipcMain.handle('window-is-maximized', () => mainWindow?.isMaximized() ?? false)
+// Local-AI sizing (hardwareProbe.ts). The renderer asked for this since the
+// Local AI card was built, but no handler existed — so the desktop app always
+// reported "can't tell how much memory", and OCR, voice, the assistant and
+// the larger pose models were never offered on desktop (found S25).
+ipcMain.handle('system-info', async () => {
+  let freeDiskGb: number | undefined
+  try {
+    const st = await fs.promises.statfs(app.getPath('userData'))
+    freeDiskGb = Math.round((st.bavail * st.bsize) / 1024 ** 3)
+  } catch { /* unknown */ }
+  return { totalMemGb: os.totalmem() / 1024 ** 3, cores: os.cpus().length, freeDiskGb }
+})
+
 ipcMain.handle('show-app-menu', () => {
   if (mainWindow) Menu.getApplicationMenu()?.popup({ window: mainWindow })
 })
 
-// --- IPC Handlers for WiFi Sync ---
-
-ipcMain.handle('get-local-ip', () => {
-  return getLocalIpAddress()
-})
-
-ipcMain.handle('start-sync-server', async (event, port = 4000) => {
-  if (syncServer) {
-    return { success: false, message: 'Server already running' }
-  }
-
-  return new Promise((resolve) => {
-    try {
-      const expressApp = express()
-      expressApp.use(cors())
-      expressApp.use(express.json({ limit: '50mb' }))
-
-      // Endpoint for a Companion client on the same WiFi to push its sealed
-      // packet. The renderer (which owns Dexie + the pairing keys) applies
-      // it and answers with the coach's return packet in `message` — so one
-      // POST is a full two-way sync. Each request gets its own syncId and
-      // listener: two clients syncing at once can't take each other's
-      // responses, and a renderer that never answers times out instead of
-      // holding the client's request open forever.
-      expressApp.post('/sync/push', (req, res) => {
-        if (!mainWindow) {
-          res.status(500).json({ success: false, message: 'Coach app not ready' })
-          return
-        }
-        const syncId = randomUUID()
-        const listener = (_evt: Electron.IpcMainEvent, response: { syncId: string; success: boolean; message?: string }) => {
-          if (response?.syncId !== syncId) return
-          ipcMain.removeListener('sync-response', listener)
-          clearTimeout(timer)
-          res.status(response.success ? 200 : 400).json(response)
-        }
-        const timer = setTimeout(() => {
-          ipcMain.removeListener('sync-response', listener)
-          res.status(504).json({ success: false, message: 'Coach app did not respond' })
-        }, 30_000)
-        ipcMain.on('sync-response', listener)
-        mainWindow.webContents.send('sync-request', { ...req.body, syncId })
-      })
-
-      // Endpoint for clients to pull their packets (Program updates)
-      // For a truly offline feel, the client can just push their payload and receive the coach's payload in the same response.
-      // But we can keep it standard.
-
-      syncServer = expressApp.listen(port, '0.0.0.0', () => {
-        resolve({ success: true, port })
-      })
-
-      syncServer.on('error', (err: any) => {
-        resolve({ success: false, message: err.message })
-      })
-
-    } catch (e: any) {
-      resolve({ success: false, message: e.message })
-    }
-  })
-})
-
-ipcMain.handle('stop-sync-server', () => {
-  if (syncServer) {
-    syncServer.close()
-    syncServer = null
-    return { success: true }
-  }
-  return { success: false, message: 'Server not running' }
-})

@@ -1,3 +1,4 @@
+import type { Msg } from '@/lib/i18n/msg'
 import type { CheckIn } from '@/db/types'
 import { readinessV2, type Readiness2 } from '@/lib/readiness'
 
@@ -26,6 +27,7 @@ export interface RosterFlag {
   clientId: string
   band: 'moderate' | 'easy'
   recommendation: string
+  recMsg: Msg
 }
 
 /** Active clients whose latest readiness reads below their own normal today.
@@ -41,7 +43,7 @@ export function flagReadinessToday(
     const checkIns = checkInsByClient.get(c.id) ?? []
     const r = readinessV2({ checkIns })
     if (r.band === 'moderate' || r.band === 'easy') {
-      out.push({ clientId: c.id, band: r.band, recommendation: r.recommendation })
+      out.push({ clientId: c.id, band: r.band, recommendation: r.recommendation, recMsg: r.recMsg })
     }
   }
   return out

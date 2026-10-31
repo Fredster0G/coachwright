@@ -19,7 +19,7 @@ export function BootScreen({ stage, progress = 0, fadingOut = false, error = nul
   fadingOut?: boolean
   /** Set when a boot step threw. Replaces the progress bar with something the
    *  user can act on — a frozen bar with no explanation was the old behaviour. */
-  error?: { step: 'trainer' | 'theme' | 'storage' | 'seed'; message: string } | null
+  error?: { step: 'trainer' | 'theme' | 'storage' | 'cloud' | 'seed'; message: string } | null
   onRetry?: () => void
 }) {
   const { t } = useTranslation()

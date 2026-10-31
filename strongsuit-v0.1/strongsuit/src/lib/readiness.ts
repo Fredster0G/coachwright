@@ -6,6 +6,7 @@
 // sleep/fatigue/mood scales track training readiness surprisingly well and
 // are the cheapest valid monitoring tool available — perfect for offline.
 
+import { english, type Msg } from './i18n/msg'
 import type { CheckIn } from '@/db/types'
 
 export interface Readiness {
@@ -107,6 +108,8 @@ export interface DomainReading {
   baseline: number
   /** Plain-language, e.g. "1.8 SD below their normal sleep". */
   description: string
+  /** The same, translatable. */
+  descMsg: Msg
 }
 
 export interface Readiness2 {
@@ -117,16 +120,22 @@ export interface Readiness2 {
   domains: DomainReading[]
   /** The single domain doing most of the work. Null when nothing stands out. */
   driver: DomainReading | null
-  /** What the coach should actually do. */
+  /** What the coach should actually do (English). */
   recommendation: string
+  /** The same, translatable. */
+  recMsg: Msg
   /** How many days of history the baseline rests on. */
   historyDays: number
   source: string
 }
 
-const DOMAIN_LABEL: Record<ReadinessDomain, string> = {
-  sleep: 'sleep', energy: 'energy', mood: 'mood', adherence: 'adherence',
+const DOMAIN_LABEL: Record<ReadinessDomain, Msg> = {
+  sleep: { key: 'readiness.domain.sleep' }, energy: { key: 'readiness.domain.energy' },
+  mood: { key: 'readiness.domain.mood' }, adherence: { key: 'readiness.domain.adherence' },
 }
+
+/** English line + the translatable message it came from. */
+const say = (m: Msg) => ({ recommendation: english(m), recMsg: m })
 
 function mean(xs: number[]): number {
   return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0
@@ -178,14 +187,15 @@ function readDomain(domain: ReadinessDomain, today: number, history: number[]): 
 
   const label = DOMAIN_LABEL[domain]
   const atCap = Math.abs(raw) >= MAX_ABS_Z
-  const description = Math.abs(rounded) < 0.5
-    ? `${label} is normal for them`
+  const below = rounded < 0
+  const descMsg: Msg = Math.abs(rounded) < 0.5
+    ? { key: 'readiness.desc.normal', params: { label } }
     : atCap
       // Don't quote a precise figure we don't believe — say what it means.
-      ? `${label} is far ${rounded < 0 ? 'below' : 'above'} their normal`
-      : `${Math.abs(rounded)} SD ${rounded < 0 ? 'below' : 'above'} their normal ${label}`
+      ? { key: below ? 'readiness.desc.farBelow' : 'readiness.desc.farAbove', params: { label } }
+      : { key: below ? 'readiness.desc.sdBelow' : 'readiness.desc.sdAbove', params: { n: Math.abs(rounded), label } }
 
-  return { domain, z: rounded, value: today, baseline: Math.round(baseline * 10) / 10, description }
+  return { domain, z: rounded, value: today, baseline: Math.round(baseline * 10) / 10, description: english(descMsg), descMsg }
 }
 
 export interface ReadinessHistory {
@@ -214,13 +224,13 @@ export function readinessV2(history: ReadinessHistory): Readiness2 {
   }
 
   if (!today) {
-    return { ...base, score: null, band: 'learning', recommendation: 'No check-ins yet — log one to start building a baseline.' }
+    return { ...base, score: null, band: 'learning', ...say({ key: 'readiness.none' }) }
   }
   if (prior.length < MIN_BASELINE_DAYS) {
     const need = MIN_BASELINE_DAYS - prior.length
     return {
       ...base, score: null, band: 'learning',
-      recommendation: `Still learning this client's normal — ${need} more check-in${need === 1 ? '' : 's'} needed before readiness means anything.`,
+      ...say({ key: 'readiness.learning', params: { count: need } }),
     }
   }
 
@@ -240,7 +250,7 @@ export function readinessV2(history: ReadinessHistory): Readiness2 {
   add('adherence', today.adherence, pick(c => c.adherence))
 
   if (readings.length === 0) {
-    return { ...base, score: null, band: 'learning', recommendation: "Today's check-in has nothing scoreable in it yet." }
+    return { ...base, score: null, band: 'learning', ...say({ key: 'readiness.nothingScoreable' }) }
   }
 
   readings.sort((a, b) => a.z - b.z)
@@ -263,16 +273,16 @@ export function readinessV2(history: ReadinessHistory): Readiness2 {
     domains: readings,
     driver,
     historyDays: prior.length,
-    recommendation: recommend(band, driver),
+    ...say(recommend(band, driver)),
   }
 }
 
-function recommend(band: Readiness2['band'], driver: DomainReading | null): string {
-  const because = driver ? ` Mainly ${driver.description}.` : ''
+function recommend(band: Readiness2['band'], driver: DomainReading | null): Msg {
+  const because: Msg | string = driver ? { key: 'readiness.because', params: { driver: driver.descMsg } } : ''
   switch (band) {
-    case 'go': return `Train as planned — they're at or above their normal.${because}`
-    case 'moderate': return `Keep the session, cap the top sets a notch.${because}`
-    case 'easy': return `Cut load roughly 10–20% or switch to technique work.${because} Two low days in a row is a deload conversation.`
-    default: return 'Not enough history yet.'
+    case 'go': return { key: 'readiness.go', params: { because } }
+    case 'moderate': return { key: 'readiness.moderate', params: { because } }
+    case 'easy': return { key: 'readiness.easy', params: { because } }
+    default: return { key: 'readiness.notEnough' }
   }
 }

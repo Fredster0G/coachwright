@@ -1,9 +1,8 @@
 import { db } from './schema'
 import { stamp, newId, nowIso, singleFlight } from '@/lib/core'
-import { generateIdentity } from '@/lib/sync'
 import type {
   CompanionProfile, CoachLink, PersonalWorkout, PersonalMetric, CoachMessage,
-  SyncIdentity, AssignedProgram, CoachExercise, CycleDay,
+  AssignedProgram, CoachExercise, CycleDay,
 } from './types'
 
 const PROFILE_ID = 'profile' // singleton row, same pattern as the coach app's Trainer singleton
@@ -30,7 +29,6 @@ export const profileRepo = {
       units: 'lb',
       theme: 'system',
       onboarded: false,
-      personalCloudTier: 'free',
       createdAt: nowIso(),
       updatedAt: nowIso(),
     }
@@ -48,27 +46,15 @@ export const profileRepo = {
   async patch(changes: Partial<CompanionProfile>) {
     await db.profile.update(PROFILE_ID, { ...changes, updatedAt: nowIso() })
   },
-  /** Lazily creates this device's ECDH identity on first use and persists
-   *  it — same "generate once, keep forever" pattern as the coach app's
-   *  `getIdentity()`. Needed before any pairing/sync can happen. */
-  async getOrCreateIdentity(): Promise<SyncIdentity> {
-    const profile = await profileRepo.getOrCreate()
-    if (profile.identity) return profile.identity
-    const { publicJwk, privateJwk } = await generateIdentity()
-    const identity: SyncIdentity = {
-      deviceId: newId(),
-      name: profile.name || 'Companion',
-      publicJwk, privateJwk,
-      createdAt: nowIso(),
-    }
-    await profileRepo.patch({ identity })
-    return identity
-  },
 }
 
 export const coachLinkRepo = {
   async get(): Promise<CoachLink | undefined> {
-    return db.coachLink.toCollection().first()
+    const link = await db.coachLink.toCollection().first()
+    // A pre-S23 E2EE pairing has no cloud token and can't sync any more.
+    // Drop it so the app offers "connect with a code" instead of a dead link.
+    if (link && !link.token) { await db.coachLink.delete(link.id); return undefined }
+    return link
   },
   async create(link: Omit<CoachLink, 'id' | 'pairedAt'>) {
     const row: CoachLink = { ...link, id: newId(), pairedAt: nowIso() }
@@ -100,6 +86,9 @@ export const messagesRepo = {
   },
   async has(id: string) {
     return (await db.messages.get(id)) !== undefined
+  },
+  async get(id: string) {
+    return db.messages.get(id)
   },
 }
 
@@ -152,15 +141,30 @@ export const coachExercisesRepo = {
 
 export const workoutsRepo = {
   async all(): Promise<PersonalWorkout[]> {
-    return db.workouts.orderBy('date').reverse().toArray()
+    return (await db.workouts.orderBy('date').reverse().toArray()).filter(w => !w.deletedAt)
+  },
+  /** Including deletions the coach hasn't heard about yet — sync only. */
+  async allForSync(): Promise<PersonalWorkout[]> {
+    return db.workouts.toArray()
+  },
+  /** Drop deletions the coach now knows about. */
+  async purgeDeleted(upTo: string) {
+    await db.workouts.filter(w => !!w.deletedAt && w.deletedAt <= upTo).delete()
   },
   async create(w: Omit<PersonalWorkout, 'id' | 'createdAt' | 'updatedAt'>) {
     const row: PersonalWorkout = { ...w, ...stamp({}) }
     await db.workouts.add(row)
     return row
   },
+  /** Connected to a coach: kept as a deletion until the next sync tells the
+   *  coach (their copy used to stay forever). Otherwise removed outright. */
   async remove(id: string) {
-    await db.workouts.delete(id)
+    if (await db.coachLink.count()) {
+      const t = nowIso()
+      await db.workouts.update(id, { deletedAt: t, updatedAt: t })
+    } else {
+      await db.workouts.delete(id)
+    }
   },
 }
 

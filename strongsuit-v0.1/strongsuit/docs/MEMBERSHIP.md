@@ -12,15 +12,12 @@ this.
 purchase. A new free tier exists alongside it, capped at 3 active clients.
 
 **Did not change:**
-- The local-first architecture. Every feature works fully offline on both tiers. Client data never leaves
-  the coach's machine on either tier — membership billing is metadata (a subscription status and an
-  expiry date), never a reason to phone home with actual coaching data.
-- Any *already-issued* one-time licence key (`lib/licence.ts`). Those keys have no expiry, never will, and
-  this change touches zero bits of that file's claim shape or signing scheme — see that file's own header
-  for why a new claims shape lives in `lib/membership.ts` instead of extending the old one.
-- The "no activation server to *verify*" promise. A membership token is still checked with the exact same
-  offline ECDSA signature check as a one-time key. What's new is that a token now needs periodic **refresh**
-  (see §3) — verification itself never touches the network.
+- Any *already-issued* one-time licence key (`lib/licence.ts`). Those keys have no expiry, are still
+  verified offline, and never will be revoked.
+
+**Changed again in S23:** membership moved onto the coach's cloud account (see `CLOUD.md`). The S15
+design — offline-verified signed `CWM1.` tokens refreshed from the server, and S22's per-device secret —
+is gone; with real accounts, the server simply answers "is this account a member, and until when".
 
 ## 2. Why this is a real reversal, not a tweak — said plainly
 
@@ -48,77 +45,52 @@ client count. The point is a clear, correctly-explained limit for someone acting
 against someone who isn't. A local-first app cannot do better than that without becoming a different kind
 of product (server-authoritative accounts), which was never on the table here.
 
-## 4. How a membership token actually works
+## 4. How membership works (S23)
 
-- Coach checks out via Stripe Checkout (hosted by Stripe — the app never sees a card number).
-- The sync server's webhook records the subscription in a `memberships` table (`sync-server/server.ts`).
-- The app polls `GET /membership/status?coachId=<device id>` — on launch, and roughly daily. If the
-  subscription is active (or `past_due`, a grace period — see below), the server mints a freshly signed
-  `CWM1.…` token good for `MEMBERSHIP_TOKEN_LIFETIME_DAYS` (default 35) and hands it back.
-- The app verifies that token **entirely offline**, exactly like a one-time licence key, against the same
-  embedded public key (`RELEASE_PUBLIC_JWK` in `lib/licence.ts`, reused by `lib/membership.ts`).
-- A coach without internet for a stretch keeps full access until the token's own `expiresAt` — real
-  headroom past the 30-day billing cycle, never an instant cutoff on a missed check. Past expiry with no
-  successful refresh, the account quietly reverts to free-tier limits. Never a hard lockout, never data
-  loss — every client, program, and log stays exactly where it was.
-- `past_due` (a failed card charge Stripe is still retrying) counts as active. Cutting access on the first
-  failed charge is the kind of coercive billing experience this product is explicitly trying not to be.
+- The coach is signed in (`CLOUD.md`). **Upgrade** calls `POST /membership/checkout`; the server creates a
+  Stripe Checkout session with `client_reference_id = <account id>` and the account's email. The app
+  never sees a card number.
+- The webhook (`checkout.session.completed`, `customer.subscription.updated/.deleted`) records the
+  subscription on the account in the `memberships` table. `/checkout` refuses (409) while the account
+  already has an active subscription, so nobody is double-billed.
+- The app asks `GET /membership/status` at launch, every few hours, when the network returns, and when
+  Account/Settings opens (`lib/membershipApi.ts`). The answer is `{active, expiresAt}` where `expiresAt`
+  is Stripe's `current_period_end` plus `MEMBERSHIP_GRACE_DAYS` (default 7).
+- The app caches that on two **device-only** trainer fields (never uploaded) and `hasActiveMembership()`
+  honours it until `expiresAt` even if the server can't be reached. After it, free-tier limits apply.
+  Never a lockout, never data loss.
+- `past_due` (Stripe still retrying a card) counts as active.
+- **What Membership unlocks** — exactly two things: unlimited active clients (`canAddClient`) and custom
+  branding for installs created after 2026-08-15 (`canUseCustomBranding`). Everything else is free on
+  every tier (DEBT-70 tracks the edition flags that still describe the old split).
+- **The free-tier cap is enforced by the server (S24).** `/data/push` refuses a client *becoming*
+  active (new, or restored from archive/pause) when a non-member already has 3 active ones. Edits and
+  archiving always go through, and within one push archives are applied before activations. Exempt:
+  a live membership, or a one-time `independent`/`studio` licence on the trainer row whose signature
+  the server verifies with the same public key the app embeds (an app test asserts they match). Gate
+  new, never claw back: an account whose *first* push arrives with more than 3 active clients (a
+  pre-cloud install uploading) keeps that many as its allowance. Refused clients stay on the device and
+  retry each sync; Account & sync says why. The app's own `canAddClient()` check still runs first.
 
 ## 5. Operator runbook — going live for real
 
-Nothing below is optional if you want real coaches to actually be able to pay. In order:
+Stand up the backend first (`CLOUD.md` §4). Then, in order:
 
-1. **Create the Stripe product & price** (Stripe Dashboard → Product catalog): one recurring product,
-   $29.00/mo, USD. Copy the **Price ID** (`price_...`).
-2. **Create a restricted API key** (Stripe Dashboard → Developers → API keys) with Checkout Sessions,
-   Subscriptions, Customers, and Billing Portal write access. Copy the **secret key** (`sk_...`).
-3. **Generate the licence-signing keypair**, if `StrongSuit-release-keys/` (sibling of this repo, per
-   `lib/licence.ts`'s own comment) doesn't already have one:
-   ```bash
-   node -e "
-   const { webcrypto } = require('crypto');
-   (async () => {
-     const pair = await webcrypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign','verify']);
-     const pub = await webcrypto.subtle.exportKey('jwk', pair.publicKey);
-     const priv = await webcrypto.subtle.exportKey('jwk', pair.privateKey);
-     console.log('PUBLIC (goes in src/lib/licence.ts RELEASE_PUBLIC_JWK):');
-     console.log(JSON.stringify(pub));
-     console.log('PRIVATE (goes ONLY in the sync server env, never this repo):');
-     console.log(JSON.stringify(priv));
-   })();
-   "
-   ```
-   The public half replaces `RELEASE_PUBLIC_JWK` in `src/lib/licence.ts` and ships in the app. The private
-   half is the single most sensitive secret in this whole system — anyone who has it can mint a valid
-   membership (or, if reused, a one-time licence) for free. Store it in a secrets manager, never in git,
-   never in chat, never anywhere this repo's history could pick it up.
-4. **Set the sync server's environment** (`sync-server/.env`, alongside the existing `ADMIN_KEY`/`VAPID_*`
-   vars documented in `MANAGED_HOSTING.md`):
-   ```
-   STRIPE_SECRET_KEY=sk_live_...
-   STRIPE_PRICE_ID=price_...
-   STRIPE_WEBHOOK_SECRET=whsec_...
-   STRIPE_SUCCESS_URL=https://coachwright.app/membership/success
-   STRIPE_CANCEL_URL=https://coachwright.app/membership/cancelled
-   LICENCE_SIGNING_PRIVATE_JWK={"kty":"EC","crv":"P-256","d":"...","x":"...","y":"..."}
-   MEMBERSHIP_TOKEN_LIFETIME_DAYS=35
-   ```
-5. **Register the webhook** in the Stripe Dashboard pointing at
-   `https://<your-relay-domain>/membership/webhook`, subscribed to `checkout.session.completed`,
-   `customer.subscription.updated`, and `customer.subscription.deleted`. Copy the **signing secret**
-   (`whsec_...`) into `STRIPE_WEBHOOK_SECRET` above — this is how the server tells a real Stripe event
-   apart from anyone who POSTs to that URL claiming to be Stripe.
-6. **Point the app at the real server.** `src/lib/membershipApi.ts`'s `MEMBERSHIP_SERVER_URL` currently
-   reads `https://relay.coachwright.app` — update it once the domain is live, and confirm
-   `MANAGED_HOSTING.md`'s existing reference deployment (Caddy + Let's Encrypt in front of the same
-   `sync-server/` process) is what's actually running there.
-7. **Test in Stripe test mode first.** Use a `sk_test_...` key and Stripe's documented test card
-   (`4242 4242 4242 4242`, any future expiry, any CVC) to run one real checkout → webhook → `/membership/status`
-   → verified-token loop before switching to live keys. Nothing above requires a live key to test.
+1. **Create the Stripe product & price** (Dashboard → Product catalog): one recurring product, $29.00/mo,
+   USD. Copy the **Price ID** (`price_...`).
+2. **Create a restricted API key** with Checkout Sessions, Subscriptions, Customers, and Billing Portal
+   write access. Copy the **secret key** (`sk_...`).
+3. **Set the server env** (`STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`,
+   `STRIPE_SUCCESS_URL`, `STRIPE_CANCEL_URL`, optional `MEMBERSHIP_GRACE_DAYS`) — see `CLOUD.md` §4.
+   No signing key is needed any more.
+4. **Register the webhook** at `https://<api-domain>/membership/webhook` for `checkout.session.completed`,
+   `customer.subscription.updated`, `customer.subscription.deleted`; copy its signing secret into
+   `STRIPE_WEBHOOK_SECRET`.
+5. **Run the tests:** `cd sync-server && npm test`.
+6. **Test mode first:** `sk_test_...` and card `4242 4242 4242 4242`; run one real checkout → webhook →
+   `/membership/status` loop before switching to live keys.
 
-A sync-server instance with none of these env vars set still runs fine for sync/relay/reminders — every
-`/membership/*` route refuses cleanly with a 503 rather than crashing the process, so a self-hoster who
-isn't selling memberships doesn't need a Stripe account at all.
+An instance without these vars still runs accounts and sync; every `/membership/*` route answers 503.
 
 ## 6. What this deliberately does not do
 
@@ -128,4 +100,4 @@ isn't selling memberships doesn't need a Stripe account at all.
 - **No customer portal was built.** Cancel, update-card, view-invoices all go through Stripe's own hosted
   portal (`openMembershipBillingPortal()` just creates a session and redirects).
 - **No hard lockout.** Losing a card, going offline, or letting a subscription lapse never deletes data or
-  blocks the app from opening — it reverts to free-tier limits, same UI, same data, still yours.
+  blocks the app from opening — it reverts to free-tier limits, same UI, same data.

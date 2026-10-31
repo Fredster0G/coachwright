@@ -258,7 +258,7 @@
             
             row.innerHTML = `
               <div class="set-num">${sIdx + 1}</div>
-              <input type="number" inputmode="decimal" id="${setId}_load" placeholder="${set.load || '-'}">
+              <input type="number" inputmode="decimal" id="${setId}_load" placeholder="${isWeight(set) && set.load ? set.load : (set.load && set.loadMode === 'percent1rm' ? set.load + '%' : '-')}">
               <input type="number" inputmode="numeric" id="${setId}_reps" placeholder="${set.reps || '-'}">
               <div class="checkbox" id="${setId}_done" onclick="this.classList.toggle('checked')"></div>
             `;
@@ -303,9 +303,12 @@
               
               entry.sets.push({
                 targetLoad: set.load,
+                targetLoadMode: set.loadMode,
                 targetReps: set.reps,
-                actualLoad: parseFloat(ld.value) || set.load || 0,
-                actualReps: parseInt(rp.value) || parseInt(set.reps) || 0,
+                // A %1RM/RPE target isn't a weight — only an absolute load
+                // stands in for one the client didn't type.
+                actualLoad: parseFloat(ld.value) || (isWeight(set) ? set.load : undefined),
+                actualReps: parseInt(rp.value) || (/^\d+$/.test(String(set.reps ?? '').trim()) ? parseInt(set.reps) : undefined),
                 done: true
               });
             }
@@ -326,7 +329,7 @@
         programId: payload.program.id,
         weekId: activeWeekId,
         dayId: activeDayId,
-        date: new Date().toISOString().split('T')[0],
+        date: localDay(),
         title: day.name,
         entries: entries,
         source: 'companion-import'
@@ -337,6 +340,14 @@
       
       navigate('success');
     }
+
+    // The client's own calendar day: toISOString() is UTC, which files an
+    // evening session in the Americas under tomorrow.
+    function localDay() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    function isWeight(set) { return !set.loadMode || set.loadMode === 'absolute'; }
 
     function exportData() {
       if (savedData.logs.length === 0) {

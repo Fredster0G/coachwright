@@ -7,6 +7,7 @@ import { Button, EmptyState } from '@/design'
 import { makeBlock, makeExercisePrescription } from './builderMutations'
 import { summarizeBlock } from './gridFormat'
 import ExerciseSearch from './ExerciseSearch'
+import { useTranslation } from '@/lib/i18n'
 
 interface GridViewProps {
   draft: Program
@@ -20,6 +21,7 @@ interface ExpandedCell { dayId: string; blockId: string }
 
 export default function GridView({ draft, weekId, commitChange, onSelectDay }: GridViewProps) {
   const exercises = useLiveQuery(() => exercisesRepo.all(), [], [])
+  const { t } = useTranslation()
   const nameMap = useMemo(() => new Map(exercises.map(e => [e.id, e.name])), [exercises])
 
   const [searchOpen, setSearchOpen] = useState(false)
@@ -84,8 +86,8 @@ export default function GridView({ draft, weekId, commitChange, onSelectDay }: G
     return (
       <EmptyState
         icon={<Plus size={28} strokeWidth={1.25} />}
-        title="No weeks yet"
-        body="Switch to Day view to add a week and a first day — Grid view fills in once there's something to lay out."
+        title={t('builder.grid.emptyTitle')}
+        body={t('builder.grid.emptyBody')}
       />
     )
   }
@@ -107,7 +109,7 @@ export default function GridView({ draft, weekId, commitChange, onSelectDay }: G
                   type="button"
                   onClick={() => onSelectDay(day.id)}
                   className="text-xs font-semibold uppercase tracking-wide text-faint hover:text-ink"
-                  title="Open in Day view"
+                  title={t('builder.grid.openDay')}
                 >
                   {day.name}
                 </button>
@@ -141,6 +143,7 @@ export default function GridView({ draft, weekId, commitChange, onSelectDay }: G
                       <button
                         type="button"
                         onClick={() => handleCellClick(day, rowIndex)}
+                        aria-label={t('builder.grid.addCell', { day: day.name })}
                         className="flex w-full items-center justify-center rounded-ctl border border-dashed border-line py-2 text-faint hover:border-verde-600/40 hover:text-verde-600"
                       >
                         <Plus size={14} />
@@ -163,16 +166,16 @@ export default function GridView({ draft, weekId, commitChange, onSelectDay }: G
               <p className="text-2xs font-semibold uppercase tracking-wide text-faint">{expandedDay.name}</p>
               <p className="text-sm font-semibold text-ink">{nameMap.get(expandedEx.exerciseId) || '…'}</p>
             </div>
-            <button type="button" onClick={() => setExpandedCell(null)} className="text-faint hover:text-ink">
+            <button type="button" onClick={() => setExpandedCell(null)} aria-label={t('builder.grid.close')} className="text-faint hover:text-ink">
               <X size={16} />
             </button>
           </div>
 
           <div className="space-y-1">
             <div className="flex text-2xs font-medium text-faint">
-              <div className="w-8">Set</div>
-              <div className="flex-1 max-w-[120px]">Reps</div>
-              <div className="flex-1 max-w-[120px]">Load</div>
+              <div className="w-8">{t('builder.col.set')}</div>
+              <div className="flex-1 max-w-[120px]">{t('builder.col.reps')}</div>
+              <div className="flex-1 max-w-[120px]">{t('builder.col.load')}</div>
               <div className="w-8" />
             </div>
             {expandedEx.sets.map((set: SetPrescription, i: number) => (
@@ -188,7 +191,8 @@ export default function GridView({ draft, weekId, commitChange, onSelectDay }: G
                       updateExercise(expandedDay.id, expandedBlock.id, expandedEx.id, { sets: newSets })
                     }}
                     className="h-8 w-full rounded-sm border border-line bg-surface2 px-2 font-mono text-sm outline-none focus:border-ink focus:ring-1 focus:ring-ink"
-                    placeholder="e.g. 8-10"
+                    placeholder={t('builder.repsPlaceholder')}
+                    aria-label={t('builder.setReps', { n: i + 1 })}
                   />
                 </div>
                 <div className="flex-1 max-w-[120px]">
@@ -201,7 +205,8 @@ export default function GridView({ draft, weekId, commitChange, onSelectDay }: G
                       updateExercise(expandedDay.id, expandedBlock.id, expandedEx.id, { sets: newSets })
                     }}
                     className="h-8 w-full rounded-sm border border-line bg-surface2 px-2 font-mono text-sm outline-none focus:border-ink focus:ring-1 focus:ring-ink"
-                    placeholder="e.g. 50"
+                    placeholder={t('builder.loadPlaceholder')}
+                    aria-label={t('builder.setLoad', { n: i + 1 })}
                   />
                 </div>
                 <div className="w-8">
@@ -212,6 +217,7 @@ export default function GridView({ draft, weekId, commitChange, onSelectDay }: G
                         const newSets = expandedEx.sets.filter((_, idx) => idx !== i)
                         updateExercise(expandedDay.id, expandedBlock.id, expandedEx.id, { sets: newSets })
                       }}
+                      aria-label={t('builder.removeSet', { n: i + 1 })}
                       className="p-1 text-faint hover:text-ember-600"
                     >
                       <Trash2 size={12} />
@@ -229,13 +235,13 @@ export default function GridView({ draft, weekId, commitChange, onSelectDay }: G
               }}
               className="mt-1 text-faint hover:text-ink"
             >
-              <Plus size={12} className="me-1" /> Add set
+              <Plus size={12} className="me-1" /> {t('builder.addSet')}
             </Button>
           </div>
           <p className="mt-3 text-2xs text-faint">
-            Need to reorder, add a superset, or remove this exercise?{' '}
+            {t('builder.grid.moreHint')}{' '}
             <button type="button" onClick={() => onSelectDay(expandedDay.id)} className="font-medium text-verde-600 hover:underline">
-              Open in Day view
+              {t('builder.grid.openDay')}
             </button>
             .
           </p>

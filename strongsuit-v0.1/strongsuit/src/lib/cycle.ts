@@ -30,10 +30,9 @@
 // as n=1. We never prescribe by phase.
 //
 // PRIVACY (plan §4.5) — this is special-category health data under GDPR Art. 9.
-//   · Local-only by default. The sync layer uses explicit allowlists
-//     (COACH_TO_CLIENT_TABLES / CLIENT_TO_COACH_TABLES in features/sync/
-//     syncApi.ts), so a cycle table is excluded unless someone deliberately
-//     adds it. Do not add it.
+//   · Device-only. Cloud sync uses explicit allowlists (SYNCED_TABLES in
+//     lib/cloud/tables.ts, SYNC_TABLES / CLIENT_WRITABLE in sync-server), so a
+//     cycle table is excluded unless someone deliberately adds it. Do not.
 //   · The coach sees a readiness CONTRIBUTION, never raw symptoms, unless the
 //     client explicitly opts in per-field.
 //   · Must be separately deletable without touching training history.
@@ -125,7 +124,7 @@ export function symptomBurden(entry: CycleEntry | undefined): SymptomBurden {
  * rather than an oversight. The intended reader is a readiness score, but the
  * only device holding cycle data is Companion, which has no readiness engine;
  * the coach app has `readinessV2()` and can never see this data, because
- * cycle rows are excluded from the sync payload by construction (see
+ * cycle rows are excluded from what Companion uploads by construction (see
  * features/sync/cyclePrivacy.test.ts in companion-app).
  *
  * Wiring it up therefore needs a real decision first — either a readiness

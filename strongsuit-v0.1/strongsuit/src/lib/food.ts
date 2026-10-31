@@ -11,7 +11,6 @@ export interface FoodLookupError {
 
 /**
  * Queries Open Food Facts for a barcode.
- * Does NOT check cloudCapabilities — the UI layer must do that before calling this.
  */
 export async function lookupBarcode(barcode: string): Promise<FoodItem | FoodLookupError> {
   try {

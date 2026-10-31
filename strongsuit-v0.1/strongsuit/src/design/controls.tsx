@@ -56,8 +56,10 @@ const fieldBase =
   'w-full rounded-ctl border border-line bg-surface px-2.5 text-sm text-ink placeholder:text-faint focus:border-verde-600 focus:outline-none disabled:opacity-50'
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
+  // `data-autofocus` mirrors autoFocus for Dialog: React's autoFocus fires
+  // while a <dialog> is still closed, so it's lost when showModal() runs.
   ({ className = '', ...rest }, ref) => (
-    <input ref={ref} className={`${fieldBase} h-9 ${className}`} {...rest} />
+    <input ref={ref} className={`${fieldBase} h-9 ${className}`} data-autofocus={rest.autoFocus || undefined} {...rest} />
   ),
 )
 Input.displayName = 'Input'

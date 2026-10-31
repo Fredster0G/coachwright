@@ -5,7 +5,8 @@
 // (Canvas/Image APIs); not unit-tested for that reason — exercised via the
 // Progress Photos UI instead.
 
-export function resizeImageToDataUrl(file: File, maxDim = 1280, quality = 0.82): Promise<string> {
+/** `type` 'image/png' keeps transparency (logos); JPEG is far smaller for photos. */
+export function resizeImageToDataUrl(file: File, maxDim = 1280, quality = 0.82, type: 'image/jpeg' | 'image/png' = 'image/jpeg'): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image()
     const url = URL.createObjectURL(file)
@@ -20,7 +21,7 @@ export function resizeImageToDataUrl(file: File, maxDim = 1280, quality = 0.82):
       const ctx = canvas.getContext('2d')
       if (!ctx) { reject(new Error("Couldn't process that image.")); return }
       ctx.drawImage(img, 0, 0, w, h)
-      resolve(canvas.toDataURL('image/jpeg', quality))
+      resolve(canvas.toDataURL(type, quality))
     }
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Couldn't read that image file.")) }
     img.src = url

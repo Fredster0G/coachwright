@@ -1,8 +1,10 @@
 import { db } from '../schema'
 import { makeRepo } from './base'
-import { newId, nowIso, singleFlight, stamp } from '@/lib/core'
+import { newId, nowIso, singleFlight, stamp, today } from '@/lib/core'
+import { planRecurringInvoices, draftFromTemplate } from '@/lib/recurringInvoices'
+import { computeOpenSlots, sameSlots, BOOKING_HORIZON_DAYS } from '@/lib/booking'
 import type {
-  Trainer, Client, ClientNote, Program, SessionLog, Metric, Waiver, Device, CoachMessage,
+  Trainer, Client, ClientNote, Program, SessionLog, Metric, Waiver, CoachMessage,
   Staff, Location, Lead, ProgressPhoto, Habit, HabitEntry, Challenge, Invoice, Coupon, AutomationRule,
   ModelBlob, ExerciseEmbedding, Exercise, ExerciseOverride, FoodItem, FoodEntry,
 } from '../types'
@@ -51,6 +53,22 @@ export const trainerRepo = {
     await db.trainer.update(TRAINER_ID, { ...patch, updatedAt: nowIso() })
     return db.trainer.get(TRAINER_ID)
   },
+  /** Recompute the open booking slots and store them on the trainer row —
+   *  only when they changed, since the row (logo and all) re-uploads on every
+   *  write. Pending requests hold their slot. Returns whether it wrote. */
+  publishBookingSlots: singleFlight(async (): Promise<boolean> => {
+    const t = await db.trainer.get(TRAINER_ID)
+    if (!t) return false
+    const now = new Date()
+    const nowIsoStr = now.toISOString()
+    const held = (await db.messages.toArray())
+      .filter(m => m.direction === 'inbound' && m.booking && !m.booking.status && m.booking.end > nowIsoStr)
+      .map(m => ({ start: m.booking!.start, end: m.booking!.end }))
+    const slots = t.booking?.enabled ? computeOpenSlots(t.booking, await db.appointments.toArray(), now, BOOKING_HORIZON_DAYS, held) : []
+    if (sameSlots(t.bookingSlots ?? [], slots)) return false
+    await db.trainer.update(TRAINER_ID, { bookingSlots: slots, updatedAt: nowIso() })
+    return true
+  }),
 }
 
 // ---------- clients ----------
@@ -158,11 +176,25 @@ export const programsRepo = {
   async forClient(clientId: string) {
     return db.programs.where('clientId').equals(clientId).toArray()
   },
-  async assignToClient(programId: string, clientId: string, startDate: string) {
+  /** Make a program this client's active one. A TEMPLATE is copied (the
+   *  library keeps it); any other program is reassigned in place. The
+   *  client's previous active program is marked completed, so there's only
+   *  ever one, and `client.activeProgramId` (Quick Log, roster adherence)
+   *  points at it. Returns the program id that is now active. */
+  async assignToClient(programId: string, clientId: string, startDate: string): Promise<string> {
+    const src = await db.programs.get(programId)
+    if (!src) throw new Error('Program not found')
+    const targetId = src.status === 'template'
+      ? (await programsRepo.duplicate(programId, { clientId, status: 'active', startDate })).id
+      : programId
     await db.transaction('rw', [db.programs, db.clients], async () => {
-      await db.programs.update(programId, { clientId, status: 'active', startDate, updatedAt: nowIso() })
-      await db.clients.update(clientId, { activeProgramId: programId, updatedAt: nowIso() })
+      const t = nowIso()
+      const previous = await db.programs.where('clientId').equals(clientId).filter(p => p.status === 'active' && p.id !== targetId).toArray()
+      for (const p of previous) await db.programs.update(p.id, { status: 'completed', updatedAt: t })
+      if (targetId === programId) await db.programs.update(programId, { clientId, status: 'active', startDate, updatedAt: t })
+      await db.clients.update(clientId, { activeProgramId: targetId, updatedAt: t })
     })
+    return targetId
   },
   /** Deep-duplicate a program (template instantiation / duplicate week uses lib fns). */
   async duplicate(programId: string, overrides: Partial<Program> = {}) {
@@ -254,22 +286,40 @@ export const waiversRepo = {
   },
 }
 
-// ---------- paired sync devices ----------
-export const devicesRepo = {
-  ...makeRepo<Device>(db.devices),
-  async all() {
-    return db.devices.toArray()
-  },
-  async forClient(clientId: string) {
-    return db.devices.where('clientId').equals(clientId).first()
-  },
-}
-
 // ---------- messages ----------
 export const messagesRepo = {
   ...makeRepo<CoachMessage>(db.messages),
   async forClient(clientId: string) {
     return db.messages.where('clientId').equals(clientId).reverse().sortBy('date')
+  },
+  /** Booking requests from Companion still waiting on the coach, soonest
+   *  first. Past ones drop off — there's nothing left to answer. */
+  async pendingBookings(now = new Date()) {
+    const n = now.toISOString()
+    return (await db.messages.toArray())
+      .filter(m => m.direction === 'inbound' && m.booking && !m.booking.status && m.booking.end > n)
+      .sort((a, b) => a.booking!.start.localeCompare(b.booking!.start))
+  },
+  /** Answer a booking request: on accept, the appointment is created and
+   *  linked; either way the client gets a reply in the thread and the open
+   *  slots are republished. One transaction so a half-answered request can't
+   *  exist. Returns the appointment id on accept. */
+  async answerBooking(messageId: string, accept: boolean, replyText: string): Promise<string | undefined> {
+    const apptId = await db.transaction('rw', db.messages, db.appointments, async () => {
+      const m = await db.messages.get(messageId)
+      if (!m?.booking || m.booking.status) throw new Error('This request was already answered.')
+      const t = nowIso()
+      let id: string | undefined
+      if (accept) {
+        id = newId()
+        await db.appointments.add({ id, createdAt: t, updatedAt: t, clientId: m.clientId, title: 'Session', start: m.booking.start, end: m.booking.end, status: 'scheduled' })
+      }
+      await db.messages.update(messageId, { booking: { ...m.booking, status: accept ? 'accepted' : 'declined', appointmentId: id }, updatedAt: t })
+      await db.messages.add({ id: newId(), createdAt: t, updatedAt: t, clientId: m.clientId, date: t, direction: 'outbound', channel: 'app', content: replyText })
+      return id
+    })
+    await trainerRepo.publishBookingSlots()
+    return apptId
   },
 }
 
@@ -335,6 +385,27 @@ export const invoicesRepo = {
     const all = await db.invoices.toArray()
     return (all.reduce((max, i) => Math.max(max, i.number), 0)) + 1
   },
+  /** Create this month's (and any missed, up to a cap) draft copies of every
+   *  repeat-monthly invoice. One transaction, so numbering can't interleave
+   *  with itself; ids are deterministic, so re-runs are no-ops. Returns how
+   *  many drafts it made. */
+  generateRecurring: singleFlight(async (): Promise<number> => {
+    return db.transaction('rw', db.invoices, async () => {
+      const all = await db.invoices.toArray()
+      const plans = planRecurringInvoices(all, today())
+      if (!plans.length) return 0
+      const byId = new Map(all.map(i => [i.id, i]))
+      let number = all.reduce((max, i) => Math.max(max, i.number), 0)
+      // Timestamped at the billing date, not now: two devices generating the
+      // same month write the same row, and any real edit (sending it, marking
+      // it paid) is always newer, so last-write-wins can't revert it to draft.
+      for (const plan of plans) {
+        const at = `${plan.date}T00:00:00.000Z`
+        await db.invoices.add({ ...draftFromTemplate(byId.get(plan.templateId)!, plan, ++number), createdAt: at, updatedAt: at })
+      }
+      return plans.length
+    })
+  }),
 }
 export const couponsRepo = {
   ...makeRepo<Coupon>(db.coupons),

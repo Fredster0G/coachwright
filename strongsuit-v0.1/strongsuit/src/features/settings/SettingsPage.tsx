@@ -10,12 +10,18 @@ import { clientsRepo } from '@/db/repo'
 import { DEFAULT_RULES, TRIGGER_LABELS } from '@/lib/automations'
 import type { AutomationTrigger, ModuleKey } from '@/db/types'
 import Guide from './Guide'
-import CloudCard from './CloudCard'
 import { LocalAiCard } from './LocalAiCard'
+import { LOCAL_AI_ENABLED } from '@/lib/cloud/config'
 import { LicenceCard } from './LicenceCard'
 import { MembershipCard } from './MembershipCard'
+import { BookingCard } from './BookingCard'
+import { CouponsCard } from './CouponsCard'
+import { OnboardingSequenceCard } from './OnboardingSequenceCard'
+import { NotificationsCard } from './NotificationsCard'
 import { BRAND_MARK_VARIANTS, BrandMark, type BrandMarkVariant } from '@/app/brand/Logomark'
 import { canUseCustomBranding } from '@/lib/membership'
+import { resizeImageToDataUrl } from '@/lib/media'
+import { LOGO_MAX_DIM, validHex } from '@/lib/branding'
 import { useTranslation, type MessageKey } from '@/lib/i18n'
 
 const getModuleInfo = (t: (k: MessageKey) => string): { key: ModuleKey; label: string; hint: string }[] => [
@@ -26,7 +32,6 @@ const getModuleInfo = (t: (k: MessageKey) => string): { key: ModuleKey; label: s
   { key: 'team', label: t('settings.modules.team.label'), hint: t('settings.modules.team.hint') },
   { key: 'leads', label: t('settings.modules.leads.label'), hint: t('settings.modules.leads.hint') },
   { key: 'leaderboard', label: t('settings.modules.leaderboard.label'), hint: t('settings.modules.leaderboard.hint') },
-  { key: 'sync', label: t('settings.modules.sync.label'), hint: t('settings.modules.sync.hint') },
   { key: 'reports', label: t('settings.modules.reports.label'), hint: t('settings.modules.reports.hint') },
 ]
 
@@ -72,6 +77,7 @@ function ModulesCard() {
 function BrandCard() {
   const trainer = useLiveQuery(() => trainerRepo.get())
   const { t } = useTranslation()
+  const logoRef = useRef<HTMLInputElement>(null)
   if (!trainer) return null
   const canBrand = canUseCustomBranding(trainer)
   
@@ -95,6 +101,31 @@ function BrandCard() {
         </Field>
         <Field label={t('settings.brand.trainerName')}>
           <Input defaultValue={trainer.trainerName} onBlur={e => trainerRepo.patch({ trainerName: e.target.value })} />
+        </Field>
+        <Field label={t('settings.brand.logo')} hint={t('settings.brand.logoHint')}>
+          <div className="flex items-center gap-2">
+            {trainer.logoDataUrl
+              ? <img src={trainer.logoDataUrl} alt={t('settings.brand.logo')} className="h-9 w-auto max-w-[96px] rounded border border-line bg-white object-contain p-0.5" />
+              : <span className="text-2xs text-faint">{t('settings.brand.noLogo')}</span>}
+            <input ref={logoRef} type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden"
+              onChange={async e => {
+                const f = e.target.files?.[0]; e.target.value = ''
+                if (!f) return
+                try { await trainerRepo.patch({ logoDataUrl: await resizeImageToDataUrl(f, LOGO_MAX_DIM, 0.92, 'image/png') }) }
+                catch (err) { toastError(err instanceof Error ? err.message : String(err)) }
+              }} />
+            <Button size="sm" disabled={!canBrand.allowed} onClick={() => logoRef.current?.click()}>{trainer.logoDataUrl ? t('settings.brand.replaceLogo') : t('settings.brand.uploadLogo')}</Button>
+            {trainer.logoDataUrl && <Button size="sm" variant="ghost" onClick={() => trainerRepo.patch({ logoDataUrl: undefined })}>{t('settings.brand.removeLogo')}</Button>}
+          </div>
+        </Field>
+        <Field label={t('settings.brand.color')} hint={t('settings.brand.colorHint')}>
+          <div className="flex items-center gap-2">
+            <input type="color" disabled={!canBrand.allowed} aria-label={t('settings.brand.color')}
+              value={validHex(trainer.brandColor) ? trainer.brandColor : '#1f6f50'}
+              onChange={e => { const brandColor = e.target.value; void trainerRepo.patch({ brandColor }) }}
+              className="h-9 w-12 cursor-pointer rounded border border-line bg-surface disabled:cursor-not-allowed disabled:opacity-50" />
+            {trainer.brandColor && <Button size="sm" variant="ghost" onClick={() => trainerRepo.patch({ brandColor: undefined })}>{t('settings.brand.resetColor')}</Button>}
+          </div>
         </Field>
         <Field label={t('settings.brand.units')}>
           <Select value={trainer.units} onChange={e => trainerRepo.patch({ units: e.target.value as 'lb' | 'kg' })}>
@@ -478,8 +509,11 @@ export default function SettingsPage() {
       <BrandCard />
       <BrandMarkCard />
       <ModulesCard />
-      <CloudCard />
-      <LocalAiCard />
+      <BookingCard />
+      <CouponsCard />
+      <OnboardingSequenceCard />
+      <NotificationsCard />
+      {LOCAL_AI_ENABLED && <LocalAiCard />}
       <AutomationsCard />
       <Guide />
       <BackupCard />

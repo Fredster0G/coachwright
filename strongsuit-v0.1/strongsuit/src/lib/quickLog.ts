@@ -15,6 +15,8 @@
 // phrasing into the same shape, but it never gets to skip the confirmation —
 // it feeds this pipeline, it doesn't bypass it.
 
+import type { Msg } from './i18n/msg'
+
 export interface ParsedPrescription {
   sets?: number
   reps?: number
@@ -52,7 +54,11 @@ export interface Resolution<T> {
 
 export interface Clarification {
   id: 'client' | 'exercise' | 'reps' | 'load'
+  /** English wording; the UI translates from `status` + `query` instead. */
   question: string
+  /** Why it's asked: nothing given, nothing matched `query`, or several did. */
+  status: 'none' | 'missing' | 'ambiguous'
+  query?: string
   /** Present for pick-one questions; absent when the coach must type a value. */
   options?: { id: string; label: string; hint?: string }[]
 }
@@ -184,10 +190,13 @@ function splitNameAndExercise(words: string[]): { clientQuery?: string; exercise
   return { clientQuery: words[0], exerciseQuery: words.slice(1).join(' ') }
 }
 
+/** Local calendar day (not `toISOString()`, which is the UTC day). */
+const localDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
 function isoOffsetDays(days: number): string {
   const d = new Date()
   d.setDate(d.getDate() + days)
-  return d.toISOString().slice(0, 10)
+  return localDay(d)
 }
 
 /** The most recent occurrence of a weekday, looking backwards. */
@@ -195,7 +204,7 @@ function isoMostRecentWeekday(target: number): string {
   const d = new Date()
   const delta = (d.getDay() - target + 7) % 7
   d.setDate(d.getDate() - (delta === 0 ? 7 : delta))
-  return d.toISOString().slice(0, 10)
+  return localDay(d)
 }
 
 // -------------------------------------------------------------- resolving
@@ -286,15 +295,15 @@ export function buildQuickLogPlan<C extends ClientLike, E extends ExerciseLike>(
   const clarifications: Clarification[] = []
 
   if (client.status === 'none') {
-    clarifications.push({ id: 'client', question: 'Who is this for?' })
+    clarifications.push({ id: 'client', status: 'none', question: 'Who is this for?' })
   } else if (client.status === 'missing') {
     clarifications.push({
-      id: 'client',
+      id: 'client', status: 'missing', query: draft.clientQuery,
       question: `No client matches “${draft.clientQuery}”. Who is this for?`,
     })
   } else if (client.status === 'ambiguous') {
     clarifications.push({
-      id: 'client',
+      id: 'client', status: 'ambiguous', query: draft.clientQuery,
       question: `Which client did you mean by “${draft.clientQuery}”?`,
       options: client.candidates.map(c => ({
         id: c.item.id,
@@ -304,15 +313,15 @@ export function buildQuickLogPlan<C extends ClientLike, E extends ExerciseLike>(
   }
 
   if (exercise.status === 'none') {
-    clarifications.push({ id: 'exercise', question: 'Which exercise?' })
+    clarifications.push({ id: 'exercise', status: 'none', question: 'Which exercise?' })
   } else if (exercise.status === 'missing') {
     clarifications.push({
-      id: 'exercise',
+      id: 'exercise', status: 'missing', query: draft.exerciseQuery,
       question: `No exercise matches “${draft.exerciseQuery}”. Which one?`,
     })
   } else if (exercise.status === 'ambiguous') {
     clarifications.push({
-      id: 'exercise',
+      id: 'exercise', status: 'ambiguous', query: draft.exerciseQuery,
       question: `Which exercise did you mean by “${draft.exerciseQuery}”?`,
       options: exercise.candidates.map(c => ({ id: c.item.id, label: c.item.name })),
     })
@@ -321,7 +330,7 @@ export function buildQuickLogPlan<C extends ClientLike, E extends ExerciseLike>(
   // Reps are the minimum needed for a set to mean anything. Load is genuinely
   // optional (bodyweight, machines with no readable stack), so it's never asked for.
   if (draft.prescription.reps == null) {
-    clarifications.push({ id: 'reps', question: 'How many reps?' })
+    clarifications.push({ id: 'reps', status: 'none', question: 'How many reps?' })
   }
 
   return { draft, client, exercise, clarifications, ready: clarifications.length === 0 }
@@ -329,6 +338,17 @@ export function buildQuickLogPlan<C extends ClientLike, E extends ExerciseLike>(
 
 /** One-line preview of exactly what will be written. Shown next to the client
  *  card so the coach confirms the whole thing, not just the name. */
+/** describePlan's pieces as messages, for the UI to translate and join. */
+export function describePlanMsgs(p: ParsedPrescription, units: 'lb' | 'kg' = 'lb'): Msg[] {
+  const parts: Msg[] = []
+  if (p.sets && p.reps) parts.push({ key: 'quicklog.plan.setsReps', params: { sets: p.sets, reps: p.reps } })
+  else if (p.reps) parts.push({ key: 'quicklog.plan.reps', params: { reps: p.reps } })
+  if (p.bodyweight) parts.push({ key: 'quicklog.plan.bodyweight' })
+  else if (p.load != null) parts.push({ key: 'quicklog.plan.load', params: { load: p.load, units: p.units ?? units } })
+  if (p.rpe != null) parts.push({ key: 'quicklog.plan.rpe', params: { rpe: p.rpe } })
+  return parts.length ? parts : [{ key: 'quicklog.plan.none' }]
+}
+
 export function describePlan(p: ParsedPrescription, units: 'lb' | 'kg' = 'lb'): string {
   const parts: string[] = []
   if (p.sets && p.reps) parts.push(`${p.sets} × ${p.reps}`)

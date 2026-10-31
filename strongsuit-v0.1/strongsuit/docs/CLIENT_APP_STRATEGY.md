@@ -1,5 +1,11 @@
 # CLIENT APP STRATEGY — a second app, for the person being coached
 
+> **⚠️ SUPERSEDED IN PART (S23, 2026-09-27).** Coachwright moved to cloud accounts: coach data lives on
+> Coachwright Cloud (readable by the operator, not end-to-end encrypted), the self-hosted and $15/mo
+> managed relay tiers no longer exist, and Companion connects with a coach-issued code instead of E2EE
+> pairing / WiFi / file sync. Anything below that says otherwise is history. Current design:
+> `strongsuit-v0.1/strongsuit/docs/CLOUD.md`.
+
 Everything else in this codebase is built for the **coach**. This doc is the architecture and pricing
 doctrine for the other half of the relationship: the client — the person doing the workouts — who today
 only ever sees a one-shot HTML file the coach exports for them (`companion/template.html`). That file is

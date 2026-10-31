@@ -38,9 +38,27 @@ export interface OcrProgress {
 
 let workerPromise: Promise<Worker> | null = null
 
+/** The smallest valid module using a SIMD opcode — the same probe
+ *  wasm-feature-detect uses. Picks which bundled core to load. */
+const SIMD_PROBE = new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 96, 0, 1, 123, 3, 2, 1, 0, 10, 10, 1, 8, 0, 65, 0, 253, 15, 253, 98, 11])
+
+/** Everything tesseract.js loads comes from `public/tesseract/` (filled by
+ *  scripts/copy-ocr-assets.mjs). Left at its defaults, tesseract.js pulls its
+ *  worker script and wasm core via importScripts() from cdn.jsdelivr.net and
+ *  the language data from the same CDN — executable remote code, which this
+ *  project refuses everywhere (DEBT-59), and a hard failure offline. Absolute
+ *  URLs because the worker is started from a blob: URL, which can't resolve
+ *  relative paths against the page. */
+function localAssetOptions() {
+  const base = new URL('tesseract/', document.baseURI).href
+  const core = WebAssembly.validate(SIMD_PROBE) ? 'tesseract-core-simd-lstm.wasm.js' : 'tesseract-core-lstm.wasm.js'
+  return { workerPath: `${base}worker.min.js`, corePath: `${base}${core}`, langPath: base.replace(/\/$/, ''), gzip: false }
+}
+
 function getWorker(onProgress?: (p: OcrProgress) => void): Promise<Worker> {
   if (!workerPromise) {
     workerPromise = createWorker('eng', undefined, {
+      ...localAssetOptions(),
       logger: (m: { status?: string; progress?: number }) => {
         if (m.status && m.progress != null && onProgress) onProgress({ status: m.status, progress: m.progress })
       },

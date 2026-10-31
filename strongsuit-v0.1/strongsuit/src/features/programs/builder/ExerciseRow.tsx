@@ -1,11 +1,12 @@
 import { useRef } from 'react'
 import type { KeyboardEvent } from 'react'
-import { GripVertical, Trash2, Plus } from 'lucide-react'
+import { GripVertical, Trash2, Plus, Link2, Unlink } from 'lucide-react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { ExercisePrescription, SetPrescription } from '@/db/types'
 import { exercisesRepo } from '@/db/repo'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { useTranslation } from '@/lib/i18n'
 
 interface ExerciseRowProps {
   blockId: string
@@ -13,6 +14,8 @@ interface ExerciseRowProps {
   updateExercise: (exId: string, updates: Partial<ExercisePrescription>) => void
   removeExercise: (exId: string) => void
   onToggleSuperset?: () => void
+  inSuperset?: boolean
+  canJoin?: boolean
 }
 
 export default function ExerciseRow({
@@ -20,8 +23,11 @@ export default function ExerciseRow({
   exercise,
   updateExercise,
   removeExercise,
-  onToggleSuperset
+  onToggleSuperset,
+  inSuperset,
+  canJoin,
 }: ExerciseRowProps) {
+  const { t } = useTranslation()
   const exDef = useLiveQuery(() => exercisesRepo.get(exercise.exerciseId), [exercise.exerciseId])
 
   const {
@@ -97,7 +103,8 @@ export default function ExerciseRow({
         {/* Drag Handle */}
         <div 
           {...attributes} 
-          {...listeners} 
+          {...listeners}
+          aria-label={t('builder.dragHandle')}
           className="w-8 flex-none bg-surface2 border-e border-line flex items-center justify-center cursor-grab active:cursor-grabbing text-faint hover:text-ink"
         >
           <GripVertical size={14} />
@@ -108,8 +115,18 @@ export default function ExerciseRow({
           {/* Header */}
           <div className="px-3 py-2 flex items-center justify-between border-b border-line/50">
             <span className="font-semibold text-ink text-sm">{exDef.name}</span>
-            <div className="opacity-0 group-hover:opacity-100 flex items-center gap-2 transition-opacity">
-               <button title="Remove" onClick={() => removeExercise(exercise.id)} className="text-muted hover:text-ember-600">
+            <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 flex items-center gap-2 transition-opacity">
+              {onToggleSuperset && (inSuperset || canJoin) && (
+                <button
+                  title={inSuperset ? t('builder.splitSuperset') : t('builder.joinSuperset')}
+                  aria-label={inSuperset ? t('builder.splitSuperset') : t('builder.joinSuperset')}
+                  onClick={onToggleSuperset}
+                  className="text-muted hover:text-verde-600"
+                >
+                  {inSuperset ? <Unlink size={14} /> : <Link2 size={14} />}
+                </button>
+              )}
+               <button title={t('builder.removeExercise')} aria-label={t('builder.removeExercise')} onClick={() => removeExercise(exercise.id)} className="text-muted hover:text-ember-600">
                 <Trash2 size={14} />
               </button>
             </div>
@@ -118,9 +135,9 @@ export default function ExerciseRow({
           {/* Sets Table */}
           <div className="p-2 space-y-1">
             <div className="flex text-xs font-medium text-faint px-2 mb-1">
-              <div className="w-8">Set</div>
-              <div className="flex-1 max-w-[120px]">Reps</div>
-              <div className="flex-1 max-w-[120px]">Load</div>
+              <div className="w-8">{t('builder.col.set')}</div>
+              <div className="flex-1 max-w-[120px]">{t('builder.col.reps')}</div>
+              <div className="flex-1 max-w-[120px]">{t('builder.col.load')}</div>
               <div className="w-8"></div>
             </div>
 
@@ -134,21 +151,23 @@ export default function ExerciseRow({
                     onChange={e => updateSet(i, { reps: e.target.value })}
                     onKeyDown={e => handleKeyDown(e)}
                     className="w-full h-8 px-2 text-sm font-mono bg-surface2 border border-line rounded-sm focus:border-ink focus:ring-1 focus:ring-ink outline-none transition-all placeholder:text-muted/40"
-                    placeholder="e.g. 8-10"
+                    placeholder={t('builder.repsPlaceholder')}
+                    aria-label={t('builder.setReps', { n: i + 1 })}
                   />
                 </div>
                 <div className="flex-1 max-w-[120px]">
                   <input
                     type="number"
-                    value={set.load || ''}
-                    onChange={e => updateSet(i, { load: Number(e.target.value) })}
+                    value={set.load ?? ''}
+                    onChange={e => updateSet(i, { load: e.target.value === '' ? undefined : Number(e.target.value) })}
                     onKeyDown={e => handleKeyDown(e)}
                     className="w-full h-8 px-2 text-sm font-mono bg-surface2 border border-line rounded-sm focus:border-ink focus:ring-1 focus:ring-ink outline-none transition-all placeholder:text-muted/40"
-                    placeholder="e.g. 50"
+                    placeholder={t('builder.loadPlaceholder')}
+                    aria-label={t('builder.setLoad', { n: i + 1 })}
                   />
                 </div>
                 <div className="w-8 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                  <button onClick={() => removeSet(i)} className="text-muted hover:text-ember-600 p-1">
+                  <button onClick={() => removeSet(i)} aria-label={t('builder.removeSet', { n: i + 1 })} className="text-muted hover:text-ember-600 p-1">
                     <Trash2 size={12} />
                   </button>
                 </div>
@@ -157,7 +176,7 @@ export default function ExerciseRow({
 
             <div className="px-2 pt-1">
               <button onClick={addSet} className="text-xs font-medium text-muted hover:text-ink flex items-center gap-1 transition-colors">
-                <Plus size={12} /> Add Set
+                <Plus size={12} /> {t('builder.addSet')}
               </button>
             </div>
           </div>

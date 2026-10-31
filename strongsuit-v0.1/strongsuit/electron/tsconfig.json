@@ -10,5 +10,5 @@
     "forceConsistentCasingInFileNames": true,
     "ignoreDeprecations": "6.0"
   },
-  "include": ["main.ts", "preload.ts", "menu.ts", "windowState.ts"]
+  "include": ["main.ts", "preload.ts", "menu.ts", "windowState.ts", "policy.ts"]
 }

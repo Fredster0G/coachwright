@@ -34,6 +34,7 @@
 //  3. Nothing here is a diagnosis. Low EA is a REFERRAL TRIGGER — to a sports
 //     dietitian or physician — never something the app resolves itself.
 
+import { english, type Msg } from './i18n/msg'
 import type { Sex, Units } from '@/db/types'
 import { toKg } from './nutrition'
 
@@ -55,8 +56,10 @@ export interface EAAssessment {
   /** How much we trust this, and why. */
   confidence: 'good' | 'moderate' | 'low'
   confidenceReason: string
+  confidenceMsg: Msg
   /** Plain-language read for the coach. */
   summary: string
+  summaryMsg: Msg
   /** True when this should prompt a referral rather than a programming tweak. */
   referral: boolean
   source: string
@@ -100,8 +103,8 @@ export function assessEnergyAvailability(i: EAInputs): EAAssessment {
     return {
       ea: null, range: null, band: 'unknown', ffmKg: null,
       confidence: 'low',
-      confidenceReason: 'Energy availability is per kilogram of fat-free mass, so it needs a body-fat measurement.',
-      summary: 'Add a body-fat percentage to screen energy availability. Without it this can’t be calculated — and an estimate would be worse than nothing.',
+      ...conf({ key: 'ea.noBodyfat.reason' }),
+      ...sum({ key: 'ea.noBodyfat.summary' }),
       referral: false, source,
     }
   }
@@ -109,8 +112,8 @@ export function assessEnergyAvailability(i: EAInputs): EAAssessment {
     return {
       ea: null, range: null, band: 'unknown', ffmKg,
       confidence: 'low',
-      confidenceReason: 'No intake data.',
-      summary: 'Log a few days of intake to screen energy availability.',
+      ...conf({ key: 'ea.noIntake.reason' }),
+      ...sum({ key: 'ea.noIntake.summary' }),
       referral: false, source,
     }
   }
@@ -127,9 +130,7 @@ export function assessEnergyAvailability(i: EAInputs): EAAssessment {
   // Rule 2: the threshold's evidence base is strongest in exercising women.
   const female = i.sex === 'female'
   const confidence: EAAssessment['confidence'] = i.bodyFatPct == null ? 'low' : female ? 'good' : 'moderate'
-  const confidenceReason = female
-    ? 'Thresholds are best established in exercising women (Loucks 2011; De Souza 2014).'
-    : 'Thresholds derive largely from studies in exercising women; Mountjoy 2023 notes male thresholds are less well established, so treat this as directional.'
+  const confidenceMsg: Msg = { key: female ? 'ea.conf.female' : 'ea.conf.other' }
 
   return {
     ea: rounded,
@@ -137,25 +138,24 @@ export function assessEnergyAvailability(i: EAInputs): EAAssessment {
     band,
     ffmKg,
     confidence,
-    confidenceReason,
-    summary: summarise(band, rounded, low, high),
+    ...conf(confidenceMsg),
+    ...sum(summarise(band, rounded, low, high)),
     // Low EA is a referral trigger, not a programming tweak (rule 3).
     referral: band === 'low',
     source,
   }
 }
 
-function summarise(band: EABand, ea: number, low: number, high: number): string {
-  const spread = `Best estimate ${ea} kcal/kg FFM (plausibly ${low}–${high}, given how imprecise intake reporting is).`
+const conf = (m: Msg) => ({ confidenceReason: english(m), confidenceMsg: m })
+const sum = (m: Msg) => ({ summary: english(m), summaryMsg: m })
+
+function summarise(band: EABand, ea: number, low: number, high: number): Msg {
+  const spread: Msg = { key: 'ea.spread', params: { ea, low, high } }
   switch (band) {
-    case 'optimal':
-      return `${spread} At or above ${EA_OPTIMAL} — enough energy for training and normal physiological function.`
-    case 'reduced':
-      return `${spread} Between ${EA_LOW_THRESHOLD} and ${EA_OPTIMAL} — acceptable for a deliberate, time-limited fat-loss phase, but not somewhere to live.`
-    case 'low':
-      return `${spread} Below ${EA_LOW_THRESHOLD}, the threshold associated with disrupted hormonal, bone and immune function. This needs a conversation, not a programming tweak.`
-    default:
-      return spread
+    case 'optimal': return { key: 'ea.optimal', params: { spread, optimal: EA_OPTIMAL } }
+    case 'reduced': return { key: 'ea.reduced', params: { spread, low: EA_LOW_THRESHOLD, optimal: EA_OPTIMAL } }
+    case 'low': return { key: 'ea.low', params: { spread, low: EA_LOW_THRESHOLD } }
+    default: return spread
   }
 }
 
@@ -168,6 +168,8 @@ function summarise(band: EABand, ea: number, low: number, high: number): string 
  * good intentions; this catches it before the client lives there for twelve
  * weeks. Returns null when there's nothing to warn about.
  */
+const said = (m: Msg) => ({ message: english(m), msg: m })
+
 export function screenPrescription(opts: {
   targetKcal: number
   exerciseKcal: number
@@ -175,7 +177,7 @@ export function screenPrescription(opts: {
   units: Units
   bodyFatPct?: number
   sex?: Sex
-}): { severity: 'warn' | 'stop'; message: string; source: string } | null {
+}): { severity: 'warn' | 'stop'; message: string; msg: Msg; source: string } | null {
   const a = assessEnergyAvailability({ ...opts, intakeKcal: opts.targetKcal })
   if (a.ea == null) return null
 
@@ -184,10 +186,7 @@ export function screenPrescription(opts: {
   if (a.band === 'low') {
     return {
       severity: 'stop',
-      message:
-        `This target puts energy availability at about ${a.ea} kcal/kg fat-free mass — below the ${EA_LOW_THRESHOLD} threshold ` +
-        `associated with hormonal, bone and immune disruption. Raise calories, reduce training energy cost, or refer to a sports ` +
-        `dietitian before running this.`,
+      ...said({ key: 'ea.screen.stop', params: { ea: a.ea, low: EA_LOW_THRESHOLD } }),
       source,
     }
   }
@@ -195,9 +194,7 @@ export function screenPrescription(opts: {
   if (a.range && a.range.low < EA_LOW_THRESHOLD) {
     return {
       severity: 'warn',
-      message:
-        `This target lands close to the low-energy-availability threshold (estimate ${a.ea}, but plausibly as low as ${a.range.low} ` +
-        `once intake-reporting error is allowed for). Worth tightening the intake data before committing to it.`,
+      ...said({ key: 'ea.screen.warn', params: { ea: a.ea, low: a.range.low } }),
       source,
     }
   }

@@ -1,5 +1,11 @@
 # COACHWRIGHT + COMPANION — PRODUCT OVERVIEW & MARKETING REFERENCE
 
+> **⚠️ SUPERSEDED IN PART (S23, 2026-09-27).** Coachwright moved to cloud accounts: coach data lives on
+> Coachwright Cloud (readable by the operator, not end-to-end encrypted), the self-hosted and $15/mo
+> managed relay tiers no longer exist, and Companion connects with a coach-issued code instead of E2EE
+> pairing / WiFi / file sync. Anything below that says otherwise is history. Current design:
+> `strongsuit-v0.1/strongsuit/docs/CLOUD.md`.
+
 One reference doc with everything needed to write posts, store listings, landing-page copy, or answer
 "what does this actually do" — for **both** apps. Pulls together `BRANDING_PLAN.md`, the pitch deck
 (`Coachwright Pitch Deck.dc.html`), `STRONGSUIT_MASTER_SPEC.md`, `docs/CLIENT_APP_STRATEGY.md`, and

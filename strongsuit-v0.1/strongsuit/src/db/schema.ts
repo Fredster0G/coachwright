@@ -1,9 +1,8 @@
-import type { Conflict } from '@/lib/conflict'
 import Dexie, { type Table } from 'dexie'
 import { DB_NAME } from '@/lib/brand'
 import type {
   Trainer, Client, ClientNote, Exercise, ExerciseOverride, Program, SessionLog,
-  CheckIn, Metric, Payment, Appointment, Expense, Waiver, Device,
+  CheckIn, Metric, Payment, Appointment, Expense, Waiver,
   CoachMessage, Staff, Location, Lead, ProgressPhoto, Habit, HabitEntry,
   Challenge, Invoice, Coupon, AutomationRule, ModelBlob, ExerciseEmbedding,
   FoodItem, FoodEntry,
@@ -16,9 +15,6 @@ import type {
 export const SCHEMA_VERSION = 7
 
 export class CoachwrightDB extends Dexie {
-  /** Rows two devices disagree about, parked for a person to settle. Never
-   *  synced — a conflict is local to the device that hit it. */
-  syncConflicts!: Table<Conflict, string>
   trainer!: Table<Trainer, string>
   clients!: Table<Client, string>
   clientNotes!: Table<ClientNote, string>
@@ -32,7 +28,6 @@ export class CoachwrightDB extends Dexie {
   appointments!: Table<Appointment, string>
   expenses!: Table<Expense, string>
   waivers!: Table<Waiver, string>
-  devices!: Table<Device, string>
   messages!: Table<CoachMessage, string>
   staff!: Table<Staff, string>
   locations!: Table<Location, string>
@@ -164,14 +159,22 @@ export class CoachwrightDB extends Dexie {
       foodItems: '&id, barcode, name, createdAt',
       foodEntries: '&id, clientId, [clientId+date], date, createdAt'
     }).upgrade(_tx => {})
+
+    // v14 (S23): cloud accounts replaced E2EE device pairing and packet sync.
+    // Paired-device records and parked packet-merge conflicts have no meaning
+    // any more; drop both tables.
+    this.version(14).stores({
+      devices: null,
+      syncConflicts: null,
+    })
   }
 }
 
 export const db = new CoachwrightDB()
 
 export const ALL_TABLES = [
-  'syncConflicts', 'trainer', 'clients', 'clientNotes', 'exercises', 'exerciseOverrides', 'programs', 'sessionLogs',
-  'checkIns', 'metrics', 'payments', 'appointments', 'expenses', 'waivers', 'devices',
+  'trainer', 'clients', 'clientNotes', 'exercises', 'exerciseOverrides', 'programs', 'sessionLogs',
+  'checkIns', 'metrics', 'payments', 'appointments', 'expenses', 'waivers',
   'messages', 'staff', 'locations', 'leads', 'progressPhotos', 'habits', 'habitEntries',
   'challenges', 'invoices', 'coupons', 'automationRules', 'foodItems', 'foodEntries',
 ] as const

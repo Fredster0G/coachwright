@@ -20,7 +20,9 @@
 // fp32 export is closer to 290MB. `dtype: 'q8'` is passed explicitly below
 // for exactly this reason, not left to default.
 
-import { pipeline, type AutomaticSpeechRecognitionPipeline } from '@huggingface/transformers'
+// Type-only at module level: the runtime (~500KB) is imported on first use,
+// so it stays out of the startup bundle (the session logger imports this file).
+import type { AutomaticSpeechRecognitionPipeline } from '@huggingface/transformers'
 import { modelBlobsRepo } from '@/db/repo'
 
 const MODEL_REPO = 'Xenova/whisper-base'
@@ -36,13 +38,13 @@ let transcriberPromise: Promise<AutomaticSpeechRecognitionPipeline> | null = nul
 
 function getTranscriber(onProgress?: (p: TranscribeProgress) => void): Promise<AutomaticSpeechRecognitionPipeline> {
   if (!transcriberPromise) {
-    transcriberPromise = pipeline('automatic-speech-recognition', MODEL_REPO, {
+    transcriberPromise = import('@huggingface/transformers').then(({ pipeline }) => pipeline('automatic-speech-recognition', MODEL_REPO, {
       dtype: 'q8',
       progress_callback: (p: { status: string; loaded?: number; total?: number }) => {
         if (p.status === 'progress' && onProgress) onProgress({ loaded: p.loaded ?? 0, total: p.total ?? 0 })
       },
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any).catch((err: unknown) => {
+    } as any)).catch((err: unknown) => {
       transcriberPromise = null
       throw err
     })

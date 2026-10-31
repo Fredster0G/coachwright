@@ -86,33 +86,29 @@ describe('recommendedTier — comfort, not maximum', () => {
   })
 })
 
-describe('offerFor — two gates, always with a reason', () => {
+describe('offerFor — hardware is the only gate, always with a reason', () => {
   it('never returns an empty reason, whatever the outcome', () => {
     // A greyed row with no explanation is the exact failure this design
-    // exists to prevent: the user can't tell if it's their machine, their
-    // licence, or a bug.
+    // exists to prevent: the user can't tell if it's their machine or a bug.
     for (const hw of [minimal, standard, capable, workstation, unknownRam]) {
-      for (const ed of ['personal', 'independent', 'studio'] as const) {
-        for (const m of MODEL_REGISTRY) {
-          expect(offerFor(m, hw, ed).reason.length).toBeGreaterThan(10)
-        }
+      for (const m of MODEL_REGISTRY) {
+        expect(offerFor(m, hw).reason.length).toBeGreaterThan(10)
       }
     }
   })
 
-  it('blocks on EDITION before hardware, so the reason is actionable', () => {
-    // A Personal user on a workstation must be told the licence is the
-    // limit — a hardware message would imply buying more RAM would help.
+  it('never gates a model by plan — a free coach on a workstation gets the big ones', () => {
+    // S25: models run on the coach's own machine, so every plan gets every
+    // model the hardware can run. There is no edition parameter at all.
     const pro = MODEL_REGISTRY.find(m => m.id === 'qwen3-8b-instruct')!
-    const offer = offerFor(pro, workstation, 'personal')
-    expect(offer.state).toBe('blocked-edition')
-    expect(offer.reason).toMatch(/Independent and Studio/)
-    expect(offer.reason).not.toMatch(/memory|GPU/)
+    expect(offerFor(pro, workstation).state).toBe('recommended')
+    const ocr = MODEL_REGISTRY.find(m => m.id === 'tesseract-eng')!
+    expect(offerFor(ocr, standard).state).not.toBe('blocked-hardware')
   })
 
   it('blocks on memory with both numbers in the message', () => {
     const big = MODEL_REGISTRY.find(m => m.id === 'qwen3-4b-instruct')!
-    const offer = offerFor(big, standard, 'studio')
+    const offer = offerFor(big, standard)
     expect(offer.state).toBe('blocked-hardware')
     expect(offer.reason).toMatch(/16 GB/)
     expect(offer.reason).toMatch(/8 GB/)
@@ -120,7 +116,7 @@ describe('offerFor — two gates, always with a reason', () => {
 
   it('blocks a GPU-only model on a machine with no GPU', () => {
     const heavy = MODEL_REGISTRY.find(m => m.id === 'pose-heavy')!
-    const offer = offerFor(heavy, { ramGb: 32, cores: 16, hasGpu: false, hasWasmSimd: true }, 'studio')
+    const offer = offerFor(heavy, { ramGb: 32, cores: 16, hasGpu: false, hasWasmSimd: true })
     expect(offer.state).toBe('blocked-hardware')
     expect(offer.reason).toMatch(/GPU/)
   })
@@ -128,8 +124,8 @@ describe('offerFor — two gates, always with a reason', () => {
   it('offers only embeddings when RAM is unmeasurable, and says why', () => {
     const emb = MODEL_REGISTRY.find(m => m.id === ALWAYS_INSTALLED_ID)!
     const llm = MODEL_REGISTRY.find(m => m.id === 'qwen3-1.7b-instruct')!
-    expect(offerFor(emb, unknownRam, 'studio').state).toBe('recommended')
-    const blocked = offerFor(llm, unknownRam, 'studio')
+    expect(offerFor(emb, unknownRam).state).toBe('recommended')
+    const blocked = offerFor(llm, unknownRam)
     expect(blocked.state).toBe('blocked-hardware')
     expect(blocked.reason).toMatch(/desktop app/)
   })
@@ -138,21 +134,21 @@ describe('offerFor — two gates, always with a reason', () => {
     // "We can run it" is not the same as "you'll enjoy using it", and the
     // difference is whether the user opens it twice.
     const standardLlm = MODEL_REGISTRY.find(m => m.id === 'qwen3-4b-instruct')!
-    const offer = offerFor(standardLlm, { ramGb: 16, cores: 8, hasGpu: false, hasWasmSimd: true }, 'studio')
+    const offer = offerFor(standardLlm, { ramGb: 16, cores: 8, hasGpu: false, hasWasmSimd: true })
     expect(offer.state).toBe('available')
     expect(offer.reason).toMatch(/slow/)
   })
 
   it('recommends the pro assistant only on a workstation', () => {
     const pro = MODEL_REGISTRY.find(m => m.id === 'qwen3-8b-instruct')!
-    expect(offerFor(pro, workstation, 'studio').state).toBe('recommended')
-    expect(offerFor(pro, capable, 'studio').state).not.toBe('recommended')
+    expect(offerFor(pro, workstation).state).toBe('recommended')
+    expect(offerFor(pro, capable).state).not.toBe('recommended')
   })
 })
 
 describe('offersFor — ordering', () => {
   it('puts what the user can actually use first, cheapest first', () => {
-    const offers = offersFor(capable, 'studio')
+    const offers = offersFor(capable)
     const states = offers.map(o => o.state)
     const firstBlocked = states.findIndex(s => s.startsWith('blocked'))
     if (firstBlocked >= 0) {
@@ -164,7 +160,7 @@ describe('offersFor — ordering', () => {
   })
 
   it('covers every model exactly once', () => {
-    const offers = offersFor(standard, 'independent')
+    const offers = offersFor(standard)
     expect(offers).toHaveLength(MODEL_REGISTRY.length)
     expect(new Set(offers.map(o => o.model.id)).size).toBe(MODEL_REGISTRY.length)
   })
@@ -197,15 +193,15 @@ describe('download size and disk', () => {
 describe('defaultSelection', () => {
   it('always includes semantic search', () => {
     for (const hw of [minimal, standard, capable, workstation, unknownRam]) {
-      expect(defaultSelection(hw, 'personal')).toContain(ALWAYS_INSTALLED_ID)
+      expect(defaultSelection(hw)).toContain(ALWAYS_INSTALLED_ID)
     }
   })
 
   it('never auto-selects something merely "available"', () => {
     // "We can run it" is not a reason to spend gigabytes of someone's disk
     // without them asking.
-    const chosen = defaultSelection(capable, 'studio')
-    const offers = offersFor(capable, 'studio')
+    const chosen = defaultSelection(capable)
+    const offers = offersFor(capable)
     for (const id of chosen) {
       if (id === ALWAYS_INSTALLED_ID) continue
       expect(offers.find(o => o.model.id === id)!.state).toBe('recommended')
@@ -213,14 +209,12 @@ describe('defaultSelection', () => {
   })
 
   it('gives a modest machine a small default', () => {
-    const mb = totalDownloadMb(defaultSelection(minimal, 'personal'))
+    const mb = totalDownloadMb(defaultSelection(minimal))
     expect(mb).toBeLessThan(300)
   })
 
-  it('respects the edition ceiling on strong hardware', () => {
-    const personal = defaultSelection(workstation, 'personal')
-    expect(personal).not.toContain('qwen3-8b-instruct')
-    expect(defaultSelection(workstation, 'studio')).toContain('qwen3-8b-instruct')
+  it('strong hardware gets the strongest model by default, whatever the plan', () => {
+    expect(defaultSelection(workstation)).toContain('qwen3-8b-instruct')
   })
 })
 

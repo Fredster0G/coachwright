@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { ArrowLeft, Archive, ClipboardList, PenLine, Smartphone, Wifi, Printer, Tv, Mail, MessageCircle, Download, Bot } from 'lucide-react'
+import { ArrowLeft, Archive, ArchiveRestore, ClipboardList, PenLine, Smartphone, Link2, Printer, Tv, Mail, MessageCircle, Download, Bot } from 'lucide-react'
 import { clientsRepo, logsRepo, clientNotesRepo, trainerRepo, programsRepo, exercisesRepo, staffRepo, locationsRepo, messagesRepo } from '@/db/repo'
 import type { Client } from '@/db/types'
 import { fullName, daysSince } from '@/lib/core'
 import { exportClientPackage } from '@/db/portability'
 import { downloadText } from '@/db/backup'
 import {
-  Button, Card, Tabs, Tag, Avatar, EmptyState, InjuryRibbon, toast,
+  Button, Card, Tabs, Tag, Avatar, EmptyState, InjuryRibbon, toast, toastError,
   Dialog, Field, Input, Textarea, Select, Combobox, type ComboboxOption,
 } from '@/design'
 import LogsTab from './LogsTab'
@@ -22,7 +22,10 @@ import CoachingTab from './CoachingTab'
 import MessagesTab from './MessagesTab'
 import { generateCompanionFile } from '../companion/export'
 import { useTranslation } from '@/lib/i18n'
-import { WiFiSyncDialog } from '../sync/WiFiSyncDialog'
+import { ConnectCompanionDialog } from '@/features/account/ConnectCompanionDialog'
+import { LOCAL_AI_ENABLED } from '@/lib/cloud/config'
+import { canAddClient, hasPaidAccess } from '@/lib/membership'
+import { nextProgramDay } from '@/lib/programDay'
 
 function EditClientDialog({ client, open, onClose }: { client: Client; open: boolean; onClose: () => void }) {
   const staff = useLiveQuery(() => staffRepo.all(), [], [])
@@ -194,10 +197,15 @@ export default function ClientDetailPage() {
   const client = useLiveQuery(() => clientsRepo.get(id), [id])
   const allClients = useLiveQuery(() => clientsRepo.all(), [], [])
   const trainer = useLiveQuery(() => trainerRepo.get())
+  // The client's current program (activeProgramId) first, then any active one.
   const activeProgram = useLiveQuery(async () => {
+    const c = await clientsRepo.get(id)
+    const current = c?.activeProgramId ? await programsRepo.get(c.activeProgramId) : undefined
+    if (current && current.clientId === id && current.status === 'active') return current
     const progs = await programsRepo.forClient(id)
     return progs.find(p => p.status === 'active') || null
   }, [id])
+  const programLogs = useLiveQuery(() => logsRepo.forClient(id), [id], [])
 
   const lastLog = useLiveQuery(() => logsRepo.lastForClient(id), [id])
   const [tab, setTab] = useState('overview')
@@ -230,6 +238,16 @@ export default function ClientDetailPage() {
     toast(t('clients.toast.archivedDetails', { name: client!.firstName }))
   }
 
+  // Archiving had no way back. Restoring makes an active client again, so it
+  // passes the same free-tier gate as adding one.
+  async function restore() {
+    const active = allClients.filter(c => c.status === 'active' && !c.isDemo).length
+    const cap = canAddClient(active, !!trainer && hasPaidAccess(trainer))
+    if (!cap.allowed) { toastError(cap.reason ?? ''); return }
+    await clientsRepo.update(client!.id, { status: 'active', archivedAt: undefined })
+    toast(t('clients.toast.restored', { name: client!.firstName }))
+  }
+
   async function exportPortableData() {
     const pkg = await exportClientPackage(client!.id)
     downloadText(`${fullName(client!).replace(/\s+/g, '-').toLowerCase()}.cwclient.json`, JSON.stringify(pkg, null, 2))
@@ -242,12 +260,14 @@ export default function ClientDetailPage() {
         <ArrowLeft size={13} /> {t('clients.title')}
       </Link>
 
-      <div className="mb-4 flex items-start justify-between">
-        <div className="flex items-center gap-3">
+      {/* Wraps: the action row drops below the name on narrow screens instead
+          of running off the edge (DEBT-24, S24). */}
+      <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-3">
           <Avatar person={client} src={client.photoDataUrl} size={44} />
-          <div>
+          <div className="min-w-0">
             <h1 className="font-display text-2xl font-bold tracking-tight">{fullName(client)}</h1>
-            <div className="mt-0.5 flex items-center gap-2">
+            <div className="mt-0.5 flex flex-wrap items-center gap-2">
               <Tag tone={client.status === 'active' ? 'verde' : 'neutral'}>{client.status}</Tag>
               <span className="font-mono tabular-nums text-2xs text-faint">{t('clients.detail.since', { date: client.startDate })}</span>
               {client.email && (
@@ -274,7 +294,7 @@ export default function ClientDetailPage() {
           )}
         </div>
         {client.status !== 'archived' && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {activeProgram && (
               <Button variant="ghost" size="sm" onClick={() => window.open(`#/tv/${client.id}`, '_blank')} title={t('clients.detail.tvModeTooltip')}>
                 <Tv size={14} className="me-1.5" /> {t('clients.detail.tvMode')}
@@ -283,27 +303,37 @@ export default function ClientDetailPage() {
             <Button variant="ghost" size="sm" onClick={() => setShowPrint(true)}>
               <Printer size={14} className="me-1.5" /> {t('clients.detail.print')}
             </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowSync(true)}>
+              <Link2 size={14} className="me-1.5" /> {t('clients.detail.connectCompanion')}
+            </Button>
             <Button variant="primary" size="sm" onClick={() => {
-              if (activeProgram && activeProgram.weeks.length > 0 && activeProgram.weeks[0].days.length > 0) {
-                // Find next day logically? For now just pick first day of active program
-                // Actually the spec says "opens prescribed day auto-suggested". We'll just pass the active program and let the page or user pick. Or we pick the first day.
-                // It's better to just go to log page with client ID and let them choose if we don't know the exact day, but we'll pre-fill day 1 of week 1 to be helpful.
-                const firstDay = activeProgram.weeks[0].days[0].id
-                navigate(`/log?clientId=${client.id}&programId=${activeProgram.id}&weekId=${activeProgram.weeks[0].id}&dayId=${firstDay}`)
+              // The day after the last one logged — this always opened Week 1 ·
+              // Day 1, so later weeks were logged against week 1's targets.
+              const next = activeProgram ? nextProgramDay(activeProgram, programLogs) : null
+              if (activeProgram && next) {
+                navigate(`/log?clientId=${client.id}&programId=${activeProgram.id}&weekId=${next.weekId}&dayId=${next.dayId}`)
               } else {
                 navigate(`/log?clientId=${client.id}`)
               }
             }}>
               <PenLine size={14} className="me-1.5" /> {t('clients.detail.logSession')}
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => navigate(`/assistant?clientId=${client.id}`)} title={t('clients.detail.askAssistantTooltip')}>
-              <Bot size={14} className="me-1.5" /> {t('clients.detail.askAssistant')}
-            </Button>
+            {LOCAL_AI_ENABLED && (
+              <Button variant="ghost" size="sm" onClick={() => navigate(`/assistant?clientId=${client.id}`)} title={t('clients.detail.askAssistantTooltip')}>
+                <Bot size={14} className="me-1.5" /> {t('clients.detail.askAssistant')}
+              </Button>
+            )}
             <Button variant="ghost" size="sm" onClick={() => setShowEdit(true)}>{t('clients.detail.edit')}</Button>
             <Button variant="ghost" size="sm" onClick={exportPortableData} title={t('clients.detail.exportDataTooltip')}>
               <Download size={14} className="me-1.5" /> {t('clients.detail.exportData')}
             </Button>
             <Button variant="ghost" size="sm" onClick={archive}><Archive size={14} /> {t('clients.detail.archive')}</Button>
+          </div>
+        )}
+        {client.status === 'archived' && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted">{t('clients.detail.archivedNote')}</span>
+            <Button variant="secondary" size="sm" onClick={restore}><ArchiveRestore size={14} /> {t('clients.detail.restore')}</Button>
           </div>
         )}
       </div>
@@ -344,12 +374,6 @@ export default function ClientDetailPage() {
                   <p className="text-sm text-faint mt-1">{activeProgram.description || t('clients.detail.noDescription')}</p>
                 </div>
                 <div className="flex gap-2">
-                  <Button 
-                    variant="ghost" 
-                    onClick={() => setShowSync(true)}
-                  >
-                    <Wifi size={16} className="me-2" /> {t('clients.detail.wifiSync')}
-                  </Button>
                   <Button 
                     variant="primary" 
                     onClick={async () => {
@@ -407,9 +431,13 @@ export default function ClientDetailPage() {
         )}
       </div>
 
-      <EditClientDialog client={client} open={showEdit} onClose={() => setShowEdit(false)} />
+      {/* Mounted per open: the form seeds from `client` once, so an always-mounted
+          dialog reopened later showed stale values and saving reverted newer edits. */}
+      {showEdit && <EditClientDialog client={client} open onClose={() => setShowEdit(false)} />}
       <PrintOptionsDialog client={client} activeProgramId={activeProgram?.id} open={showPrint} onClose={() => setShowPrint(false)} />
-      <WiFiSyncDialog open={showSync} onClose={() => setShowSync(false)} />
+      {client && (
+        <ConnectCompanionDialog clientId={client.id} clientName={client.firstName} open={showSync} onClose={() => setShowSync(false)} />
+      )}
     </div>
   )
 }

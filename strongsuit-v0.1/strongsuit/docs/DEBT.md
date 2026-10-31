@@ -2,9 +2,10 @@
 
 **Original numbering preserved** so older docs' cross-references still resolve. **Never reuse an id** —
 duplicate ids have already caused a fixed bug to be "rediscovered" and re-fixed a session later.
-Next free id: **70**.
+Next free id: **85**.
 
-Closed debts are *not* listed here. They live in the frozen `PROGRESS.md` archive; grep it by number.
+Closed debts are *not* listed here. Pre-S21 closures live in the frozen `PROGRESS.md` archive; later ones
+are recorded in the closing session's file under `docs/sessions/` — grep by number.
 
 **Status key:** 🔴 active risk · 🟡 known limitation, accepted for now · ⚪ cosmetic / cleanup · ✅ deliberate won't-do
 
@@ -15,7 +16,15 @@ Closed debts are *not* listed here. They live in the frozen `PROGRESS.md` archiv
 **9 · Docs were duplicated at repo root and in the app dir, and diverged.** By S15 the two `PROGRESS.md`
 copies disagreed about what had shipped. **Partially resolved S15** — live docs now exist only in
 `strongsuit-v0.1/strongsuit/docs/`, root copies frozen as archives. *Remaining: don't recreate the
-pattern. See `AGENTS.md` §2.*
+pattern. See `AGENTS.md` §2.* **S22 found one more live instance:** `BRANDING_PLAN.md` existed at the root
+and in the app dir, already diverged (the app copy predated S11's shipped logo). App copy is now a pointer.
+
+**75 · (S23, NEW) Privacy & legal after dropping E2EE.** Coach and client data (incl. health data:
+check-ins, PAR-Q, food logs, photos) is now readable by the operator. The EULA's §3/§4 were rewritten
+to say so (`EulaScreen.tsx`); there is no privacy policy, no DPA, and nobody legal has read either.
+**Blocker before real customers.** Consider encryption at rest on the VPS disk. S24 notes for the
+lawyer: account deletion now exists (`DELETE /auth/account`, `CLOUD.md` §3) but the EULA doesn't
+mention it, and deleted rows survive in Litestream backups for the bucket's retention window.
 
 **17 · Android has never been compiled.** `android/` is a real generated Capacitor project, but no SDK
 has existed in any build environment. "Next step ready," not "done."
@@ -30,38 +39,11 @@ mid-range phone.
 
 ## 🟡 Known limitation
 
-**11 · Distribution carries ~22MB of wasm + pose models** in `public/mediapipe/`. Must stay bundled
-(offline doctrine). Could prune to SIMD + nosimd only.
-
-**21 · `sessionsRemaining` is an estimate**, not a decrementing pack ledger — it's `purchased credits −
-all-time logged sessions`. Fine as a nudge; do not present it to a buyer as exact. *Now that money is
-involved, worth making real.*
-
-**24 · Responsive unverified** on Film Room's dual-video stage (will not fit 375px side-by-side),
-Calendar, Business/Billing tabs, and Settings. Verified fine: Dashboard, Clients, Programs, Builder.
-
 **26 · Client portability excludes** invoices/expenses/challenges — a ported client's payment ledger
 doesn't travel. Documented scope choice, not an oversight.
 
-**68 · (S20/S21, NEW) Client portability also excludes `foodEntries` — same shape as DEBT-26, not yet
-documented as a choice.** `db/portability.ts`'s `exportClientPackage`/`rekeyClientPackage` never gained a
-food-log branch when the food feature shipped. A client's diet history doesn't travel with them to a new
-coach or a rekeyed package. Real health data, worth closing deliberately rather than leaving silent —
-note `FoodEntry.foodItemId` points at a *shared*, non-client-scoped `FoodItem` cache row (keyed by
-barcode), so a correct fix needs to decide whether to bundle the referenced `FoodItem`s into the package
-too, not just remap `FoodEntry` the way `habitEntries` remaps `habitId`.
-
-**29 · GPU→CPU delegate fallback never tested** on hardware actually lacking WebGL2. The fallback path
-is structurally sound; the GPU path is what's been verified.
-
 **48 · Dual-clip tracking's hardware cost is unmeasured.** `'both'` mode runs two concurrent MediaPipe
 instances. It's opt-in *because* of this, but never tested on hardware marginal for even one.
-
-**49 · `vite-plugin-pwa` blocked** by its Vite `^6` peer cap; both apps are on Vite 8. Manifest + service
-worker are hand-rolled instead. Revisit when the plugin supports Vite 8.
-
-**54 · Electron LAN sync loop needs one two-device pass.** Contract-verified against a stub and the IPC
-response bug is fixed, but the real GUI-hosting-a-phone-sync loop has never run.
 
 **57 · Web Push needs one real-device round trip.** Server side fully verified via curl; the
 grant→subscribe→deliver→notification path can't be exercised in a sandbox that hard-denies prompts.
@@ -72,44 +54,95 @@ minute. UI says so. Minute-accuracy needs the Capacitor wrap.
 **58 · Lighthouse and cross-browser never run.** One browser engine available, no Lighthouse CLI.
 Unmeasured, not failing.
 
-**60 · `sync.ts`, `pose.ts`, `core.ts`, `singleFlight` duplicated** across the two apps — separate npm
-projects, no shared package. Three copies was the stated trigger for extracting a workspace. We're past it.
+**60 · Code copied between the two apps and the server** — separate npm projects, no shared package.
+S24 made the copies *checked*, not shared: `pose.ts` must be byte-identical (Companion `lib/core.test.ts`),
+and the synced-table list + licence public key must match between app and server (`lib/cloud/syncEngine.test.ts`).
+`core.ts` is deliberately different per app (Companion's is a small subset) — S24 found its `today()` was
+the UTC day, fixed.
 
-**62 · Service worker is cache-first with background revalidate**, so the first load after an update can
-serve the previous build. "Reload twice" is the honest answer. Bump `CACHE` in `public/sw.js` on
-releases where it matters.
-
-**64 · i18n: ~53 of 57 components still hold hardcoded English.** Layer + RTL are done and the pattern
-is proven. `es.json`/`ar.json` are **seed translations** marked in their own `_meta` — must not ship to
-customers as finished locales.
+**64 · i18n: about 13 components still hold hardcoded English** (re-measured S27 — the old "~53 of 57"
+was stale: 30 of 55 feature components already use `t()`). Calendar, Messages, Team, Leads, Leaderboard, Reports, Studio (hub + location), Library (+ video viewer) converted S27; Program Builder (incl. outline, grid, rows, exercise search), Onboarding wizard, sign-in/Account, Programs list,
+session logger, Quick log, rest timer, log-sheet scan S28. Biggest left: Settings
+Guide, Film Room, Assistant. Pattern for engine prose (S28): `lib/i18n/msg.ts` — an engine returns a `Msg`
+(key + params, params may nest) beside its English string, both from one catalogue entry; UI calls
+`renderMsg(msg, t)`. Done: `progression.ts`, `readiness.ts`, `nutrition.ts`, `nutritionAdvanced.ts`,
+`energyAvailability.ts` (all of the Nutrition + Science tabs), `trainingLoad.ts`, `quickLog.ts` (questions +
+`describePlanMsgs`), `goals.ts` (static copy as `goal.<id>.*` keys + a drift test). `parq.ts` is a validated questionnaire —
+use an official PAR-Q+ translation, don't machine-translate it. Citations (`source`) stay untranslated on purpose. `lib/schedule.ts` `describeRule()` still returns English. **The science screens (Nutrition, Film Room
+summaries, readiness) are mostly engine-written prose from `lib/` (rationale, notes, warnings)** — translating
+only their component labels yields a half-English page; those engines need message keys + params first. Layer + RTL are done.
+`es.json`/`ar.json` are **seed translations** marked in their own `_meta` — must not ship to customers
+as finished locales.
 
 **65 · `symptomReadinessContribution()` has zero callers.** Correct and tested, but the only device with
 cycle data is Companion, which has no readiness engine, and cycle rows are kept out of the sync payload
 by construction. **Do not close this by adding cycle rows to the payload** — a test forbids it. Needs a
 product decision: build readiness in Companion, or a per-field opt-in sharing only this number.
 
-**69 · (S21, NEW) `CommandPalette.tsx` no longer has an "Ask the Assistant" entry.** The `/assistant`
-route and `AssistantPage.tsx` are still fully wired in `router.tsx` and reachable by URL, but the
-palette's `Bot` icon import was unused (removed as part of this session's compile-error cleanup) and no
-`t('...')`/assistant search result exists anywhere in the file. Either this was intentionally dropped at
-some point and the dead import is the only leftover, or it's a real, if minor, discoverability
-regression. Wasn't rebuilt blind without knowing which — worth 10 minutes to decide and, if it should
-come back, re-add one entry matching the palette's existing pattern.
+**72 · (S22, NEW) The pitch deck still sells the old model.** `Coachwright Pitch Deck.dc.html` headlines
+"$60. Forever." / "$60 once", and root `BRANDING_PLAN.md` §1's positioning says "buy once and own
+outright". `BRANDING_PLAN.md` §5 and `STRONGSUIT_MASTER_SPEC.md` now carry a superseded banner; the deck
+and the positioning statement were left alone because rewriting a pitch is a brand decision, not a doc
+sweep (`AGENTS.md` §7). Caleb to rewrite or retire the deck. **Same for `PRODUCT_OVERVIEW.md` §8's
+Membership row** ("Everything in Free, uncapped: unlimited clients, program builder, full Film Room,
+business tools") — it reads as if Free lacks those, which the code does not do (DEBT-70). §8 is
+Caleb-only per `AGENTS.md` §7, so it was not edited.
 
-**66 · (S15, NEW) The free-tier client cap is soft.** `canAddClient()` checks the coach's own IndexedDB;
-a determined user can edit it. This was fine when licensing was cosmetic — it now guards revenue.
-Unfixable without server-authoritative accounts, which would mean a different product. Accepted, but
-name it honestly rather than assuming it's enforcement.
+**77 · (S23, NEW) Progress photos sync as data URLs inside JSON rows.** Simple and works, but it's the
+largest storage/bandwidth cost per coach and makes every photo edit re-upload the image. Move to object
+storage (S3/R2) with signed URLs when volume justifies it.
+
+**80 · (S24, NEW) Password-reset email has never really been sent.** The flow is tested end to end with
+the mailer stubbed, and live in Chromium via the dev console "mail"; the Postmark call itself
+(`mailer.send` in `server.ts`) has never hit Postmark. Needs an account + verified sender (Caleb), then
+one real reset.
+
+**81 · (S24, NEW) The free cap's "never claw back" allowance trusts the first push.** An account's first
+`/data/push` sets its allowance to however many active clients it carries — that's how a pre-cloud
+install keeps its roster. A hand-crafted first push could claim a bigger allowance once. Accepted: the
+cap is a nudge, and the in-app check still applies. Same for `isDemo` (S28): sample clients don't count,
+so a crafted push could mark real clients as samples.
+
+**82 · (S24, NEW) Deleting the account clears only the device it was deleted from.** Other signed-in
+devices are signed out (their session is gone) but keep their local copy until someone signs in there
+(which replaces it) or they export and wipe it. Say so if a coach asks for erasure "everywhere".
+
+**83 · (S26, NEW) Booking slots ride on the trainer row.** The open slots are published as
+`trainer.bookingSlots`, so the whole trainer row (logo data URL included) re-uploads whenever the offer
+changes — about once a day as the 14-day window rolls, plus on every booking/calendar change. Fine at
+today's sizes; move slots to their own row if the logo grows or coaches have many locations. Same
+family: since S26 the logo (≤256px PNG) also rides in every Companion `/client/bundle` response.
+
+**86 · (S28, NEW) The Nutrition tab contradicts itself on an ordinary cut.** The default plan (15% deficit,
+`lib/nutrition.ts`) for an 80 kg, 18% body-fat, moderately active man is ~2270 kcal; the energy-availability
+screen (`lib/energyAvailability.ts`) puts that at ~25 kcal/kg FFM and shows a red "below the safe threshold —
+refer to a sports dietitian" card above the "moderate, sustainable deficit" rationale. Partly because training
+cost is approximated from the activity factor (TDEE − 1.2×BMR ≈ 600 kcal), and the EA thresholds come mostly
+from studies in women (the card says so). Needs a science decision, not a silent tweak: soften the male/
+approximated case to amber, size the default deficit by EA, or keep it as is. Not changed.
+
+**85 · (S28) Companion deletions never reached the coach — RESOLVED S28.** Server now stamps client-pushed
+rows `source: 'companion-import'` and accepts a client delete only for such a row of its own (anything
+else is dropped as stale); Companion soft-deletes, uploads the delete, then purges. Tests in
+`companionSyncApi.test.ts` + server. Logs pushed before S28 (old shape, no stamp) exist only in test
+accounts — no migration.
+
+**84 · (S26; built S27) Coach notifications — code done, email never really sent.** While the app is
+open: opt-in system notifications (`lib/coachNotify.ts`). While it's closed: opt-in email
+(Settings → Notifications → "Also email me", server `notifyCoachByEmail`: client's first name only, never
+the message text, at most one per 30 min). The email path is tested with the mailer stubbed and has
+never reached Postmark (same blocker as DEBT-80). Neither has been seen on a real desktop.
+
+**79 · (S23, NEW) Old pricing tiers still described in strategy docs.** The $15/mo managed relay and the
+free self-hosted relay no longer exist. `SERVER_STRATEGY.md`, `CLIENT_APP_STRATEGY.md`,
+`PRODUCT_OVERVIEW.md` carry a superseded banner rather than a rewrite (§8 is Caleb-only). Also decide
+whether cloud storage for free-tier coaches needs a limit.
 
 ---
 
 ## ⚪ Cosmetic / cleanup
 
-**1** Dashboard attention-queue scans all logs in memory — fine at current scale.
 **2** Two `as any` casts at Dexie generic boundaries — documented, contained.
-**3** No ESLint flat-config customization yet.
-**5** `CalendarPage` placeholder export still in `placeholders.tsx` — dead, unimported.
-**13** Keyboard transport (Space/←/→) drives only the master video; the Reference bar is mouse-only.
 **14** Spec/doc *filenames* still say STRONGSUIT (`STRONGSUIT_MASTER_SPEC.md`). Product is Coachwright.
 
 ---

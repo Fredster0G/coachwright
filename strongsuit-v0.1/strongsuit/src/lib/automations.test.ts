@@ -153,3 +153,13 @@ describe('DEFAULT_RULES', () => {
     expect(trend?.active).toBe(true)
   })
 })
+
+describe('no-session rule for a client who has never logged', () => {
+  it('says so in words, not "ever days"', () => {
+    const client = { id: 'c', firstName: 'A', lastName: 'B', status: 'active' } as unknown as Client
+    const facts = new Map<string, ClientFacts>([['c', { clientId: 'c', hasScreening: true, screeningCleared: true }]])
+    const items = evaluateAutomations({ clients: [client], facts, rules: DEFAULT_RULES, today: '2026-09-28' })
+    const msg = items.find(i => i.ruleId === 'default-no-session')?.message
+    expect(msg).toBe('No session logged yet')
+  })
+})

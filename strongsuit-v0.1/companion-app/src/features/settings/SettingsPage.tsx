@@ -6,7 +6,7 @@ import { profileRepo, coachLinkRepo } from '@/db/repo'
 import { exportBackup, downloadText, importBackup } from '@/db/backup'
 import { enablePush, disablePush, pushSupported } from '@/lib/push'
 import type { CompanionProfile, Units, Theme } from '@/db/types'
-import { PersonalCloudCard } from './PersonalCloudCard'
+import { today } from '@/lib/core'
 import { CoachCard } from './CoachCard'
 
 function NotificationsCard({ profile, onChanged }: { profile: CompanionProfile; onChanged: () => void }) {
@@ -24,7 +24,7 @@ function NotificationsCard({ profile, onChanged }: { profile: CompanionProfile; 
       } else if (link) {
         setStatus(await enablePush(link))
       } else {
-        setStatus('Pair with a coach first — notifications are about what they send you.')
+        setStatus('Connect to a coach first — notifications are about what they send you.')
       }
       onChanged()
     } finally {
@@ -79,6 +79,7 @@ export function SettingsPage({ profile, onProfileChange }: {
   onProfileChange: (p: CompanionProfile) => void
 }) {
   const fileRef = useRef<HTMLInputElement>(null)
+  const [restoreMsg, setRestoreMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   async function patch(changes: Partial<CompanionProfile>) {
     await profileRepo.patch(changes)
@@ -88,14 +89,21 @@ export function SettingsPage({ profile, onProfileChange }: {
 
   async function backupNow() {
     const backup = await exportBackup()
-    downloadText(`companion-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(backup, null, 2))
+    downloadText(`companion-backup-${today()}.json`, JSON.stringify(backup, null, 2))
   }
 
+  // Restore REPLACES everything on the phone, so it asks first; a wrong file
+  // used to throw silently (nothing on screen) after no warning at all.
   async function onImport(file: File) {
-    const text = await file.text()
-    await importBackup(text)
-    const updated = await profileRepo.get()
-    if (updated) onProfileChange(updated)
+    if (!window.confirm('Restore replaces everything on this phone with the backup file. Continue?')) return
+    try {
+      await importBackup(await file.text())
+      const updated = await profileRepo.get()
+      if (updated) onProfileChange(updated)
+      setRestoreMsg({ ok: true, text: 'Restored.' })
+    } catch (err) {
+      setRestoreMsg({ ok: false, text: err instanceof SyntaxError ? 'That file isn’t a Companion backup.' : err instanceof Error ? err.message : String(err) })
+    }
   }
 
   return (
@@ -132,7 +140,6 @@ export function SettingsPage({ profile, onProfileChange }: {
         if (updated) onProfileChange(updated)
       }} />
 
-      <PersonalCloudCard profile={profile} />
 
       <CycleCard enabled={!!profile.cycleTrackingEnabled} />
 
@@ -150,6 +157,7 @@ export function SettingsPage({ profile, onProfileChange }: {
           <input ref={fileRef} type="file" accept="application/json" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onImport(f); e.target.value = '' }} />
           <Button variant="secondary" className="flex-1" onClick={() => fileRef.current?.click()}>Restore</Button>
         </div>
+        {restoreMsg && <p role="status" className={`mt-2 text-xs ${restoreMsg.ok ? 'text-verde-600' : 'text-signal-600'}`}>{restoreMsg.text}</p>}
       </Card>
     </div>
   )

@@ -24,11 +24,16 @@
 
 import type { ActivityLevel, NutritionGoal, Sex, Units } from '@/db/types'
 import { KG_PER_LB } from './core'
+import { english, type Msg } from './i18n/msg'
 
 export interface RationaleLine {
-  text: string    // why this number, in plain coach language
-  source: string  // the citation
+  text: string    // why this number, in plain coach language (English)
+  source: string  // the citation (not translated — it's a reference)
+  msg?: Msg       // `text`, translatable (lib/i18n/msg.ts)
 }
+
+/** A rationale line whose English text and translatable message share one catalogue entry. */
+const line = (m: Msg, source: string): RationaleLine => ({ text: english(m), source, msg: m })
 
 export interface NutritionPlan {
   bmr: number
@@ -40,6 +45,7 @@ export interface NutritionPlan {
   fiberG: number
   waterL: number
   weeklyRateNote: string
+  weeklyRateMsg: Msg
   rationale: {
     calories: RationaleLine
     protein: RationaleLine
@@ -92,6 +98,7 @@ export function nutritionPlan(opts: {
   // calories: moderate 15% deficit / 10% surplus, floored so a cut never
   // drops below resting needs (aggressive cuts belong to a clinician).
   let calories = tdee
+  const floored = goal === 'cut' && Math.round(tdee * 0.85) < bmr
   if (goal === 'cut') calories = Math.max(Math.round(tdee * 0.85), bmr)
   if (goal === 'gain') calories = Math.round(tdee * 1.1)
   calories = round5(calories)
@@ -111,44 +118,38 @@ export function nutritionPlan(opts: {
 
   const deficit = tdee - calories
   const weeklyKg = (deficit * 7) / 7700 // ≈7,700 kcal per kg of tissue
-  const weeklyRateNote =
+  // The cut note used to say "inside the 0.5–1%/week range" whatever the
+  // actual rate — a big client at 15% is past 1%, a BMR-floored one under 0.5%.
+  const kgWeek = Math.abs(weeklyKg).toFixed(2)
+  // Classified on the same 0.1 rounding it's printed with, or "0.5% — gentler than 0.5–1%".
+  const pct = Math.round((Math.abs(weeklyKg) / weightKg) * 1000) / 10
+  const weeklyRateMsg: Msg =
     goal === 'cut'
-      ? `Expected loss ≈ ${Math.abs(weeklyKg).toFixed(2)} kg/week (${((Math.abs(weeklyKg) / weightKg) * 100).toFixed(1)}% of bodyweight) — inside the 0.5–1%/week range research links to keeping muscle while dieting.`
+      ? { key: pct < 0.5 ? 'nutrition.rate.cutSlow' : pct > 1 ? 'nutrition.rate.cutFast' : 'nutrition.rate.cut', params: { kg: kgWeek, pct: pct.toFixed(1) } }
       : goal === 'gain'
-        ? `Expected gain ≈ ${Math.abs(weeklyKg).toFixed(2)} kg/week — a lean surplus; faster mostly adds fat.`
-        : 'Maintenance: expect bodyweight to hold within normal daily fluctuation (±1–2%).'
+        ? { key: 'nutrition.rate.gain', params: { kg: kgWeek } }
+        : { key: 'nutrition.rate.maintain' }
+  const weeklyRateNote = english(weeklyRateMsg)
 
   return {
-    bmr, tdee, calories, proteinG, fatG, carbsG, fiberG, waterL, weeklyRateNote,
+    bmr, tdee, calories, proteinG, fatG, carbsG, fiberG, waterL, weeklyRateNote, weeklyRateMsg,
     rationale: {
-      calories: {
-        text: goal === 'cut'
-          ? `Resting burn is ~${bmr} kcal; with activity ~${tdee} kcal/day. A moderate 15% deficit (${calories} kcal) trades fat for minimal muscle loss and is sustainable — crash deficits rebound.`
+      calories: line(
+        goal === 'cut'
+          ? { key: floored ? 'nutrition.why.caloriesCutFloored' : 'nutrition.why.caloriesCut', params: { bmr, tdee, calories } }
           : goal === 'gain'
-            ? `Maintenance is ~${tdee} kcal/day. A 10% surplus (${calories} kcal) supports muscle growth while limiting fat gain.`
-            : `Maintenance ≈ ${tdee} kcal/day: resting burn ~${bmr} kcal × ${ACTIVITY_FACTORS[activity].factor} activity factor.`,
-        source: 'Mifflin et al. 1990 (Am J Clin Nutr); Frankenfield et al. 2005 accuracy review; Helms et al. 2014 (JISSN) deficit sizing',
-      },
-      protein: {
-        text: `${proteinPerKg} g per kg bodyweight = ${proteinG} g/day. ${goal === 'cut' ? 'The high end matters most in a deficit — it is the strongest dietary lever for keeping muscle while losing fat.' : 'Meta-analysis found muscle-building benefits plateau around 1.6–2.2 g/kg — this hits that zone with margin.'}`,
-        source: 'Morton et al. 2018 (Br J Sports Med meta-analysis); Jäger et al. 2017 (ISSN Position Stand)',
-      },
-      fat: {
-        text: `25% of calories = ${fatG} g/day — inside the 20–35% range that supports hormone production without crowding out carbohydrate for training.`,
-        source: 'Institute of Medicine, Dietary Reference Intakes (2005) — AMDR',
-      },
-      carbs: {
-        text: `The remaining ${carbsG} g/day fuels training volume and recovery — carbohydrate is the primary fuel for hard sets.`,
-        source: 'Kerksick et al. 2018 (ISSN nutrient timing position stand)',
-      },
-      fiber: {
-        text: `${fiberG} g/day (14 g per 1,000 kcal) — satiety, digestion, and cardiovascular health; especially useful appetite control on a cut.`,
-        source: 'Institute of Medicine DRI (2005)',
-      },
-      water: {
-        text: `~${waterL} L/day baseline, more on heavy training days to replace sweat losses. Even 2% dehydration measurably drops performance.`,
-        source: 'Institute of Medicine (2005) Adequate Intake; ACSM fluid replacement guidance',
-      },
+            ? { key: 'nutrition.why.caloriesGain', params: { tdee, calories } }
+            : { key: 'nutrition.why.caloriesMaintain', params: { tdee, bmr, factor: ACTIVITY_FACTORS[activity].factor } },
+        'Mifflin et al. 1990 (Am J Clin Nutr); Frankenfield et al. 2005 accuracy review; Helms et al. 2014 (JISSN) deficit sizing',
+      ),
+      protein: line(
+        { key: goal === 'cut' ? 'nutrition.why.proteinCut' : 'nutrition.why.protein', params: { perKg: proteinPerKg, grams: proteinG } },
+        'Morton et al. 2018 (Br J Sports Med meta-analysis); Jäger et al. 2017 (ISSN Position Stand)',
+      ),
+      fat: line({ key: 'nutrition.why.fat', params: { grams: fatG } }, 'Institute of Medicine, Dietary Reference Intakes (2005) — AMDR'),
+      carbs: line({ key: 'nutrition.why.carbs', params: { grams: carbsG } }, 'Kerksick et al. 2018 (ISSN nutrient timing position stand)'),
+      fiber: line({ key: 'nutrition.why.fiber', params: { grams: fiberG } }, 'Institute of Medicine DRI (2005)'),
+      water: line({ key: 'nutrition.why.water', params: { litres: waterL } }, 'Institute of Medicine (2005) Adequate Intake; ACSM fluid replacement guidance'),
     },
   }
 }
@@ -185,38 +186,40 @@ export function carbCycle(plan: NutritionPlan, trainingDaysPerWeek: number): Cyc
 
   return {
     trainingDay, restDay,
-    rationale: {
-      text: `Training days: ${trainingDay.carbsG}g carbs (${trainingDay.calories} kcal). Rest days: ${restDay.carbsG}g carbs (${restDay.calories} kcal). Protein and fat stay flat — only carbohydrate shifts to match training demand, and the weekly average still lands on the same target as the flat plan above.`,
-      source: 'Periodized/nutrient-timing carb cycling: Kerksick et al. 2018 (ISSN nutrient timing position stand); Aragon & Schoenfeld 2013 (nutrient timing review)',
-    },
+    rationale: line(
+      { key: 'nutrition.why.cycle', params: { tCarbs: trainingDay.carbsG, tKcal: trainingDay.calories, rCarbs: restDay.carbsG, rKcal: restDay.calories } },
+      'Periodized/nutrient-timing carb cycling: Kerksick et al. 2018 (ISSN nutrient timing position stand); Aragon & Schoenfeld 2013 (nutrient timing review)',
+    ),
   }
 }
 
 // ---- Diet-break awareness (spec §4.18c expansion) ----
-export interface DietBreakAdvice { recommend: boolean; note: string; source: string }
+export interface DietBreakAdvice { recommend: boolean; note: string; noteMsg: Msg; source: string }
 
 /** After enough consecutive weeks in a deficit, research supports a planned
  *  1–2 week return to maintenance ("diet break") — better long-run adherence
  *  and some evidence of protecting resting metabolic rate, without giving
  *  back meaningful fat-loss progress. */
+const note = (m: Msg) => ({ note: english(m), noteMsg: m })
+
 export function dietBreakAdvice(weeksInDeficit: number): DietBreakAdvice {
   if (weeksInDeficit >= 12) {
     return {
       recommend: true,
-      note: `${weeksInDeficit} weeks in a deficit is a long block. A 1–2 week diet break (eat at maintenance, keep training) is well past due — it tends to improve adherence and may protect against metabolic adaptation, without erasing fat-loss progress.`,
+      ...note({ key: 'nutrition.break.overdue', params: { weeks: weeksInDeficit } }),
       source: 'Trexler, Smith-Ryan & Norton 2014 (JISSN) — adaptive thermogenesis & diet breaks; Peos et al. 2019 (Sports) intermittent energy restriction review',
     }
   }
   if (weeksInDeficit >= 8) {
     return {
       recommend: true,
-      note: `${weeksInDeficit} weeks in — a 1–2 week maintenance break in the next couple of weeks is a reasonable, evidence-supported call, especially if adherence or motivation is slipping.`,
+      ...note({ key: 'nutrition.break.soon', params: { weeks: weeksInDeficit } }),
       source: 'Trexler, Smith-Ryan & Norton 2014 (JISSN)',
     }
   }
   return {
     recommend: false,
-    note: `${weeksInDeficit} weeks in — no break needed yet; most protocols wait 8–12+ weeks before the first one.`,
+    ...note({ key: 'nutrition.break.notYet', params: { weeks: weeksInDeficit } }),
     source: 'Trexler, Smith-Ryan & Norton 2014 (JISSN)',
   }
 }

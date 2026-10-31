@@ -11,6 +11,7 @@
 //   pre-participation health screening algorithm.
 
 import type { ParqAnswer, ScreeningResult } from '@/db/types'
+import { today } from './core'
 
 /** The seven core PAR-Q+ general-health questions (plain-language). */
 export const PARQ_QUESTIONS: string[] = [
@@ -30,7 +31,7 @@ export const PARQ_QUESTIONS: string[] = [
 export function screen(answers: ParqAnswer[], note?: string): ScreeningResult {
   const flags = answers.filter(a => a.yes).map(a => a.q)
   return {
-    date: new Date().toISOString().slice(0, 10),
+    date: today(),
     answers,
     cleared: flags.length === 0,
     flags,

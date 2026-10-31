@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Cpu, RefreshCw, Check, Lock, Ban, Download, Trash2, X } from 'lucide-react'
+import { Cpu, RefreshCw, Check, Ban, Download, Trash2, X } from 'lucide-react'
 import { Button, Card } from '@/design'
 import {
   offersFor, defaultSelection, totalDownloadMb, fitsOnDisk,
@@ -12,7 +12,7 @@ import { installEmbeddingsModel, removeEmbeddingsModel, EMBEDDINGS_MODEL_ID } fr
 import { installSpeechModel, removeSpeechModel, SPEECH_MODEL_ID } from '@/lib/speech'
 import { installAssistantModel, removeAssistantModel, ASSISTANT_MODEL_ID } from '@/lib/assistant'
 import { installOcrModel, removeOcrModel, OCR_MODEL_ID } from '@/lib/ocr'
-import { trainerRepo, modelBlobsRepo } from '@/db/repo'
+import { modelBlobsRepo } from '@/db/repo'
 import { probeHardware } from './hardwareProbe'
 
 /** Models with a real install path even without a single-file `url` — all
@@ -29,9 +29,9 @@ const SPECIAL_INSTALL_IDS = new Set([EMBEDDINGS_MODEL_ID, SPEECH_MODEL_ID, ASSIS
  *
  * What this screen is still careful about, unchanged from before:
  *
- * · It shows EVERY model, including the ones this machine, licence, or build
- *   can't have, each with the reason. A silently shorter list leaves the
- *   user unable to tell whether it's their hardware, their edition, or a bug.
+ * · It shows EVERY model, including the ones this machine or build can't
+ *   have, each with the reason. A silently shorter list leaves the user
+ *   unable to tell whether it's their hardware or a bug.
  * · It never claims a measurement it doesn't have, or a capability it can't
  *   back up — a model with no `url` says plainly it isn't downloadable yet
  *   in this build, rather than showing a button that goes nowhere.
@@ -39,8 +39,6 @@ const SPECIAL_INSTALL_IDS = new Set([EMBEDDINGS_MODEL_ID, SPEECH_MODEL_ID, ASSIS
  *   fallback — the app's numbers come from the engines, not a model.
  */
 export function LocalAiCard() {
-  const trainer = useLiveQuery(() => trainerRepo.get())
-  const edition = trainer?.edition
   const [hw, setHw] = useState<HardwareProfile | null>(null)
   const [checking, setChecking] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
@@ -57,16 +55,16 @@ export function LocalAiCard() {
     try {
       const profile = await probeHardware()
       setHw(profile)
-      setSelected(defaultSelection(profile, edition))
+      setSelected(defaultSelection(profile))
     } finally {
       setChecking(false)
     }
-  }, [edition])
+  }, [])
 
   useEffect(() => { void runCheck() }, [runCheck])
 
   const cls = hw ? classifyHardware(hw) : 'unknown'
-  const offers = hw ? offersFor(hw, edition) : []
+  const offers = hw ? offersFor(hw) : []
   const sizeMb = totalDownloadMb(selected)
   const fit = fitsOnDisk(selected, hw?.freeDiskGb)
 
@@ -259,9 +257,6 @@ function OfferRow({ offer, checked, installed, progress, onToggle, onRemove }: {
               <span className="inline-flex items-center gap-0.5 text-2xs text-verde-600">
                 <Check size={11} /> recommended
               </span>
-            )}
-            {offer.state === 'blocked-edition' && (
-              <span className="inline-flex items-center gap-0.5 text-2xs text-muted"><Lock size={11} /> upgrade</span>
             )}
             {offer.state === 'blocked-hardware' && (
               <span className="inline-flex items-center gap-0.5 text-2xs text-muted"><Ban size={11} /> unavailable</span>

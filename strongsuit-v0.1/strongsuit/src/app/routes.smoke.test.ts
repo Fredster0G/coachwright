@@ -31,7 +31,7 @@ const LAZY_ROUTES: Record<string, () => Promise<{ default?: unknown }>> = {
   '/science': () => import('@/features/science/SciencePage'),
   '/locations/:id': () => import('@/features/studio/LocationDetailPage'),
   '/business': () => import('@/features/business/BusinessPage'),
-  '/sync': () => import('@/features/sync/SyncCenterPage'),
+  '/sync': () => import('@/features/account/AccountPage'),
   '/reports': () => import('@/features/reports/ReportsPage'),
   '/team': () => import('@/features/team/TeamPage'),
   '/studio': () => import('@/features/studio/StudioHubPage'),

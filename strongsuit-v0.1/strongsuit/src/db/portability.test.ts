@@ -118,3 +118,54 @@ describe('exportStaffClientBundle', () => {
     expect(bundle[0].client.id).toBe(a.id)
   })
 })
+
+describe('food log portability (DEBT-68)', () => {
+  it('exports the client\'s food entries with exactly the FoodItems they reference', async () => {
+    const a = await seedClient()
+    await db.foodItems.bulkAdd([
+      { id: 'f1', barcode: '111', name: 'Oats', calories: 150, protein: 5, carbs: 27, fat: 3, createdAt: '', updatedAt: '' },
+      { id: 'f2', barcode: '222', name: 'Unrelated', calories: 1, protein: 0, carbs: 0, fat: 0, createdAt: '', updatedAt: '' },
+    ])
+    await db.foodEntries.bulkAdd([
+      { id: 'fe1', clientId: a.id, date: '2026-01-01', foodItemId: 'f1', meal: 'breakfast', servings: 2, createdAt: '', updatedAt: '' },
+      { id: 'fe2', clientId: 'other', date: '2026-01-01', foodItemId: 'f2', meal: 'lunch', servings: 1, createdAt: '', updatedAt: '' },
+    ])
+    const pkg = await exportClientPackage(a.id)
+    expect(pkg.foodEntries?.map(e => e.id)).toEqual(['fe1'])
+    expect(pkg.foodItems?.map(f => f.id)).toEqual(['f1'])
+  })
+
+  it('round-trips: imported entries point at a real item with the same macros', async () => {
+    const a = await seedClient()
+    await db.foodItems.add({ id: 'f1', barcode: '111', name: 'Oats', calories: 150, protein: 5, carbs: 27, fat: 3, createdAt: '', updatedAt: '' })
+    await db.foodEntries.add({ id: 'fe1', clientId: a.id, date: '2026-01-01', foodItemId: 'f1', meal: 'breakfast', servings: 2, createdAt: '', updatedAt: '' })
+    const text = JSON.stringify(await exportClientPackage(a.id))
+    for (const table of db.tables) await table.clear()
+
+    const [report] = await importClientPackageText(text)
+    expect(report.recordsImported).toBe(3) // client + item + entry
+    const [entry] = await db.foodEntries.toArray()
+    const item = await db.foodItems.get(entry.foodItemId)
+    expect(item?.name).toBe('Oats')
+    expect(entry.clientId).toBe((await db.clients.toArray())[0].id)
+  })
+
+  it('reuses a destination FoodItem with the same barcode instead of duplicating it', async () => {
+    const a = await seedClient()
+    await db.foodItems.add({ id: 'f1', barcode: '111', name: 'Oats', calories: 150, protein: 5, carbs: 27, fat: 3, createdAt: '', updatedAt: '' })
+    await db.foodEntries.add({ id: 'fe1', clientId: a.id, date: '2026-01-01', foodItemId: 'f1', meal: 'breakfast', servings: 1, createdAt: '', updatedAt: '' })
+    const text = JSON.stringify(await exportClientPackage(a.id))
+
+    await importClientPackageText(text) // same DB still holds f1 → dedupe
+    expect(await db.foodItems.count()).toBe(1)
+    const imported = (await db.foodEntries.toArray()).find(e => e.id !== 'fe1')!
+    expect(imported.foodItemId).toBe('f1')
+  })
+
+  it('imports a pre-S23 package with no food fields', async () => {
+    const a = await seedClient()
+    const pkg = await exportClientPackage(a.id)
+    delete pkg.foodEntries; delete pkg.foodItems
+    await expect(importClientPackageText(JSON.stringify(pkg))).resolves.toHaveLength(1)
+  })
+})
