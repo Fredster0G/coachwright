@@ -70,12 +70,25 @@ export default function LogsTab({ clientId, clientUnits }: LogsTabProps) {
     return <div className="py-12 flex justify-center"><LogoSpinner className="text-faint" size={24} /></div>
   }
 
+  // The import control shows with or without history: the first sessions a
+  // client sends back from a Companion file arrive when there are none yet,
+  // and it used to exist only once there was at least one log.
+  const importControl = (
+    <div>
+      <input type="file" id="import-companion" accept=".ssdata" className="hidden" onChange={handleImport} />
+      <label htmlFor="import-companion" className="cursor-pointer inline-flex items-center justify-center bg-surface border border-line text-ink px-3 py-1.5 rounded-md font-medium text-sm hover:opacity-80 transition-opacity">
+        <DownloadCloud size={14} className="me-1.5" /> {t('clients.logs.importData')}
+      </label>
+    </div>
+  )
+
   if (logs.length === 0) {
     return (
-      <EmptyState 
+      <EmptyState
         icon={<Activity size={28} strokeWidth={1.5} />}
-        title={t('clients.logs.emptyTitle')} 
-        body={t('clients.logs.emptyBody')} 
+        title={t('clients.logs.emptyTitle')}
+        body={t('clients.logs.emptyBody')}
+        action={importControl}
       />
     )
   }
@@ -84,12 +97,7 @@ export default function LogsTab({ clientId, clientUnits }: LogsTabProps) {
     <div className="max-w-3xl">
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-lg">{t('clients.logs.title')}</h3>
-        <div>
-          <input type="file" id="import-companion" accept=".ssdata" className="hidden" onChange={handleImport} />
-          <label htmlFor="import-companion" className="cursor-pointer inline-flex items-center justify-center bg-surface border border-line text-ink px-3 py-1.5 rounded-md font-medium text-sm hover:opacity-80 transition-opacity">
-            <DownloadCloud size={14} className="me-1.5" /> {t('clients.logs.importData')}
-          </label>
-        </div>
+        {importControl}
       </div>
       <div className="space-y-4">
         {logs.map(log => {

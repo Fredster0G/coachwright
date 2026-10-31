@@ -39,6 +39,9 @@ Standing instruction: "always continue" — work through everything not blocked 
   template-copy were unreachable) or create a superset (row ⌘S hook unwired; drag between blocks no-op).
   Now: Program settings "Reusable template", Programs list "Duplicate", a link/unlink button per exercise.
   The Settings Guide claimed both, plus a 7-day backup shield (it's 30) — Guide corrected and extended.
+- **HTML Companion file** (Export Companion App): dated sessions by the UTC day (evening US workouts →
+  tomorrow) and logged a %1RM target as the weight lifted; the Logs tab hid "Import" until a client already
+  had a log, so the first returned file couldn't be imported. All fixed; round trip verified live (LA time).
 - **TV display** showed only the first set (5/3/1 read "3×5") and any active program → every set + the
   client's current program.
 - **Food Log** targets disagreed with Nutrition (own goal shortcut) → `goalPlan()`; float totals rounded;
