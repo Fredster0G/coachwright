@@ -1,15 +1,13 @@
 # S28 — program assignment, sample data, a live-testing bug sweep, i18n continues
 
 **Tool:** Claude Code · **Date:** 2026-10-03
-**Tests:** app 743/743 · server 32/32 · companion 115/115 · **Typecheck:** `tsc -b --force` clean (app, companion, electron, server) · oxlint/lint:tailwind 0 errors
+**Tests:** app 756/756 · server 32/32 · companion 116/116 · CI also builds both web bundles · **Typecheck:** `tsc -b --force` clean (app, companion, electron, server) · oxlint/lint:tailwind 0 errors
 
 ## Asked
 Standing instruction: "always continue" — work through everything not blocked on Caleb.
 
 ## Shipped (every item verified live in the browser, 0 console errors)
-- **Program assignment:** "Assign to client" rewrote the program in place (a template vanished from the
-  library) and nothing ever set `client.activeProgramId`. Now `programsRepo.assignToClient()` copies
-  templates, sets start date + active program, retires the previous one. 3 repo tests.
+- **Program assignment** rewrote templates in place and never set `activeProgramId` → `assignToClient()`.
 - **Onboarding sample clients** were bare rows with no remove path that ate the free cap. `db/demo.ts`
   now seeds program, 9 sessions, check-ins, weigh-ins; Clients page "Remove sample clients"; samples are
   outside the free cap (app + server). 2 + 1 tests.
@@ -22,9 +20,8 @@ Standing instruction: "always continue" — work through everything not blocked 
   real server; live: client "back squat 5×225 lb" → coach "Back Squat 102.1 × 5".
   Measurements too: bodyweight went up as a unitless "measurement" (missing from the coach's chart, read as
   lb by nutrition) → coach `bodyweight` type in coach units; tape measurements were shown as "32 lb" → in/cm.
-- **Quick log never opened** (palette returned `null` while closed; Quick log lives inside it).
-- **Dialogs never focused their input** — React `autoFocus` fires before `showModal()`, which then focuses
-  Close: typing after ⌘K went nowhere, Enter closed the palette. `Dialog` focuses `[data-autofocus]`.
+- **Quick log never opened** (palette returned `null` while closed). **Dialogs never focused their input**
+  (`autoFocus` fires before `showModal()`) → `Dialog` focuses `[data-autofocus]`.
 - **Session logger "done" saved nothing** though the box showed the target → `completeSet()`; %1RM/RPE
   targets no longer shown as weights. 4 tests.
 - **Builder:** edits within the 2 s autosave lost on leaving (flush on unmount); duplicate-week "+1 rep"
@@ -42,26 +39,20 @@ Standing instruction: "always continue" — work through everything not blocked 
 - **HTML Companion file** (Export Companion App): dated sessions by the UTC day (evening US workouts →
   tomorrow) and logged a %1RM target as the weight lifted; the Logs tab hid "Import" until a client already
   had a log, so the first returned file couldn't be imported. All fixed; round trip verified live (LA time).
-- **TV display** showed only the first set (5/3/1 read "3×5") and any active program → every set + the
-  client's current program.
-- **Food Log** targets disagreed with Nutrition (own goal shortcut) → `goalPlan()`; float totals rounded;
-  hover-only Remove; barcode camera left on if granted after close.
+- **TV display** showed only the first set (5/3/1 read "3×5") → every set, current program.
+- **Food Log** targets disagreed with Nutrition → `goalPlan()`; float totals; hover-only Remove; camera leak.
 - **Business:** last-month income and the 6-month chart skipped refunds (gross vs this month's net).
   **Coupons couldn't be created anywhere** (STATUS claimed "invoicing w/ coupons") → Settings → Coupons;
   an applied coupon froze its discount (10% stayed $10 after adding a line) and inactive codes applied at $0.
-- **Settings:** Membership bar counted sample clients; Licence card claimed "the key never leaves your
-  computer" (false since S23 — trainer row syncs, server re-verifies) → copy corrected. Companion
-  disconnect and Companion workout delete now confirm.
+- **Settings:** Membership bar counted sample clients; Licence card's "key never leaves your computer"
+  (false since S23) corrected. Companion disconnect/delete/restore confirm.
 - **Nutrition engine:** the cut note always claimed "inside the 0.5–1%/week range" (a typical client is
   under it) → states slower/inside/faster, classified on the printed rounding. Engine prose keyed via
   `lib/i18n/msg.ts` (also progression, readiness); Nutrition + Science tabs translated.
-- **i18n:** onboarding, Program Builder + sub-views, sign-in/reset, Account, Programs list, session
-  logger, Quick log (questions keyed by `status`), rest timer, scan, history drawer, TV, Membership,
-  Licence, Connect Companion, Food Log, barcode scanner.
+- **i18n:** ~25 more components; engines keyed (progression, readiness, nutrition ×3, training load, goals).
 
 ## Didn't do / couldn't
-- Settings Guide, Film Room, Nutrition, Science, Assistant still hold English; Nutrition/Science prose
-  comes from `lib/` engines (DEBT-64).
+- Settings Guide (rich JSX), Film Room, Assistant still English (DEBT-64). PAR-Q needs an official translation.
 
 ## New debt
 - **86** Nutrition tab's default cut trips its own red energy-availability warning — science call, logged.
@@ -69,5 +60,4 @@ Standing instruction: "always continue" — work through everything not blocked 
   only rows it authored; soft-delete → upload → purge; verified live).
 
 ## For the next session
-DEBT-64 (key the engines' prose: `progression.ts` reason, nutrition rationale); keep live-testing flows
-not yet driven end to end (Reports export, invoices email, Film Room on real video).
+DEBT-64 remainder; keep driving flows end to end (Film Room on real video, multi-device sync conflicts).

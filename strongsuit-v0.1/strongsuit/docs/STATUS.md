@@ -93,7 +93,7 @@ connection. **Free tier: up to 3 clients. Coachwright Membership: $29/mo, unlimi
   AI runtimes aliased to stubs). Main bundle 974KB → 456KB. Film Room pose tracking stays. Verified live:
   assistant, AI card and "Ask assistant" absent on web, present on desktop.
 - **Companion PWA** — standalone logging, assigned programs, messaging, reminders, Film Room self-review.
-  Connects with a code; push notifications via the cloud. 107 tests (P2P/E2EE suites deleted with the code).
+  Connects with a code; push notifications via the cloud. 116 tests. Logs/measurements reach the coach in the coach's shape and units (S28).
 - **Desktop** — Electron shell, native menu, window-state persistence, splash. One real GUI launch done (Windows). **S25:** the packaged-mode renderer (`app://`, via `CW_SERVE_DIST=1 electron .`) driven in Electron under Xvfb on Linux — loads, Print/TV windows now open (they silently didn't), `app://` path traversal refused. Film Room tracking falls back GPU→CPU without WebGL2; OCR reads a sheet end to end. Desktop now reports RAM to Local AI (it never did — every larger model was hidden).
 
 ## What is thin, stubbed, or unverified — the honest list
